@@ -303,10 +303,11 @@ export default function Home() {
   const handleProductChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type, checked } = event.target;
+    const target = event.target as HTMLInputElement;
+    const { name, value, type } = target;
     setProductForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? target.checked : value,
     }));
   };
 
