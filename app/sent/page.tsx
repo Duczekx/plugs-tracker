@@ -235,14 +235,15 @@ export default function SentPage() {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value, type, checked } = event.target;
+    const target = event.target as HTMLInputElement;
+    const { name, value, type } = target;
     setEditItemForm((prev) => ({
       ...prev,
       [name]:
         name === "quantity" || name === "serialNumber"
           ? Number(value)
           : type === "checkbox"
-          ? checked
+          ? target.checked
           : value,
     }));
   };
