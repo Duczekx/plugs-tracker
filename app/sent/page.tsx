@@ -180,7 +180,7 @@ export default function SentPage() {
   }, [shipments, filter]);
 
   const loadProducts = async () => {
-    const response = await fetch("/api/products");
+    const response = await fetch("/api/products", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(await response.text());
     }

@@ -197,7 +197,7 @@ export default function Home() {
   }, [groupedInventory, inventoryFilter]);
 
   const loadInventory = async () => {
-    const response = await fetch("/api/inventory");
+    const response = await fetch("/api/inventory", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(await response.text());
     }
@@ -206,7 +206,7 @@ export default function Home() {
   };
 
   const loadProducts = async () => {
-    const response = await fetch("/api/products");
+    const response = await fetch("/api/products", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(await response.text());
     }
