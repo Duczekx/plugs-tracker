@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import { Fraunces, Space_Grotesk } from "next/font/google";
+import "./globals.css";
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-serif",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Flaechenschneeschieber GmbH - Magazyn",
+  description: "Magazyn i wysylki plugow snieznych",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#f47c2f",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Flaechenschneeschieber",
+    statusBarStyle: "default",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="pl">
+      <body className={`${spaceGrotesk.variable} ${fraunces.variable}`}>
+        {children}
+      </body>
+    </html>
+  );
+}

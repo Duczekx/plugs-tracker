@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Variant {
+  ZINC
+  ORANGE
+}
+
+enum ValveType {
+  NONE
+  SMALL
+  LARGE
+}
+
+enum Model {
+  FL_640
+  FL_540
+  FL_470
+  FL_400
+  FL_340
+  FL_260
+}
+
+model InventoryItem {
+  id        Int      @id @default(autoincrement())
+  model     Model    @default(FL_540)
+  serialNumber Int @default(0)
+  variant   Variant
+  isSchwenkbock Boolean @default(false)
+  quantity  Int      @default(0)
+  isManual  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([model, serialNumber, variant, isSchwenkbock])
+}
+
+model Shipment {
+  id          Int      @id @default(autoincrement())
+  companyName String
+  firstName   String
+  lastName    String
+  street      String
+  postalCode  String
+  city        String
+  country     String
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  items       ShipmentItem[]
+}
+
+model ShipmentItem {
+  id            Int       @id @default(autoincrement())
+  shipmentId    Int
+  shipment      Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  model         Model     @default(FL_540)
+  serialNumber  Int       @default(0)
+  variant       Variant
+  isSchwenkbock Boolean   @default(false)
+  quantity      Int
+  buildNumber   String
+  buildDate     DateTime
+  bucketHolder  Boolean   @default(false)
+  valveType     ValveType @default(NONE)
+  extraParts    String?
+
+  @@index([shipmentId])
+}
