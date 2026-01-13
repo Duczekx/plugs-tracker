@@ -1530,6 +1530,75 @@ textarea {
   .card {
     padding: 22px;
   }
+
+  .card-narrow {
+    width: 100%;
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .view-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-list {
+    max-width: 100%;
+  }
+
+  .inventory-card {
+    padding: 18px;
+  }
+
+  .inventory-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inventory-stack {
+    gap: 10px;
+  }
+
+  .variant-block {
+    grid-template-columns: 1fr auto;
+  }
+
+  .shipment-summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .shipment-summary-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .address-compact {
+    max-width: 100%;
+  }
+
+  .shipment-items-card .form-row-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .parts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-field {
+    justify-items: start;
+    width: 100%;
+  }
+
+  .header-field input {
+    width: 100%;
+  }
 }
 
 .app-content > .card {
