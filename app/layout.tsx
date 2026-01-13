@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   title: "Flaechenschneeschieber GmbH - Magazyn",
   description: "Magazyn i wysylki plugow snieznych",
   manifest: "/manifest.webmanifest",
-  themeColor: "#f47c2f",
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -29,6 +28,10 @@ export const metadata: Metadata = {
     title: "Flaechenschneeschieber",
     statusBarStyle: "default",
   },
+};
+
+export const viewport = {
+  themeColor: "#f47c2f",
 };
 
 export default function RootLayout({
