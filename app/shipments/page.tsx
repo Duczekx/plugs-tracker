@@ -338,7 +338,7 @@ export default function ShipmentsPage() {
         </div>
 
         {notice && notice.type === "error" && (
-          <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
+          <div className="alert">
             {notice.message}
           </div>
         )}
