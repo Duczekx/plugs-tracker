@@ -613,7 +613,7 @@ export default function SentPage() {
                 {t.extraParts}
                 <textarea
                   name="extraParts"
-                  value={editItemForm.extraParts}
+                  value={editItemForm.extraParts ?? ""}
                   onChange={handleEditItemChange}
                 />
               </label>
