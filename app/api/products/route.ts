@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Model, Variant } from "@prisma/client";
+import { blockIfReadOnly } from "@/lib/access";
 
 export const runtime = "nodejs";
 
@@ -50,7 +51,12 @@ export async function GET() {
   return NextResponse.json(items);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const blocked = blockIfReadOnly(request);
+  if (blocked) {
+    return blocked;
+  }
+
   const body = await request.json();
   const model = String(body.model || "");
   const serialNumber = Number(body.serialNumber);
@@ -115,7 +121,12 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const blocked = blockIfReadOnly(request);
+  if (blocked) {
+    return blocked;
+  }
+
   const body = await request.json();
   const model = String(body.model || "");
   const serialNumber = Number(body.serialNumber);

@@ -117,6 +117,7 @@ export default function SentPage() {
     return "pl";
   });
   const pathname = usePathname();
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [filter, setFilter] = useState({
@@ -140,6 +141,10 @@ export default function SentPage() {
       window.localStorage.setItem("plugs-tracker-lang", lang);
     } catch {}
   }, [lang]);
+
+  useEffect(() => {
+    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+  }, []);
 
   const t = labels[lang];
 
@@ -277,6 +282,10 @@ export default function SentPage() {
 
   const handleAddEditItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!editItemForm.buildNumber.trim() || !editItemForm.buildDate) {
       setNotice({ type: "error", message: t.error + t.buildNumber });
       return;
@@ -307,16 +316,28 @@ export default function SentPage() {
   };
 
   const handleRemoveEditItem = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     setEditItems((prev) => prev.filter((_, idx) => idx !== index));
     setEditIndex((prev) => (prev === index ? null : prev));
   };
 
   const handleEditExistingItem = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     setEditItemForm(editItems[index]);
     setEditIndex(index);
   };
 
   const handleStartEdit = (shipment: Shipment) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     setEditId(shipment.id);
     setEditCustomer({
       companyName: shipment.companyName,
@@ -357,6 +378,10 @@ export default function SentPage() {
 
   const handleUpdateShipment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!editId) {
       return;
     }
@@ -384,6 +409,10 @@ export default function SentPage() {
   };
 
   const handleDeleteShipment = async (id: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!confirm(t.confirmDeleteShipment)) {
       return;
     }
@@ -484,6 +513,7 @@ export default function SentPage() {
           </div>
         </div>
 
+        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
         {notice && (
           <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
             {notice.message}
@@ -543,6 +573,7 @@ export default function SentPage() {
                     name="model"
                     value={editItemForm.model}
                     onChange={handleEditItemChange}
+                    disabled={isReadOnly}
                   >
                     {models.map((model) => (
                       <option key={model} value={model}>
@@ -558,6 +589,7 @@ export default function SentPage() {
                     name="serialNumber"
                     value={editItemForm.serialNumber}
                     onChange={handleEditItemChange}
+                    disabled={isReadOnly}
                   >
                     {productNumbersByModel[editItemForm.model].map((serial) => (
                       <option key={serial} value={serial}>
@@ -575,6 +607,7 @@ export default function SentPage() {
                     min={1}
                     value={editItemForm.quantity}
                     onChange={handleEditItemChange}
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -587,6 +620,7 @@ export default function SentPage() {
                     value={editItemForm.buildNumber}
                     onChange={handleEditItemChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
                 <label>
@@ -597,6 +631,7 @@ export default function SentPage() {
                     value={editItemForm.buildDate}
                     onChange={handleEditItemChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -609,6 +644,7 @@ export default function SentPage() {
                     name="variant"
                     value={editItemForm.variant}
                     onChange={handleEditItemChange}
+                    disabled={isReadOnly}
                   >
                       <option value="ZINC">{variantLabel.ZINC}</option>
                       <option value="ORANGE">{variantLabel.ORANGE}</option>
@@ -621,6 +657,7 @@ export default function SentPage() {
                     name="valveType"
                     value={editItemForm.valveType}
                     onChange={handleEditItemChange}
+                    disabled={isReadOnly}
                   >
                       {valveTypes.map((type) => (
                         <option key={type} value={type}>
@@ -638,6 +675,7 @@ export default function SentPage() {
                       name="isSchwenkbock"
                       checked={editItemForm.isSchwenkbock}
                       onChange={handleEditItemChange}
+                      disabled={isReadOnly}
                     />
                   </label>
                   <label className="switch">
@@ -647,6 +685,7 @@ export default function SentPage() {
                       name="bucketHolder"
                       checked={editItemForm.bucketHolder}
                       onChange={handleEditItemChange}
+                      disabled={isReadOnly}
                     />
                   </label>
                 </div>
@@ -657,6 +696,7 @@ export default function SentPage() {
                   name="extraParts"
                   value={editItemForm.extraParts ?? ""}
                   onChange={handleEditItemChange}
+                  disabled={isReadOnly}
                 />
               </label>
               <div className="form-actions">
@@ -672,7 +712,7 @@ export default function SentPage() {
                     {t.cancel}
                   </button>
                 )}
-                <button className="button" type="submit">
+                <button className="button" type="submit" disabled={isReadOnly}>
                   <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M5 12h9M12 8l4 4-4 4"
@@ -705,6 +745,7 @@ export default function SentPage() {
                         type="button"
                         className="button button-ghost button-small"
                         onClick={() => handleEditExistingItem(index)}
+                        disabled={isReadOnly}
                       >
                         {t.editItem}
                       </button>
@@ -712,6 +753,7 @@ export default function SentPage() {
                         type="button"
                         className="button button-ghost button-small"
                         onClick={() => handleRemoveEditItem(index)}
+                        disabled={isReadOnly}
                       >
                         <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                           <path
@@ -801,6 +843,7 @@ export default function SentPage() {
                   value={editCustomer.companyName}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <div className="form-row">
@@ -811,6 +854,7 @@ export default function SentPage() {
                     value={editCustomer.firstName}
                     onChange={handleCustomerChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
                 <label>
@@ -820,6 +864,7 @@ export default function SentPage() {
                     value={editCustomer.lastName}
                     onChange={handleCustomerChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -830,6 +875,7 @@ export default function SentPage() {
                   value={editCustomer.street}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <div className="form-row">
@@ -840,6 +886,7 @@ export default function SentPage() {
                     value={editCustomer.postalCode}
                     onChange={handleCustomerChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
                 <label>
@@ -849,6 +896,7 @@ export default function SentPage() {
                     value={editCustomer.city}
                     onChange={handleCustomerChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -860,6 +908,7 @@ export default function SentPage() {
                     value={editCustomer.country}
                     onChange={handleCustomerChange}
                     required
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -869,10 +918,11 @@ export default function SentPage() {
                   name="notes"
                   value={editCustomer.notes}
                   onChange={handleCustomerChange}
+                  disabled={isReadOnly}
                 />
               </label>
               <div className="form-actions">
-                <button className="button" type="submit">
+                <button className="button" type="submit" disabled={isReadOnly}>
                   <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M5 12h9M12 8l4 4-4 4"
@@ -974,6 +1024,7 @@ export default function SentPage() {
                         event.preventDefault();
                         handleStartEdit(shipment);
                       }}
+                      disabled={isReadOnly}
                     >
                       {t.editShipment}
                     </button>
@@ -984,6 +1035,7 @@ export default function SentPage() {
                         event.preventDefault();
                         handleDeleteShipment(shipment.id);
                       }}
+                      disabled={isReadOnly}
                     >
                       {t.delete}
                     </button>

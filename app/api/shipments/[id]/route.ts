@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Model, ValveType, Variant } from "@prisma/client";
+import { blockIfReadOnly } from "@/lib/access";
 
 export const runtime = "nodejs";
 
@@ -92,9 +93,14 @@ const normalizeItems = (items: IncomingItem[]) =>
   });
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const blocked = blockIfReadOnly(request);
+  if (blocked) {
+    return blocked;
+  }
+
   const { id } = await params;
   const shipmentId = Number(id);
   if (!Number.isInteger(shipmentId)) {
@@ -260,9 +266,14 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const blocked = blockIfReadOnly(request);
+  if (blocked) {
+    return blocked;
+  }
+
   const { id } = await params;
   const shipmentId = Number(id);
   if (!Number.isInteger(shipmentId)) {

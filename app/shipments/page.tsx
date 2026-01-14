@@ -79,6 +79,7 @@ export default function ShipmentsPage() {
     return "pl";
   });
   const pathname = usePathname();
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [itemForm, setItemForm] = useState<ShipmentItemDraft>(createEmptyItemForm());
   const [items, setItems] = useState<ShipmentItemDraft[]>([]);
@@ -95,6 +96,10 @@ export default function ShipmentsPage() {
       window.localStorage.setItem("plugs-tracker-lang", lang);
     } catch {}
   }, [lang]);
+
+  useEffect(() => {
+    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+  }, []);
 
   const t = labels[lang];
 
@@ -194,6 +199,10 @@ export default function ShipmentsPage() {
   const handleAddItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!itemForm.buildNumber.trim() || !itemForm.buildDate) {
       setNotice({ type: "error", message: t.error + t.buildNumber });
       return;
@@ -217,12 +226,20 @@ export default function ShipmentsPage() {
   };
 
   const handleRemoveItem = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const handleShipmentSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!items.length) {
       setNotice({ type: "error", message: t.shipmentItemEmpty });
       return;
@@ -341,6 +358,7 @@ export default function ShipmentsPage() {
           </div>
         </div>
 
+        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
         {notice && notice.type === "error" && (
           <div className="alert">
             {notice.message}
@@ -394,6 +412,7 @@ export default function ShipmentsPage() {
                   value={itemForm.buildDate}
                   onChange={handleItemChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
             </div>
@@ -405,6 +424,7 @@ export default function ShipmentsPage() {
                   name="model"
                   value={itemForm.model}
                   onChange={handleItemChange}
+                  disabled={isReadOnly}
                 >
                   {models.map((model) => (
                     <option key={model} value={model}>
@@ -420,6 +440,7 @@ export default function ShipmentsPage() {
                   name="serialNumber"
                   value={itemForm.serialNumber}
                   onChange={handleItemChange}
+                  disabled={isReadOnly}
                 >
                   {productNumbersByModel[itemForm.model].map((serial) => (
                     <option key={serial} value={serial}>
@@ -437,6 +458,7 @@ export default function ShipmentsPage() {
                   min={1}
                   value={itemForm.quantity}
                   onChange={handleItemChange}
+                  disabled={isReadOnly}
                 />
               </label>
             </div>
@@ -449,6 +471,7 @@ export default function ShipmentsPage() {
                   value={itemForm.buildNumber}
                   onChange={handleItemChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
             </div>
@@ -461,6 +484,7 @@ export default function ShipmentsPage() {
                     name="variant"
                     value={itemForm.variant}
                     onChange={handleItemChange}
+                    disabled={isReadOnly}
                   >
                     <option value="ZINC">{variantLabel.ZINC}</option>
                     <option value="ORANGE">{variantLabel.ORANGE}</option>
@@ -473,6 +497,7 @@ export default function ShipmentsPage() {
                     name="valveType"
                     value={itemForm.valveType}
                     onChange={handleItemChange}
+                    disabled={isReadOnly}
                   >
                     {valveTypes.map((type) => (
                       <option key={type} value={type}>
@@ -488,6 +513,7 @@ export default function ShipmentsPage() {
                     name="isSchwenkbock"
                     checked={itemForm.isSchwenkbock}
                     onChange={handleItemChange}
+                    disabled={isReadOnly}
                   />
                 </label>
                 <label className="switch">
@@ -497,6 +523,7 @@ export default function ShipmentsPage() {
                     name="bucketHolder"
                     checked={itemForm.bucketHolder}
                     onChange={handleItemChange}
+                    disabled={isReadOnly}
                   />
                 </label>
               </div>
@@ -507,10 +534,11 @@ export default function ShipmentsPage() {
                 name="extraParts"
                 value={itemForm.extraParts}
                 onChange={handleItemChange}
+                disabled={isReadOnly}
               />
             </label>
             <div className="form-actions">
-              <button className="button" type="submit">
+              <button className="button" type="submit" disabled={isReadOnly}>
                 <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M5 12h9M12 8l4 4-4 4"
@@ -543,6 +571,7 @@ export default function ShipmentsPage() {
                       type="button"
                       className="button button-ghost button-small"
                       onClick={() => handleRemoveItem(index)}
+                      disabled={isReadOnly}
                     >
                       <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path
@@ -664,6 +693,7 @@ export default function ShipmentsPage() {
                   value={customerForm.companyName}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label>
@@ -687,6 +717,7 @@ export default function ShipmentsPage() {
                   value={customerForm.firstName}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label>
@@ -710,6 +741,7 @@ export default function ShipmentsPage() {
                   value={customerForm.lastName}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label className="customer-wide">
@@ -733,6 +765,7 @@ export default function ShipmentsPage() {
                   value={customerForm.street}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label>
@@ -756,6 +789,7 @@ export default function ShipmentsPage() {
                   value={customerForm.postalCode}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label>
@@ -779,6 +813,7 @@ export default function ShipmentsPage() {
                   value={customerForm.city}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label className="customer-wide">
@@ -802,6 +837,7 @@ export default function ShipmentsPage() {
                   value={customerForm.country}
                   onChange={handleCustomerChange}
                   required
+                  disabled={isReadOnly}
                 />
               </label>
               <label className="customer-wide">
@@ -824,6 +860,7 @@ export default function ShipmentsPage() {
                   name="notes"
                   value={customerForm.notes}
                   onChange={handleCustomerChange}
+                  disabled={isReadOnly}
                 />
               </label>
             </div>
@@ -831,7 +868,7 @@ export default function ShipmentsPage() {
               <button
                 className="button"
                 type="submit"
-                disabled={items.length === 0 || isSubmitting}
+                disabled={items.length === 0 || isSubmitting || isReadOnly}
               >
                 <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path

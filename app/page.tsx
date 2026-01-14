@@ -69,6 +69,7 @@ export default function Home() {
     return "pl";
   });
   const pathname = usePathname();
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [adjustModel, setAdjustModel] = useState<Model>("FL_540");
@@ -95,6 +96,10 @@ export default function Home() {
       window.localStorage.setItem("plugs-tracker-lang", lang);
     } catch {}
   }, [lang]);
+
+  useEffect(() => {
+    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+  }, []);
 
   const t = labels[lang];
 
@@ -258,6 +263,10 @@ export default function Home() {
   const handleAdjust = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     const delta = Number(adjustDelta);
     if (!Number.isFinite(delta) || delta === 0) {
       setNotice({
@@ -336,6 +345,10 @@ export default function Home() {
   const handleProductSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     const serialNumber = Number(productForm.serialNumber);
 
     if (!Number.isInteger(serialNumber) || serialNumber <= 0) {
@@ -365,6 +378,10 @@ export default function Home() {
   };
 
   const handleDeleteProduct = async (product: Product) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
     if (!confirm(t.confirmDelete)) {
       return;
     }
@@ -459,6 +476,7 @@ export default function Home() {
           </div>
         </div>
 
+        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
         {notice && (
           <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
             {notice.message}
@@ -534,6 +552,7 @@ export default function Home() {
                       onChange={(event) =>
                         setAdjustModel(event.target.value as Model)
                       }
+                      disabled={isReadOnly}
                     >
                       {models.map((model) => (
                         <option key={model} value={model}>
@@ -549,6 +568,7 @@ export default function Home() {
                       onChange={(event) =>
                         setAdjustSerialNumber(event.target.value)
                       }
+                      disabled={isReadOnly}
                     >
                       {productNumbersByModel[adjustModel].map((serial) => (
                         <option key={serial} value={serial}>
@@ -565,6 +585,7 @@ export default function Home() {
                       adjustVariant === "ZINC" ? "active" : ""
                     }`}
                     onClick={() => setAdjustVariant("ZINC")}
+                    disabled={isReadOnly}
                   >
                     <span className="variant-dot dot-zinc" />
                     {variantLabel.ZINC}
@@ -575,6 +596,7 @@ export default function Home() {
                       adjustVariant === "ORANGE" ? "active" : ""
                     }`}
                     onClick={() => setAdjustVariant("ORANGE")}
+                    disabled={isReadOnly}
                   >
                     <span className="variant-dot dot-orange" />
                     {variantLabel.ORANGE}
@@ -587,11 +609,16 @@ export default function Home() {
                       onChange={(event) =>
                         setAdjustSchwenkbock(event.target.checked)
                       }
+                      disabled={isReadOnly}
                     />
                   </label>
                 </div>
                 <div className="stepper">
-                  <button type="button" onClick={() => adjustDeltaBy(-1)}>
+                  <button
+                    type="button"
+                    onClick={() => adjustDeltaBy(-1)}
+                    disabled={isReadOnly}
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M6 12h12"
@@ -605,7 +632,11 @@ export default function Home() {
                     <span>{t.changeLabel}</span>
                     <strong>{adjustDelta || "0"}</strong>
                   </div>
-                  <button type="button" onClick={() => adjustDeltaBy(1)}>
+                  <button
+                    type="button"
+                    onClick={() => adjustDeltaBy(1)}
+                    disabled={isReadOnly}
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M12 6v12M6 12h12"
@@ -619,7 +650,7 @@ export default function Home() {
               </div>
             </div>
             <div className="form-actions">
-              <button className="button" type="submit">
+              <button className="button" type="submit" disabled={isReadOnly}>
                 <svg
                   className="button-icon"
                   viewBox="0 0 24 24"
@@ -760,16 +791,17 @@ export default function Home() {
                       <span className="inventory-divider" aria-hidden="true" />
                     </span>
                     {product.isManual && (
-                      <button
-                        type="button"
-                        className="button button-ghost button-small"
-                        onClick={() =>
-                          handleDeleteProduct({
-                            model: product.model,
-                            serialNumber: product.serialNumber,
-                          })
-                        }
-                      >
+                        <button
+                          type="button"
+                          className="button button-ghost button-small"
+                          onClick={() =>
+                            handleDeleteProduct({
+                              model: product.model,
+                              serialNumber: product.serialNumber,
+                            })
+                          }
+                          disabled={isReadOnly}
+                        >
                         <svg
                           className="button-icon"
                           viewBox="0 0 24 24"
@@ -918,6 +950,7 @@ export default function Home() {
                                   serialNumber: product.serialNumber,
                                 })
                               }
+                              disabled={isReadOnly}
                             >
                               <svg
                                 className="button-icon"
@@ -1078,6 +1111,7 @@ export default function Home() {
                   name="model"
                   value={productForm.model}
                   onChange={handleProductChange}
+                  disabled={isReadOnly}
                 >
                   {models.map((model) => (
                     <option key={model} value={model}>
@@ -1094,6 +1128,7 @@ export default function Home() {
                   onChange={handleProductChange}
                   placeholder="2716"
                   list={`serial-${productForm.model}`}
+                  disabled={isReadOnly}
                 />
                 <datalist id={`serial-${productForm.model}`}>
                   {suggestedNumbers[productForm.model].map((serial) => (
@@ -1103,7 +1138,7 @@ export default function Home() {
               </label>
             </div>
             <div className="form-actions">
-              <button className="button" type="submit">
+              <button className="button" type="submit" disabled={isReadOnly}>
                 <svg
                   className="button-icon"
                   viewBox="0 0 24 24"
