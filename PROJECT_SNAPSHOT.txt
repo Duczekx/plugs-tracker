@@ -1,0 +1,62 @@
+PROJECT SNAPSHOT - plugs-tracker
+
+Repo
+- Path: C:\Users\dawid\Flachenschneeschieber\plugs-tracker
+- Branch: main
+- Remote: https://github.com/Duczekx/plugs-tracker.git
+
+Purpose
+- Inventory + shipments tracking for Flaechenschneeschieber GmbH.
+- Supports login, read-only review mode, shipments with plugs and extra parts.
+
+Key Pages
+- / (Magazyn): inventory overview, adjustments, add/remove products.
+- /shipments (Zamowienia): add plugs, add extra parts, customer data, order summary list.
+- /sent (Wyslane): history + edit shipments, shows extras-only shipments.
+
+Auth / Review Mode
+- Login protected by APP_PASSWORD.
+- Review mode via /review?token=REVIEW_TOKEN.
+- Read-only blocks edits in UI and API. Cookie: pt_mode=review.
+
+DB / Prisma
+- Models: InventoryItem, Shipment, ShipmentItem, ShipmentExtraItem.
+- ShipmentExtraItem stores manual extras: name, quantity, note.
+- Migration added: 20260113150000_add_shipment_extra_items.
+
+API
+- POST /api/shipments: accepts items + extras; allows extras-only shipment.
+- PATCH /api/shipments/[id]: updates shipment, checks duplicate buildNumber.
+- GET /api/shipments: includes items + extras.
+- /api/products GET seeds fixed products (safe even if seed fails).
+
+UI Notes
+- Shipments page has 3 cards side-by-side: Add plug, Extra parts, Customer data.
+- Order summary list combines plugs + extras and has submit button at the bottom.
+- Inventory cards use responsive grid to avoid overlap on resize.
+
+Validation Rules
+- buildNumber required, unique within a shipment (UI + API).
+- extras: name >= 2 chars, quantity >= 1.
+
+Texts
+- "Wysylki" tab renamed to "Zamowienia".
+- Save button: "Dodaj do wyslane".
+- Order summary title: "Podsumowanie zamowienia" with note about reducing stock.
+
+Env Vars (Vercel)
+- DATABASE_URL
+- APP_PASSWORD
+- REVIEW_TOKEN
+
+Run Locally
+- npm install
+- npm run dev
+
+Deploy
+- Vercel project: plugs-tracker-x2rl
+- db:deploy runs prisma migrate deploy + prisma generate
+
+Links
+- Production: https://flachenschneeschieber.vercel.app/
+- Review: /review?token=REVIEW_TOKEN

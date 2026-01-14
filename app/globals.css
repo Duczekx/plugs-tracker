@@ -1328,6 +1328,12 @@ textarea {
   max-width: none;
 }
 
+@media (max-width: 1200px) {
+  .shipments-page .shipment-sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px) {
   .shipments-page .shipment-sections {
     grid-template-columns: 1fr;
@@ -1339,12 +1345,6 @@ textarea {
 
   .shipment-list-actions {
     justify-content: flex-start;
-  }
-}
-
-@media (max-width: 1200px) {
-  .shipments-page .shipment-sections {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
