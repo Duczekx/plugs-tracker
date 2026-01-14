@@ -40,11 +40,21 @@ Strona bedzie dostepna pod `http://localhost:3000`.
 ## Deploy (Vercel)
 1) Polacz repo z Vercel.
 2) Ustaw zmienna `DATABASE_URL` w ustawieniach projektu.
+3) (Opcjonalnie) Ustaw zmienna `REVIEW_TOKEN`, aby wlaczyc link tylko do podgladu.
 3) W Build Command dodaj migracje:
 ```bash
 npm run db:deploy && npm run build
 ```
 4) Deploy.
+
+## Link podgladu (read-only)
+Po ustawieniu `REVIEW_TOKEN` w Vercel:
+
+```
+https://TWOJA-DOMENA/review?token=REVIEW_TOKEN
+```
+
+Uzytkownik musi sie zalogowac przez `/login`, ale nie ma mozliwosci edycji.
 
 ## Rozwoj
 - Plik schematu bazy: `prisma/schema.prisma`
