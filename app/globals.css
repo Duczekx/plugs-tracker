@@ -1527,6 +1527,27 @@ textarea {
     padding: 42px 5vw 64px;
   }
 
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .title {
+    font-size: clamp(22px, 8vw, 32px);
+    line-height: 1.1;
+    word-break: break-word;
+  }
+
+  .title-with-icon {
+    flex-wrap: wrap;
+  }
+
+  .title-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
   .card {
     padding: 22px;
   }
@@ -1565,6 +1586,23 @@ textarea {
     gap: 10px;
   }
 
+  .shipment-item-card {
+    width: 100%;
+  }
+
+  .shipment-item-head {
+    align-items: flex-start;
+  }
+
+  .shipment-item-actions {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .item-date {
+    max-width: 100%;
+  }
+
   .variant-block {
     grid-template-columns: 1fr auto;
   }
@@ -1577,6 +1615,10 @@ textarea {
   .shipment-summary-right {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .shipment-summary-main {
+    width: 100%;
   }
 
   .address-compact {
