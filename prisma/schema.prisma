@@ -53,6 +53,7 @@ model Shipment {
   createdAt   DateTime @default(now())
 
   items       ShipmentItem[]
+  extras      ShipmentExtraItem[]
 }
 
 model ShipmentItem {
@@ -69,6 +70,18 @@ model ShipmentItem {
   bucketHolder  Boolean   @default(false)
   valveType     ValveType @default(NONE)
   extraParts    String?
+
+  @@index([shipmentId])
+}
+
+model ShipmentExtraItem {
+  id         Int      @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  name       String
+  quantity   Int
+  note       String?
+  createdAt  DateTime @default(now())
 
   @@index([shipmentId])
 }

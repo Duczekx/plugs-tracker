@@ -24,6 +24,13 @@ type ShipmentItem = {
   extraParts?: string | null;
 };
 
+type ShipmentExtraItem = {
+  id: number;
+  name: string;
+  quantity: number;
+  note?: string | null;
+};
+
 type Shipment = {
   id: number;
   companyName: string;
@@ -36,6 +43,7 @@ type Shipment = {
   notes?: string | null;
   createdAt: string;
   items: ShipmentItem[];
+  extras: ShipmentExtraItem[];
 };
 
 type ShipmentItemDraft = Omit<ShipmentItem, "id">;
@@ -1099,6 +1107,33 @@ export default function SentPage() {
                     </div>
                   ))}
                 </div>
+                {shipment.extras?.length > 0 && (
+                  <div className="sent-items" style={{ marginTop: 10 }}>
+                    <div className="shipment-item-notes">
+                      <span className="pill">{t.extraItemsTitle}</span>
+                    </div>
+                    <div className="table-wrap" style={{ marginTop: 10 }}>
+                      <table className="inventory-table">
+                        <thead>
+                          <tr>
+                            <th>{t.extraItemName}</th>
+                            <th>{t.quantity}</th>
+                            <th>{t.extraItemNote}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shipment.extras.map((extra) => (
+                            <tr key={extra.id}>
+                              <td>{extra.name}</td>
+                              <td>{extra.quantity}</td>
+                              <td>{extra.note ? extra.note : <span className="muted">-</span>}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
                 {shipment.notes && <div className="muted">{shipment.notes}</div>}
               </details>
             ))}

@@ -505,7 +505,7 @@ export default function Home() {
           </div>
         )}
 
-        <section className="card inventory-section">
+        <section className="card inventory-section inventory-page-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">
@@ -669,7 +669,7 @@ export default function Home() {
             </div>
           </form>
         </section>
-        <section className="card">
+        <section className="card inventory-page-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">
@@ -1083,7 +1083,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className="card">
+        <section className="card inventory-page-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">

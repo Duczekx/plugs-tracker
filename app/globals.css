@@ -1191,6 +1191,33 @@ textarea {
   gap: 12px;
 }
 
+.shipments-page .shipment-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  width: min(100%, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  align-items: start;
+}
+
+.shipments-page .shipment-column {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+}
+
+.inventory-page-card {
+  width: min(100%, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 980px) {
+  .shipments-page .shipment-sections {
+    grid-template-columns: 1fr;
+  }
+}
 .shipment-items-card .form {
   gap: 18px;
 }
@@ -1687,3 +1714,4 @@ textarea {
     transform: translateY(0);
   }
 }
+

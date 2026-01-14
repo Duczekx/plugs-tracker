@@ -139,7 +139,7 @@ export async function PATCH(
     const shipment = await prisma.$transaction(async (tx) => {
       const existing = await tx.shipment.findUnique({
         where: { id: shipmentId },
-        include: { items: true },
+        include: { items: true, extras: true },
       });
       if (!existing) {
         throw new Error("NOT_FOUND");
@@ -247,7 +247,7 @@ export async function PATCH(
             })),
           },
         },
-        include: { items: true },
+        include: { items: true, extras: true },
       });
     });
 

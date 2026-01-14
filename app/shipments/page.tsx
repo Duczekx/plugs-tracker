@@ -23,6 +23,12 @@ type ShipmentItemDraft = {
   extraParts: string;
 };
 
+type ExtraItemDraft = {
+  name: string;
+  quantity: number;
+  note: string;
+};
+
 type CustomerForm = {
   companyName: string;
   firstName: string;
@@ -55,6 +61,12 @@ const createEmptyItemForm = (): ShipmentItemDraft => ({
   extraParts: "",
 });
 
+const emptyExtraForm: ExtraItemDraft = {
+  name: "",
+  quantity: 1,
+  note: "",
+};
+
 const emptyCustomerForm: CustomerForm = {
   companyName: "",
   firstName: "",
@@ -83,10 +95,16 @@ export default function ShipmentsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [itemForm, setItemForm] = useState<ShipmentItemDraft>(createEmptyItemForm());
   const [items, setItems] = useState<ShipmentItemDraft[]>([]);
+  const [extraForm, setExtraForm] = useState<ExtraItemDraft>(emptyExtraForm);
+  const [extras, setExtras] = useState<ExtraItemDraft[]>([]);
   const [customerForm, setCustomerForm] =
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [extraNotice, setExtraNotice] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
@@ -196,6 +214,19 @@ export default function ShipmentsPage() {
     setCustomerForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleExtraChange = (
+    event: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >
+  ) => {
+    const target = event.target as HTMLInputElement;
+    const { name, value } = target;
+    setExtraForm((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? Number(value) : value,
+    }));
+  };
+
   const handleAddItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotice(null);
@@ -225,12 +256,50 @@ export default function ShipmentsPage() {
     }));
   };
 
+  const handleAddExtra = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setExtraNotice(null);
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    const name = extraForm.name.trim();
+    const quantity = Number(extraForm.quantity);
+    const note = extraForm.note.trim();
+    if (name.length < 2) {
+      setNotice({ type: "error", message: t.error + t.extraItemName });
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      setNotice({ type: "error", message: t.error + t.quantity });
+      return;
+    }
+    setExtras((prev) => [...prev, { name, quantity, note }]);
+    setExtraForm(emptyExtraForm);
+    setExtraNotice({ type: "success", message: t.extraItemAdded });
+    setTimeout(() => {
+      setExtraNotice(null);
+    }, 1400);
+  };
+
   const handleRemoveItem = (index: number) => {
     if (isReadOnly) {
       setNotice({ type: "error", message: t.readOnlyNotice });
       return;
     }
     setItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleRemoveExtra = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    setExtras((prev) => prev.filter((_, idx) => idx !== index));
+    setExtraNotice({ type: "success", message: t.extraItemRemoved });
+    setTimeout(() => {
+      setExtraNotice(null);
+    }, 1400);
   };
 
   const handleShipmentSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -254,6 +323,11 @@ export default function ShipmentsPage() {
       body: JSON.stringify({
         ...customerForm,
         items,
+        extras: extras.map((extra) => ({
+          name: extra.name,
+          quantity: extra.quantity,
+          note: extra.note ? extra.note : null,
+        })),
       }),
     });
 
@@ -267,6 +341,8 @@ export default function ShipmentsPage() {
 
     setItemForm(createEmptyItemForm());
     setItems([]);
+    setExtras([]);
+    setExtraForm(emptyExtraForm);
     setCustomerForm(emptyCustomerForm);
     setNotice({ type: "success", message: t.shipmentSaved });
     setTimeout(() => {
@@ -276,7 +352,7 @@ export default function ShipmentsPage() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell shipments-page">
       <div className="app-content">
         <header className="card">
           <div className="card-header">
@@ -384,7 +460,8 @@ export default function ShipmentsPage() {
           </div>
         )}
 
-        <section className="card card-narrow shipment-items-card">
+        <div className="shipment-sections">
+        <section className="card shipment-items-card">
           <form className="form" onSubmit={handleAddItem}>
             <div className="card-header">
               <div>
@@ -638,7 +715,154 @@ export default function ShipmentsPage() {
           </div>
         </section>
 
-        <section className="card card-narrow customer-card">
+        <div className="shipment-column">
+          <section className="card shipment-extra-card">
+          <div className="card-header">
+            <div>
+              <h2 className="title title-with-icon">
+                <span className="title-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M4 7h12l4 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"
+                      fill="currentColor"
+                      opacity="0.12"
+                    />
+                    <path
+                      d="M4 7h12l4 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16 7v4h4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                {t.extraItemsTitle}
+              </h2>
+              <p className="subtitle">{t.extraItemsSubtitle}</p>
+            </div>
+          </div>
+          <form className="form" onSubmit={handleAddExtra}>
+            <div className="form-row">
+              <label>
+                {t.extraItemName}
+                <input
+                  name="name"
+                  value={extraForm.name}
+                  onChange={handleExtraChange}
+                  placeholder={t.extraItemPlaceholder}
+                  required
+                  disabled={isReadOnly}
+                  minLength={2}
+                />
+              </label>
+              <label>
+                {t.quantity}
+                <input
+                  className="input-compact input-centered"
+                  type="number"
+                  name="quantity"
+                  min={1}
+                  value={extraForm.quantity}
+                  onChange={handleExtraChange}
+                  disabled={isReadOnly}
+                />
+              </label>
+            </div>
+            <label>
+              {t.extraItemNote}
+              <textarea
+                name="note"
+                value={extraForm.note}
+                onChange={handleExtraChange}
+                placeholder={t.extraItemNotePlaceholder}
+                disabled={isReadOnly}
+              />
+            </label>
+            <div className="form-actions">
+              <button
+                className="button"
+                type="submit"
+                disabled={isReadOnly}
+                title={isReadOnly ? t.readOnlyNotice : undefined}
+              >
+                <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 12h9M12 8l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {t.extraItemAdd}
+              </button>
+            </div>
+          </form>
+
+          {extraNotice && (
+            <div
+              className={`alert ${extraNotice.type === "success" ? "success" : ""}`}
+              style={{ marginTop: 16 }}
+            >
+              {extraNotice.message}
+            </div>
+          )}
+
+          <div style={{ marginTop: 16 }}>
+            {extras.length === 0 && <p>{t.extraItemEmpty}</p>}
+            {extras.length > 0 && (
+              <div className="table-wrap">
+                <table className="inventory-table">
+                  <thead>
+                    <tr>
+                      <th>{t.extraItemName}</th>
+                      <th>{t.quantity}</th>
+                      <th>{t.extraItemNote}</th>
+                      <th>{t.delete}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {extras.map((extra, index) => (
+                      <tr key={`${extra.name}-${index}`}>
+                        <td>{extra.name}</td>
+                        <td>{extra.quantity}</td>
+                        <td>{extra.note ? extra.note : <span className="muted">-</span>}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() => handleRemoveExtra(index)}
+                            disabled={isReadOnly}
+                            title={isReadOnly ? t.readOnlyNotice : undefined}
+                          >
+                            <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                              <path
+                                d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            {t.delete}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+
+          <section className="card card-narrow customer-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">
@@ -884,7 +1108,11 @@ export default function ShipmentsPage() {
             </div>
           </form>
         </section>
+        </div>
+        </div>
       </div>
     </div>
   );
 }
+
+

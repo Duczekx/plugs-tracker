@@ -14,41 +14,50 @@ const isModel = (value: string): value is Model =>
   value === Model.FL_260;
 
 export async function GET() {
-  await prisma.inventoryItem.createMany({
-    data: [
-      { model: Model.FL_640, serialNumber: 2901, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_640, serialNumber: 2901, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_640, serialNumber: 2901, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_640, serialNumber: 2901, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_540, serialNumber: 2716, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_540, serialNumber: 2716, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_540, serialNumber: 2716, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_540, serialNumber: 2716, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_470, serialNumber: 2404, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_470, serialNumber: 2404, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_470, serialNumber: 2404, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_470, serialNumber: 2404, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_400, serialNumber: 1801, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_400, serialNumber: 1801, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_400, serialNumber: 1801, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_400, serialNumber: 1801, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_340, serialNumber: 1403, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_340, serialNumber: 1403, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_340, serialNumber: 1403, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_340, serialNumber: 1403, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_260, serialNumber: 1203, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_260, serialNumber: 1203, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
-      { model: Model.FL_260, serialNumber: 1203, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
-      { model: Model.FL_260, serialNumber: 1203, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false }
-    ],
-    skipDuplicates: true,
-  });
-  const items = await prisma.inventoryItem.findMany({
-    select: { model: true, serialNumber: true, isManual: true },
-    distinct: ["model", "serialNumber"],
-    orderBy: [{ model: "asc" }, { serialNumber: "asc" }],
-  });
-  return NextResponse.json(items);
+  try {
+    await prisma.inventoryItem.createMany({
+      data: [
+        { model: Model.FL_640, serialNumber: 2901, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_640, serialNumber: 2901, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_640, serialNumber: 2901, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_640, serialNumber: 2901, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_540, serialNumber: 2716, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_540, serialNumber: 2716, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_540, serialNumber: 2716, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_540, serialNumber: 2716, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_470, serialNumber: 2404, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_470, serialNumber: 2404, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_470, serialNumber: 2404, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_470, serialNumber: 2404, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_400, serialNumber: 1801, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_400, serialNumber: 1801, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_400, serialNumber: 1801, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_400, serialNumber: 1801, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_340, serialNumber: 1403, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_340, serialNumber: 1403, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_340, serialNumber: 1403, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_340, serialNumber: 1403, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_260, serialNumber: 1203, variant: Variant.ZINC, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_260, serialNumber: 1203, variant: Variant.ORANGE, isSchwenkbock: false, quantity: 0, isManual: false },
+        { model: Model.FL_260, serialNumber: 1203, variant: Variant.ZINC, isSchwenkbock: true, quantity: 0, isManual: false },
+        { model: Model.FL_260, serialNumber: 1203, variant: Variant.ORANGE, isSchwenkbock: true, quantity: 0, isManual: false }
+      ],
+      skipDuplicates: true,
+    });
+  } catch {
+    // Ignore seed errors to avoid blocking read access.
+  }
+
+  try {
+    const items = await prisma.inventoryItem.findMany({
+      select: { model: true, serialNumber: true, isManual: true },
+      distinct: ["model", "serialNumber"],
+      orderBy: [{ model: "asc" }, { serialNumber: "asc" }],
+    });
+    return NextResponse.json(items);
+  } catch {
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

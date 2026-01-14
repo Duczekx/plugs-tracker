@@ -44,6 +44,12 @@ type IncomingItem = {
   extraParts?: string | null;
 };
 
+type IncomingExtraItem = {
+  name: string;
+  quantity: number;
+  note?: string | null;
+};
+
 const inventoryKey = (
   item: Pick<
     IncomingItem,
@@ -57,7 +63,10 @@ const inventoryKey = (
 export async function GET() {
   const shipments = await prisma.shipment.findMany({
     orderBy: { createdAt: "desc" },
-    include: { items: { orderBy: { id: "asc" } } },
+    include: {
+      items: { orderBy: { id: "asc" } },
+      extras: { orderBy: { id: "asc" } },
+    },
   });
   return NextResponse.json(shipments);
 }
@@ -70,6 +79,9 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const items = Array.isArray(body.items) ? (body.items as IncomingItem[]) : [];
+  const extras = Array.isArray(body.extras)
+    ? (body.extras as IncomingExtraItem[])
+    : [];
 
   if (!items.length) {
     return NextResponse.json({ message: "Missing items" }, { status: 400 });
@@ -96,6 +108,8 @@ export async function POST(request: NextRequest) {
     valveType: string;
     extraParts: string | null;
   }[] = [];
+  let validatedExtras: { name: string; quantity: number; note: string | null }[] =
+    [];
 
   try {
     validatedItems = items.map((item) => {
@@ -132,6 +146,21 @@ export async function POST(request: NextRequest) {
         bucketHolder: Boolean(item.bucketHolder),
         valveType,
         extraParts: item.extraParts ? String(item.extraParts) : null,
+      };
+    });
+    validatedExtras = extras.map((extra) => {
+      const name = String(extra.name || "").trim();
+      const quantity = Number(extra.quantity);
+      const note = extra.note ? String(extra.note).trim() : null;
+
+      if (name.length < 2 || !Number.isInteger(quantity) || quantity <= 0) {
+        throw new Error("INVALID_EXTRA");
+      }
+
+      return {
+        name,
+        quantity,
+        note: note ? note : null,
       };
     });
   } catch {
@@ -210,8 +239,15 @@ export async function POST(request: NextRequest) {
               extraParts: item.extraParts,
             })),
           },
+          extras: {
+            create: validatedExtras.map((extra) => ({
+              name: extra.name,
+              quantity: extra.quantity,
+              note: extra.note,
+            })),
+          },
         },
-        include: { items: true },
+        include: { items: true, extras: true },
       });
     });
 
