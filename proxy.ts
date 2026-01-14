@@ -13,7 +13,7 @@ const hashValue = async (value: string) => {
     .join("");
 };
 
-export const middleware = async (request: NextRequest) => {
+export const proxy = async (request: NextRequest) => {
   const { pathname, search } = request.nextUrl;
 
   if (pathname === "/review") {
