@@ -15,6 +15,38 @@ const hashValue = async (value: string) => {
 export const middleware = async (request: NextRequest) => {
   const { pathname, search } = request.nextUrl;
 
+  const basicUser = process.env.BASIC_AUTH_USER;
+  const basicPass = process.env.BASIC_AUTH_PASS;
+  if (basicUser && basicPass) {
+    const authHeader = request.headers.get("authorization") ?? "";
+    if (!authHeader.startsWith("Basic ")) {
+      return new NextResponse("Authentication required", {
+        status: 401,
+        headers: { "WWW-Authenticate": "Basic realm=\"Secure Area\"" },
+      });
+    }
+
+    let isValid = false;
+    try {
+      const decoded = atob(authHeader.slice("Basic ".length));
+      const separator = decoded.indexOf(":");
+      if (separator !== -1) {
+        const user = decoded.slice(0, separator);
+        const pass = decoded.slice(separator + 1);
+        isValid = user === basicUser && pass === basicPass;
+      }
+    } catch {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return new NextResponse("Authentication required", {
+        status: 401,
+        headers: { "WWW-Authenticate": "Basic realm=\"Secure Area\"" },
+      });
+    }
+  }
+
   if (
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
