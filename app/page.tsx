@@ -33,6 +33,14 @@ type ProductForm = {
 
 const variants: Variant[] = ["ZINC", "ORANGE"];
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
+const modelOrder: Record<Model, number> = {
+  FL_640: 0,
+  FL_540: 1,
+  FL_470: 2,
+  FL_400: 3,
+  FL_340: 4,
+  FL_260: 5,
+};
 
 const emptyProductForm: ProductForm = {
   model: "FL_540",
@@ -126,7 +134,7 @@ export default function Home() {
       if (a.model === b.model) {
         return a.serialNumber - b.serialNumber;
       }
-      return a.model.localeCompare(b.model);
+      return modelOrder[a.model] - modelOrder[b.model];
     });
   }, [inventory]);
 
@@ -443,57 +451,136 @@ export default function Home() {
           </div>
         )}
 
-        <section className="card">
+        <section className="card inventory-section">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">
                 <span className="title-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path
-                      d="M12 4v16M4 12h16"
+                      d="M6 7h12M6 12h6M6 17h10"
                       stroke="currentColor"
                       strokeWidth="1.6"
                       strokeLinecap="round"
                     />
-                    <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.08" />
+                    <path
+                      d="M16.5 12.5 19 10l2.5 2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M19 10v6"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </span>
-                {t.addProductTitle}
+                {t.adjustTitle}
               </h2>
-              <p className="subtitle">{t.addProductHint}</p>
+              <p className="subtitle">{t.adjustHint}</p>
+            </div>
+            <div className="stock-mini">
+              <span className="stock-label">{t.stockNow}</span>
+              <span className="stock-value">{currentStock}</span>
             </div>
           </div>
-          <form className="form" onSubmit={handleProductSubmit}>
-            <div className="form-row">
-              <label>
-                {t.modelLabel}
-                <select
-                  name="model"
-                  value={productForm.model}
-                  onChange={handleProductChange}
-                >
-                  {models.map((model) => (
-                    <option key={model} value={model}>
-                      {modelLabel[model]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {t.serialNumber}
-                <input
-                  name="serialNumber"
-                  value={productForm.serialNumber}
-                  onChange={handleProductChange}
-                  placeholder="2716"
-                  list={`serial-${productForm.model}`}
-                />
-                <datalist id={`serial-${productForm.model}`}>
-                  {suggestedNumbers[productForm.model].map((serial) => (
-                    <option key={serial} value={serial} />
-                  ))}
-                </datalist>
-              </label>
+          <form className="form" onSubmit={handleAdjust}>
+            <div className="adjust-grid">
+              <div className="form">
+                <div className="form-row">
+                  <label>
+                    {t.modelLabel}
+                    <select
+                      value={adjustModel}
+                      onChange={(event) =>
+                        setAdjustModel(event.target.value as Model)
+                      }
+                    >
+                      {models.map((model) => (
+                        <option key={model} value={model}>
+                          {modelLabel[model]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {t.serialNumber}
+                    <select
+                      value={adjustSerialNumber}
+                      onChange={(event) =>
+                        setAdjustSerialNumber(event.target.value)
+                      }
+                    >
+                      {productNumbersByModel[adjustModel].map((serial) => (
+                        <option key={serial} value={serial}>
+                          {serial}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="variant-toggle">
+                  <button
+                    type="button"
+                    className={`variant-choice ${
+                      adjustVariant === "ZINC" ? "active" : ""
+                    }`}
+                    onClick={() => setAdjustVariant("ZINC")}
+                  >
+                    <span className="variant-dot dot-zinc" />
+                    {variantLabel.ZINC}
+                  </button>
+                  <button
+                    type="button"
+                    className={`variant-choice ${
+                      adjustVariant === "ORANGE" ? "active" : ""
+                    }`}
+                    onClick={() => setAdjustVariant("ORANGE")}
+                  >
+                    <span className="variant-dot dot-orange" />
+                    {variantLabel.ORANGE}
+                  </button>
+                  <label className="switch">
+                    <span>{t.schwenkbock}</span>
+                    <input
+                      type="checkbox"
+                      checked={adjustSchwenkbock}
+                      onChange={(event) =>
+                        setAdjustSchwenkbock(event.target.checked)
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="stepper">
+                  <button type="button" onClick={() => adjustDeltaBy(-1)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M6 12h12"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <div className="delta-chip">
+                    <span>{t.changeLabel}</span>
+                    <strong>{adjustDelta || "0"}</strong>
+                  </div>
+                  <button type="button" onClick={() => adjustDeltaBy(1)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M12 6v12M6 12h12"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="form-actions">
               <button className="button" type="submit">
@@ -503,18 +590,18 @@ export default function Home() {
                   aria-hidden="true"
                 >
                   <path
-                    d="M12 5v14M5 12h14"
+                    d="M6 12l4 4 8-8"
                     stroke="currentColor"
-                    strokeWidth="1.6"
+                    strokeWidth="1.8"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </svg>
-                {t.addProduct}
+                {t.addButton}
               </button>
             </div>
           </form>
         </section>
-
         <section className="card">
           <div className="card-header">
             <div>
@@ -934,129 +1021,50 @@ export default function Home() {
                 <span className="title-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path
-                      d="M6 7h12M6 12h6M6 17h10"
+                      d="M12 4v16M4 12h16"
                       stroke="currentColor"
                       strokeWidth="1.6"
                       strokeLinecap="round"
                     />
-                    <path
-                      d="M16.5 12.5 19 10l2.5 2.5"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M19 10v6"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
+                    <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.08" />
                   </svg>
                 </span>
-                {t.adjustTitle}
+                {t.addProductTitle}
               </h2>
-              <p className="subtitle">{t.adjustHint}</p>
-            </div>
-            <div className="stock-mini">
-              <span className="stock-label">{t.stockNow}</span>
-              <span className="stock-value">{currentStock}</span>
+              <p className="subtitle">{t.addProductHint}</p>
             </div>
           </div>
-          <form className="form" onSubmit={handleAdjust}>
-            <div className="adjust-grid">
-              <div className="form">
-                <div className="form-row">
-                  <label>
-                    {t.modelLabel}
-                    <select
-                      value={adjustModel}
-                      onChange={(event) =>
-                        setAdjustModel(event.target.value as Model)
-                      }
-                    >
-                      {models.map((model) => (
-                        <option key={model} value={model}>
-                          {modelLabel[model]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    {t.serialNumber}
-                    <select
-                      value={adjustSerialNumber}
-                      onChange={(event) =>
-                        setAdjustSerialNumber(event.target.value)
-                      }
-                    >
-                      {productNumbersByModel[adjustModel].map((serial) => (
-                        <option key={serial} value={serial}>
-                          {serial}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="variant-toggle">
-                  <button
-                    type="button"
-                    className={`variant-choice ${
-                      adjustVariant === "ZINC" ? "active" : ""
-                    }`}
-                    onClick={() => setAdjustVariant("ZINC")}
-                  >
-                    <span className="variant-dot dot-zinc" />
-                    {variantLabel.ZINC}
-                  </button>
-                  <button
-                    type="button"
-                    className={`variant-choice ${
-                      adjustVariant === "ORANGE" ? "active" : ""
-                    }`}
-                    onClick={() => setAdjustVariant("ORANGE")}
-                  >
-                    <span className="variant-dot dot-orange" />
-                    {variantLabel.ORANGE}
-                  </button>
-                  <label className="switch">
-                    <span>{t.schwenkbock}</span>
-                    <input
-                      type="checkbox"
-                      checked={adjustSchwenkbock}
-                      onChange={(event) =>
-                        setAdjustSchwenkbock(event.target.checked)
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="stepper">
-                  <button type="button" onClick={() => adjustDeltaBy(-1)}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M6 12h12"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                  <div className="delta-chip">
-                    <span>{t.changeLabel}</span>
-                    <strong>{adjustDelta || "0"}</strong>
-                  </div>
-                  <button type="button" onClick={() => adjustDeltaBy(1)}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M12 6v12M6 12h12"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+          <form className="form" onSubmit={handleProductSubmit}>
+            <div className="form-row">
+              <label>
+                {t.modelLabel}
+                <select
+                  name="model"
+                  value={productForm.model}
+                  onChange={handleProductChange}
+                >
+                  {models.map((model) => (
+                    <option key={model} value={model}>
+                      {modelLabel[model]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t.serialNumber}
+                <input
+                  name="serialNumber"
+                  value={productForm.serialNumber}
+                  onChange={handleProductChange}
+                  placeholder="2716"
+                  list={`serial-${productForm.model}`}
+                />
+                <datalist id={`serial-${productForm.model}`}>
+                  {suggestedNumbers[productForm.model].map((serial) => (
+                    <option key={serial} value={serial} />
+                  ))}
+                </datalist>
+              </label>
             </div>
             <div className="form-actions">
               <button className="button" type="submit">
@@ -1066,19 +1074,20 @@ export default function Home() {
                   aria-hidden="true"
                 >
                   <path
-                    d="M6 12l4 4 8-8"
+                    d="M12 5v14M5 12h14"
                     stroke="currentColor"
-                    strokeWidth="1.8"
+                    strokeWidth="1.6"
                     strokeLinecap="round"
-                    strokeLinejoin="round"
                   />
                 </svg>
-                {t.addButton}
+                {t.addProduct}
               </button>
             </div>
           </form>
         </section>
+
       </div>
     </div>
   );
 }
+
