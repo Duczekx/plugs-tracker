@@ -19,17 +19,17 @@ export async function POST(request: Request) {
   if (!appPassword) {
     const url = new URL("/login", request.url);
     url.searchParams.set("error", "missing");
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 303);
   }
 
   if (password !== appPassword) {
     const url = new URL("/login", request.url);
     url.searchParams.set("error", "invalid");
     url.searchParams.set("next", next);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 303);
   }
 
-  const response = NextResponse.redirect(new URL(next, request.url));
+  const response = NextResponse.redirect(new URL(next, request.url), 303);
   const secure = process.env.NODE_ENV === "production";
   response.cookies.set(AUTH_COOKIE, await hashValue(appPassword), {
     httpOnly: true,
