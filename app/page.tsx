@@ -74,6 +74,7 @@ export default function Home() {
   const [adjustVariant, setAdjustVariant] = useState<Variant>("ZINC");
   const [adjustSchwenkbock, setAdjustSchwenkbock] = useState(false);
   const [adjustDelta, setAdjustDelta] = useState<string>("");
+  const [adjustSuccess, setAdjustSuccess] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [inventoryFilter, setInventoryFilter] = useState({
     model: "ALL",
@@ -282,8 +283,17 @@ export default function Home() {
     }
 
     setAdjustDelta("");
+    const deltaLabel = delta > 0 ? `+${delta}` : String(delta);
+    const details = [
+      `${modelLabel[adjustModel]} ${adjustSerialNumber}`,
+      variantLabel[adjustVariant],
+      `${t.schwenkbock}: ${adjustSchwenkbock ? t.yes : t.no}`,
+      `${t.changeLabel}: ${deltaLabel}`,
+    ].join(" | ");
+    setAdjustSuccess(details);
+    setTimeout(() => setAdjustSuccess(null), 1600);
     await loadInventory();
-    setNotice({ type: "success", message: t.saved });
+    setNotice(null);
   };
 
   const currentStock = useMemo(() => {
@@ -448,6 +458,28 @@ export default function Home() {
         {notice && (
           <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
             {notice.message}
+          </div>
+        )}
+        {adjustSuccess && (
+          <div className="success-overlay" role="status" aria-live="polite">
+            <div className="success-card">
+              <div className="success-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M5 13l4 4L19 7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <div className="success-text">
+                <div>{t.adjustSuccessTitle}</div>
+                <div className="muted">{adjustSuccess}</div>
+              </div>
+            </div>
           </div>
         )}
 

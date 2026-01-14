@@ -91,6 +91,19 @@ const formatDate = (value: string) => {
   return date.toISOString().slice(0, 10);
 };
 
+const getShipmentDate = (shipment: Shipment) => {
+  const dates = shipment.items
+    .map((item) => item.buildDate)
+    .filter((value) => value);
+  if (dates.length === 0) {
+    return shipment.createdAt;
+  }
+  const earliest = dates.reduce((min, current) =>
+    new Date(current) < new Date(min) ? current : min
+  );
+  return earliest;
+};
+
 export default function SentPage() {
   const [lang, setLang] = useState<Lang>(() => {
     if (typeof window !== "undefined") {
@@ -112,6 +125,7 @@ export default function SentPage() {
   const [editItems, setEditItems] = useState<ShipmentItemDraft[]>([]);
   const [editItemForm, setEditItemForm] =
     useState<ShipmentItemDraft>(emptyItemForm);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editCustomer, setEditCustomer] =
     useState<CustomerForm>(emptyCustomerForm);
   const [notice, setNotice] = useState<{
@@ -271,7 +285,14 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
     }
-    setEditItems((prev) => [...prev, editItemForm]);
+    if (editIndex !== null) {
+      setEditItems((prev) =>
+        prev.map((item, index) => (index === editIndex ? editItemForm : item))
+      );
+      setEditIndex(null);
+    } else {
+      setEditItems((prev) => [...prev, editItemForm]);
+    }
     setEditItemForm((prev) => ({
       ...emptyItemForm,
       model: prev.model,
@@ -283,6 +304,12 @@ export default function SentPage() {
 
   const handleRemoveEditItem = (index: number) => {
     setEditItems((prev) => prev.filter((_, idx) => idx !== index));
+    setEditIndex((prev) => (prev === index ? null : prev));
+  };
+
+  const handleEditExistingItem = (index: number) => {
+    setEditItemForm(editItems[index]);
+    setEditIndex(index);
   };
 
   const handleStartEdit = (shipment: Shipment) => {
@@ -312,6 +339,7 @@ export default function SentPage() {
       }))
     );
     setEditItemForm(emptyItemForm);
+    setEditIndex(null);
     setNotice(null);
   };
 
@@ -320,6 +348,7 @@ export default function SentPage() {
     setEditItems([]);
     setEditCustomer(emptyCustomerForm);
     setEditItemForm(emptyItemForm);
+    setEditIndex(null);
   };
 
   const handleUpdateShipment = async (event: FormEvent<HTMLFormElement>) => {
@@ -458,7 +487,16 @@ export default function SentPage() {
         )}
 
         {editId && (
-          <section className="card">
+          <div
+            className="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={handleCancelEdit}
+          >
+            <section
+              className="card modal-card"
+              onClick={(event) => event.stopPropagation()}
+            >
             <div className="card-header">
               <div>
                 <h2 className="title title-with-icon">
@@ -618,7 +656,19 @@ export default function SentPage() {
                 />
               </label>
               <div className="form-actions">
-                <button className="button" type="submit" disabled={editItems.length === 0}>
+                {editIndex !== null && (
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() => {
+                      setEditItemForm(emptyItemForm);
+                      setEditIndex(null);
+                    }}
+                  >
+                    {t.cancel}
+                  </button>
+                )}
+                <button className="button" type="submit">
                   <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M5 12h9M12 8l4 4-4 4"
@@ -628,7 +678,7 @@ export default function SentPage() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {t.addShipmentItem}
+                  {editIndex !== null ? t.updateItem : t.addShipmentItem}
                 </button>
               </div>
             </form>
@@ -646,22 +696,31 @@ export default function SentPage() {
                       <span className="shipment-build-number">{item.buildNumber}</span>
                       <span className="pill variant-pill">{variantLabel[item.variant]}</span>
                     </div>
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={() => handleRemoveEditItem(index)}
-                    >
-                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {t.delete}
-                    </button>
+                    <div className="shipment-actions">
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => handleEditExistingItem(index)}
+                      >
+                        {t.editItem}
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => handleRemoveEditItem(index)}
+                      >
+                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {t.delete}
+                      </button>
+                    </div>
                   </div>
                   <div className="shipment-item-meta">
                     <span className="pill">{t.quantity}: {item.quantity}</span>
@@ -824,6 +883,7 @@ export default function SentPage() {
               </div>
             </form>
           </section>
+        </div>
         )}
 
         <section className="card">
@@ -889,7 +949,9 @@ export default function SentPage() {
                       </svg>
                     </span>
                     <div className="shipment-date">
-                      <span className="item-date">{formatDate(shipment.createdAt)}</span>
+                      <span className="item-date">
+                        {formatDate(getShipmentDate(shipment))}
+                      </span>
                     </div>
                     <div className="shipment-title">
                       {shipment.companyName} - {shipment.firstName} {shipment.lastName}
