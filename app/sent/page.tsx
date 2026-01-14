@@ -201,12 +201,12 @@ export default function SentPage() {
           return false;
         }
       }
-      return shipment.items.some((item) => {
-        if (buildQuery && !item.buildNumber.toLowerCase().includes(buildQuery)) {
-          return false;
-        }
-        return true;
-      });
+      if (buildQuery) {
+        return shipment.items.some((item) =>
+          item.buildNumber.toLowerCase().includes(buildQuery)
+        );
+      }
+      return shipment.items.length > 0 || (shipment.extras?.length ?? 0) > 0;
     });
   }, [shipments, filter]);
 
