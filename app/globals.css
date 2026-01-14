@@ -274,6 +274,13 @@ a {
   gap: 12px;
 }
 
+.title-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
 .title-icon {
   width: 40px;
   height: 40px;
@@ -340,13 +347,31 @@ a {
 }
 
 .inventory-grid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   justify-content: center;
 }
 
 .inventory-grid-single {
   grid-template-columns: minmax(280px, 360px);
   justify-content: center;
+}
+
+@media (max-width: 1200px) {
+  .inventory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .inventory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .grid-3 {
@@ -1193,18 +1218,84 @@ textarea {
 
 .shipments-page .shipment-sections {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
-  width: min(100%, 1200px);
-  margin-left: auto;
-  margin-right: auto;
-  align-items: start;
+  width: 100%;
+  align-items: stretch;
 }
 
-.shipments-page .shipment-column {
+.shipments-page .shipment-sections > .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shipments-page .shipment-sections > .shipment-extra-card {
+  height: auto !important;
+  align-self: start;
+}
+
+.shipment-list {
   display: grid;
-  gap: 24px;
-  align-content: start;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.shipment-list-group {
+  display: grid;
+  gap: 10px;
+}
+
+.shipment-list-group-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.shipment-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(12, 18, 32, 0.08);
+  box-shadow: 0 10px 24px rgba(12, 18, 32, 0.08);
+}
+
+.shipment-list-main {
+  display: grid;
+  gap: 8px;
+}
+
+.shipment-list-title {
+  font-weight: 700;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shipment-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shipment-list-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.shipment-list-actions {
+  display: flex;
+  align-items: center;
 }
 
 .inventory-page-card {
@@ -1213,8 +1304,47 @@ textarea {
   margin-right: auto;
 }
 
+.inventory-page-wide {
+  width: 100%;
+  max-width: none;
+}
+
 @media (max-width: 980px) {
   .shipments-page .shipment-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .shipment-list-item {
+    grid-template-columns: 1fr;
+  }
+
+  .shipment-list-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1200px) {
+  .shipments-page .shipment-sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shipment-list-item {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .shipment-list-meta {
+    gap: 6px;
+  }
+
+  .shipment-list-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .shipment-extra-card .extra-row {
     grid-template-columns: 1fr;
   }
 }
@@ -1249,6 +1379,48 @@ textarea {
 .shipment-items-card .form-row,
 .shipment-items-card .parts-grid {
   gap: 16px;
+}
+
+.shipment-extra-card .form-row {
+  align-items: end;
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: 32px 56px 32px;
+  gap: 4px;
+  align-items: center;
+}
+
+.stepper-btn {
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: #fff;
+  border-radius: 10px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.stepper-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quantity-input {
+  appearance: textfield;
+  width: 56px;
+  max-width: 56px;
+  padding: 8px 10px;
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .shipment-items-card .shipment-items {

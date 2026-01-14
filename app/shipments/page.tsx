@@ -461,11 +461,11 @@ export default function ShipmentsPage() {
         )}
 
         <div className="shipment-sections">
-        <section className="card shipment-items-card">
-          <form className="form" onSubmit={handleAddItem}>
-            <div className="card-header">
-              <div>
-                <h2 className="title title-with-icon">
+          <section className="card shipment-items-card">
+            <form className="form" onSubmit={handleAddItem}>
+              <div className="card-header">
+                <div>
+                  <h2 className="title title-with-icon">
                   <span className="title-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24">
                       <path
@@ -477,7 +477,7 @@ export default function ShipmentsPage() {
                       <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.08" />
                     </svg>
                   </span>
-                  {t.shipmentItemsTitle}
+                  {t.addShipmentItem}
                 </h2>
                 <p className="subtitle">{t.shipmentItemsSubtitle}</p>
               </div>
@@ -630,92 +630,8 @@ export default function ShipmentsPage() {
             </div>
           </form>
 
-          <div className="shipment-items" style={{ marginTop: 18 }}>
-            {items.length === 0 && <p>{t.shipmentItemEmpty}</p>}
-            {items.map((item, index) => (
-              <div
-                key={`${item.model}-${item.serialNumber}-${index}`}
-                className="shipment-item-card"
-              >
-                <div className="shipment-item-head">
-                  <div className="shipment-title">
-                    {modelLabel[item.model]} {item.serialNumber}
-                    <span className="shipment-build-number">{item.buildNumber}</span>
-                  </div>
-                  <div className="shipment-item-actions">
-                    <span className="item-date">{item.buildDate}</span>
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={() => handleRemoveItem(index)}
-                      disabled={isReadOnly}
-                    >
-                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {t.delete}
-                    </button>
-                  </div>
-                </div>
-                <div className="shipment-item-meta">
-                  <span className="pill">{t.quantity}: {item.quantity}</span>
-                  <span className="pill">{variantLabel[item.variant]}</span>
-                </div>
-                <div className="shipment-item-tags">
-                  <span className={`item-chip ${item.isSchwenkbock ? "on" : "off"}`}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M12 4v4l3-3M12 20v-4l-3 3M5 12h14"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
-                  </span>
-                  <span className={`item-chip ${item.bucketHolder ? "on" : "off"}`}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M6 8h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8zM9 8V6a3 3 0 0 1 6 0v2"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
-                  </span>
-                  <span className="item-chip">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M12 5v14M7 9h10M7 15h10"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    {t.valveType}: {valveLabel[item.valveType]}
-                  </span>
-                </div>
-                {item.extraParts && (
-                  <div className="shipment-item-notes">
-                    <span className="pill">{t.extraParts}</span>
-                    <span className="muted">{item.extraParts}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+          </section>
 
-        <div className="shipment-column">
           <section className="card shipment-extra-card">
           <div className="card-header">
             <div>
@@ -748,7 +664,7 @@ export default function ShipmentsPage() {
             </div>
           </div>
           <form className="form" onSubmit={handleAddExtra}>
-            <div className="form-row">
+            <div className="form-row extra-row">
               <label>
                 {t.extraItemName}
                 <input
@@ -763,15 +679,45 @@ export default function ShipmentsPage() {
               </label>
               <label>
                 {t.quantity}
-                <input
-                  className="input-compact input-centered"
-                  type="number"
-                  name="quantity"
-                  min={1}
-                  value={extraForm.quantity}
-                  onChange={handleExtraChange}
-                  disabled={isReadOnly}
-                />
+                <div className="quantity-stepper">
+                  <button
+                    type="button"
+                    className="stepper-btn"
+                    onClick={() =>
+                      setExtraForm((prev) => ({
+                        ...prev,
+                        quantity: Math.max(1, prev.quantity - 1),
+                      }))
+                    }
+                    disabled={isReadOnly}
+                    aria-label={`${t.quantity} -`}
+                  >
+                    -
+                  </button>
+                  <input
+                    className="input-compact input-centered quantity-input"
+                    type="number"
+                    name="quantity"
+                    min={1}
+                    value={extraForm.quantity}
+                    onChange={handleExtraChange}
+                    disabled={isReadOnly}
+                  />
+                  <button
+                    type="button"
+                    className="stepper-btn"
+                    onClick={() =>
+                      setExtraForm((prev) => ({
+                        ...prev,
+                        quantity: prev.quantity + 1,
+                      }))
+                    }
+                    disabled={isReadOnly}
+                    aria-label={`${t.quantity} +`}
+                  >
+                    +
+                  </button>
+                </div>
               </label>
             </div>
             <label>
@@ -814,55 +760,9 @@ export default function ShipmentsPage() {
             </div>
           )}
 
-          <div style={{ marginTop: 16 }}>
-            {extras.length === 0 && <p>{t.extraItemEmpty}</p>}
-            {extras.length > 0 && (
-              <div className="table-wrap">
-                <table className="inventory-table">
-                  <thead>
-                    <tr>
-                      <th>{t.extraItemName}</th>
-                      <th>{t.quantity}</th>
-                      <th>{t.extraItemNote}</th>
-                      <th>{t.delete}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {extras.map((extra, index) => (
-                      <tr key={`${extra.name}-${index}`}>
-                        <td>{extra.name}</td>
-                        <td>{extra.quantity}</td>
-                        <td>{extra.note ? extra.note : <span className="muted">-</span>}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() => handleRemoveExtra(index)}
-                            disabled={isReadOnly}
-                            title={isReadOnly ? t.readOnlyNotice : undefined}
-                          >
-                            <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                              <path
-                                d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            {t.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </section>
+          </section>
 
-          <section className="card card-narrow customer-card">
+          <section className="card customer-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">
@@ -894,7 +794,11 @@ export default function ShipmentsPage() {
               <p className="subtitle">{t.shipmentCustomerSubtitle}</p>
             </div>
           </div>
-          <form className="form customer-form" onSubmit={handleShipmentSubmit}>
+          <form
+            id="shipment-form"
+            className="form customer-form"
+            onSubmit={handleShipmentSubmit}
+          >
             <div className="customer-grid">
               <label className="customer-wide">
                 <span className="label-with-icon">
@@ -1088,28 +992,163 @@ export default function ShipmentsPage() {
                 />
               </label>
             </div>
-            <div className="form-actions">
-              <button
-                className="button"
-                type="submit"
-                disabled={items.length === 0 || isSubmitting || isReadOnly}
-              >
-                <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M5 12h9M12 8l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {t.saveShipment}
-              </button>
-            </div>
           </form>
+          </section>
+        </div>
+
+        <section className="card shipment-list-card">
+          <div className="card-header">
+            <div>
+              <h2 className="title title-with-icon">
+                <span className="title-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M4 7h12l4 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"
+                      fill="currentColor"
+                      opacity="0.12"
+                    />
+                    <path
+                      d="M4 7h12l4 4v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                {t.orderSummaryTitle}
+                <span className="title-note">{t.orderSummaryNote}</span>
+              </h2>
+              <p className="subtitle">{t.shipmentItemsSubtitle}</p>
+            </div>
+          </div>
+
+          {items.length === 0 && extras.length === 0 && (
+            <p>{t.shipmentItemEmpty}</p>
+          )}
+
+          <div className="shipment-list">
+            {items.length > 0 && (
+              <div className="shipment-list-group">
+                <div className="shipment-list-group-title">{t.shipmentItemsTitle}</div>
+                {items.map((item, index) => (
+                  <div
+                    key={`${item.model}-${item.serialNumber}-${index}`}
+                    className="shipment-list-item"
+                  >
+                    <div className="shipment-list-main">
+                      <div className="shipment-list-title">
+                        {modelLabel[item.model]} {item.serialNumber}
+                        <span className="shipment-build-number">{item.buildNumber}</span>
+                      </div>
+                      <div className="shipment-list-meta">
+                        <span className="pill">{t.quantity}: {item.quantity}</span>
+                        <span className="pill">{variantLabel[item.variant]}</span>
+                        <span className="item-date">{item.buildDate}</span>
+                        <span className={`item-chip ${item.isSchwenkbock ? "on" : "off"}`}>
+                          {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
+                        </span>
+                        <span className={`item-chip ${item.bucketHolder ? "on" : "off"}`}>
+                          {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
+                        </span>
+                        <span className="item-chip">
+                          {t.valveType}: {valveLabel[item.valveType]}
+                        </span>
+                      </div>
+                      {item.extraParts && (
+                        <div className="shipment-list-note">
+                          <span className="pill">{t.extraParts}</span>
+                          <span className="muted">{item.extraParts}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="shipment-list-actions">
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => handleRemoveItem(index)}
+                        disabled={isReadOnly}
+                        title={isReadOnly ? t.readOnlyNotice : undefined}
+                      >
+                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {t.delete}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {extras.length > 0 && (
+              <div className="shipment-list-group">
+                <div className="shipment-list-group-title">{t.extraItemsTitle}</div>
+                {extras.map((extra, index) => (
+                  <div key={`${extra.name}-${index}`} className="shipment-list-item">
+                    <div className="shipment-list-main">
+                      <div className="shipment-list-title">{extra.name}</div>
+                      <div className="shipment-list-meta">
+                        <span className="pill">{t.quantity}: {extra.quantity}</span>
+                      </div>
+                      {extra.note && (
+                        <div className="shipment-list-note">
+                          <span className="pill">{t.extraItemNote}</span>
+                          <span className="muted">{extra.note}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="shipment-list-actions">
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => handleRemoveExtra(index)}
+                        disabled={isReadOnly}
+                        title={isReadOnly ? t.readOnlyNotice : undefined}
+                      >
+                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {t.delete}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="form-actions">
+            <button
+              className="button"
+              type="submit"
+              form="shipment-form"
+              disabled={items.length === 0 || isSubmitting || isReadOnly}
+            >
+              <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M5 12h9M12 8l4 4-4 4"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {t.saveShipment}
+            </button>
+          </div>
         </section>
-        </div>
-        </div>
       </div>
     </div>
   );
