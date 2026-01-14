@@ -92,6 +92,21 @@ const normalizeItems = (items: IncomingItem[]) =>
     };
   });
 
+const hasDuplicateBuildNumbers = (items: { buildNumber: string }[]) => {
+  const seen = new Set<string>();
+  for (const item of items) {
+    const key = item.buildNumber.trim();
+    if (!key) {
+      continue;
+    }
+    if (seen.has(key)) {
+      return true;
+    }
+    seen.add(key);
+  }
+  return false;
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -125,6 +140,9 @@ export async function PATCH(
   let validatedItems: ReturnType<typeof normalizeItems> = [];
   try {
     validatedItems = normalizeItems(items);
+    if (hasDuplicateBuildNumbers(validatedItems)) {
+      return NextResponse.json({ message: "Duplicate build number" }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }

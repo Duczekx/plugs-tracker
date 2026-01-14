@@ -306,6 +306,16 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
     }
+    const duplicateBuild = editItems.some((item, index) => {
+      if (editIndex !== null && index === editIndex) {
+        return false;
+      }
+      return item.buildNumber === editItemForm.buildNumber;
+    });
+    if (duplicateBuild) {
+      setNotice({ type: "error", message: t.duplicateBuildNumber });
+      return;
+    }
     if (editIndex !== null) {
       setEditItems((prev) =>
         prev.map((item, index) => (index === editIndex ? editItemForm : item))
@@ -407,7 +417,12 @@ export default function SentPage() {
     });
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const message = body?.message ? `${t.error}${body.message}` : t.error;
+      const message =
+        body?.message === "Duplicate build number"
+          ? t.duplicateBuildNumber
+          : body?.message
+          ? `${t.error}${body.message}`
+          : t.error;
       setNotice({ type: "error", message });
       return;
     }

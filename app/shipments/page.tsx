@@ -242,6 +242,10 @@ export default function ShipmentsPage() {
       setNotice({ type: "error", message: t.error + t.serialNumber });
       return;
     }
+    if (items.some((item) => item.buildNumber === itemForm.buildNumber)) {
+      setNotice({ type: "error", message: t.duplicateBuildNumber });
+      return;
+    }
     if (itemForm.quantity <= 0) {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
@@ -309,7 +313,7 @@ export default function ShipmentsPage() {
       setNotice({ type: "error", message: t.readOnlyNotice });
       return;
     }
-    if (!items.length) {
+    if (!items.length && !extras.length) {
       setNotice({ type: "error", message: t.shipmentItemEmpty });
       return;
     }
@@ -333,7 +337,12 @@ export default function ShipmentsPage() {
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const message = body?.message ? `${t.error}${body.message}` : t.error;
+      const message =
+        body?.message === "Duplicate build number"
+          ? t.duplicateBuildNumber
+          : body?.message
+          ? `${t.error}${body.message}`
+          : t.error;
       setNotice({ type: "error", message });
       setIsSubmitting(false);
       return;
@@ -1134,7 +1143,7 @@ export default function ShipmentsPage() {
               className="button"
               type="submit"
               form="shipment-form"
-              disabled={items.length === 0 || isSubmitting || isReadOnly}
+              disabled={(items.length === 0 && extras.length === 0) || isSubmitting || isReadOnly}
             >
               <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path

@@ -60,6 +60,21 @@ const inventoryKey = (
     item.isSchwenkbock ? "S" : "N"
   }`;
 
+const hasDuplicateBuildNumbers = (items: { buildNumber: string }[]) => {
+  const seen = new Set<string>();
+  for (const item of items) {
+    const key = item.buildNumber.trim();
+    if (!key) {
+      continue;
+    }
+    if (seen.has(key)) {
+      return true;
+    }
+    seen.add(key);
+  }
+  return false;
+};
+
 export async function GET() {
   const shipments = await prisma.shipment.findMany({
     orderBy: { createdAt: "desc" },
@@ -83,7 +98,7 @@ export async function POST(request: NextRequest) {
     ? (body.extras as IncomingExtraItem[])
     : [];
 
-  if (!items.length) {
+  if (!items.length && !extras.length) {
     return NextResponse.json({ message: "Missing items" }, { status: 400 });
   }
 
@@ -148,6 +163,9 @@ export async function POST(request: NextRequest) {
         extraParts: item.extraParts ? String(item.extraParts) : null,
       };
     });
+    if (hasDuplicateBuildNumbers(validatedItems)) {
+      return NextResponse.json({ message: "Duplicate build number" }, { status: 400 });
+    }
     validatedExtras = extras.map((extra) => {
       const name = String(extra.name || "").trim();
       const quantity = Number(extra.quantity);
