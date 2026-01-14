@@ -59,10 +59,12 @@ const suggestedNumbers: Record<Model, number[]> = {
 export default function Home() {
   const [lang, setLang] = useState<Lang>(() => {
     if (typeof window !== "undefined") {
-      const stored = window.localStorage.getItem("plugs-tracker-lang");
-      if (stored === "pl" || stored === "de") {
-        return stored;
-      }
+      try {
+        const stored = window.localStorage.getItem("plugs-tracker-lang");
+        if (stored === "pl" || stored === "de") {
+          return stored;
+        }
+      } catch {}
     }
     return "pl";
   });
@@ -89,7 +91,9 @@ export default function Home() {
   } | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem("plugs-tracker-lang", lang);
+    try {
+      window.localStorage.setItem("plugs-tracker-lang", lang);
+    } catch {}
   }, [lang]);
 
   const t = labels[lang];
