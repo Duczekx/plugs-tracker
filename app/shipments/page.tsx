@@ -194,22 +194,22 @@ export default function ShipmentsPage() {
       SMALL: de.valveSmall,
       LARGE: de.valveLarge,
     };
-    const formatItemLine = (item: ShipmentItemDraft) => {
-      const lineParts = [
-        `${de.models[item.model]} ${item.serialNumber}`,
-        `Bau-Nr: ${item.buildNumber}`,
-        `Versanddatum: ${item.buildDate}`,
-        `Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
-        `Menge: ${item.quantity}`,
-        `Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
-        `6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
-        `Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
+    const formatItemLines = (item: ShipmentItemDraft) => {
+      const lines = [
+        `- Plug: ${de.models[item.model]} ${item.serialNumber}`,
+        `- Bau-Nr: ${item.buildNumber}`,
+        `- Versanddatum: ${item.buildDate}`,
+        `- Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
+        `- Menge: ${item.quantity}`,
+        `- Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
+        `- 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
+        `- Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
       ];
       const extraParts = item.extraParts?.trim();
       if (extraParts) {
-        lineParts.push(`Zusatzteile: ${extraParts}`);
+        lines.push(`- Zusatzteile: ${extraParts}`);
       }
-      return `- ${lineParts.join(" | ")}`;
+      return lines;
     };
     const subject = `[PLUGS] ${
       status === "READY" ? "Versandbereit" : "Gesendet"
@@ -225,7 +225,7 @@ export default function ShipmentsPage() {
       "",
       "POSITIONEN:",
       ...(shipment.items.length > 0
-        ? shipment.items.map((item) => formatItemLine(item))
+        ? shipment.items.flatMap((item) => formatItemLines(item))
         : ["- keine"]),
       "",
       "ZUSAETZLICHE TEILE:",
