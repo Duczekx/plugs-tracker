@@ -122,9 +122,10 @@ export default function ShipmentsPage() {
       extras: ExtraItemDraft[];
     };
   } | null>(null);
-  const [emailToast, setEmailToast] = useState<{
+  const [emailPrompt, setEmailPrompt] = useState<{
     mailto: string | null;
     message: string;
+    status: "READY" | "SENT";
   } | null>(null);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
@@ -188,10 +189,14 @@ export default function ShipmentsPage() {
       status === "READY" ? "Gotowe do wysylki" : "Wyslane"
     } ${shipment.companyName} ${shipment.id}`;
     const bodyLines = [
+      "FS LAGER — Powiadomienie",
+      "----------------------------------------",
       `Status: ${status === "READY" ? "GOTOWE DO WYSYLKI" : "WYSLANE"}`,
       `Data: ${formatDateTime(new Date())}`,
+      "",
       `Klient: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
       `Adres: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
+      "",
       "Pozycje:",
       ...(shipment.items.length > 0
         ? shipment.items.map(
@@ -199,13 +204,17 @@ export default function ShipmentsPage() {
               `- ${modelLabel[item.model]} ${item.serialNumber} x${item.quantity}`
           )
         : ["- brak"]),
+      "",
       "Dodatkowe czesci:",
       ...(shipment.extras.length > 0
         ? shipment.extras.map(
             (extra) => `- ${extra.name} x${extra.quantity}`
           )
         : ["- brak"]),
+      "",
       `Link: ${window.location.origin}/sent?shipmentId=${shipment.id}`,
+      "",
+      "Wiadomosc wygenerowana automatycznie przez FS LAGER.",
     ];
     const body = bodyLines.join("\n");
     const params = new URLSearchParams();
@@ -466,13 +475,18 @@ export default function ShipmentsPage() {
       return;
     }
     if (!notifyEmailTo) {
-      setEmailToast({ mailto: null, message: t.missingNotifyEmails });
+      setEmailPrompt({
+        mailto: null,
+        message: t.missingNotifyEmails,
+        status: "READY",
+      });
       return;
     }
     const mailto = buildMailto(shipment, "READY");
-    setEmailToast({
+    setEmailPrompt({
       mailto,
       message: t.statusSaved,
+      status: "READY",
     });
   };
 
@@ -584,20 +598,72 @@ export default function ShipmentsPage() {
             </div>
           </div>
         )}
-        {emailToast && (
-          <div className="alert alert-action">
-            <span>{emailToast.message}</span>
-            {emailToast.mailto && (
-              <button
-                type="button"
-                className="button button-ghost button-small"
-                onClick={() => {
-                  window.location.href = emailToast.mailto ?? "";
-                }}
-              >
-                {t.openEmail}
-              </button>
-            )}
+        {emailPrompt && (
+          <div className="modal-overlay" role="dialog" aria-modal="true">
+            <section className="card modal-card confirm-card">
+              <div className="card-header">
+                <div>
+                  <h3 className="title title-with-icon">
+                    <span
+                      className={`title-icon confirm-icon ${
+                        emailPrompt.status === "READY"
+                          ? "confirm-icon-ready"
+                          : "confirm-icon-sent"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="currentColor"
+                          opacity="0.12"
+                        />
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M4 7l8 6 8-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    {t.statusSaved}
+                  </h3>
+                  <p className="subtitle">{emailPrompt.message}</p>
+                </div>
+              </div>
+              <div className="confirm-actions">
+                {emailPrompt.mailto ? (
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => {
+                      window.location.href = emailPrompt.mailto ?? "";
+                    }}
+                  >
+                    {t.openEmail}
+                  </button>
+                ) : (
+                  <span className="muted">{t.missingNotifyEmails}</span>
+                )}
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setEmailPrompt(null)}
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </section>
           </div>
         )}
         {readyPrompt && (
