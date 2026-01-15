@@ -74,6 +74,8 @@ const notifyEmailCc =
 const formatDateTime = (value: Date) =>
   value.toISOString().slice(0, 16).replace("T", " ");
 
+const encodeMailParam = (value: string) => encodeURIComponent(value);
+
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
 const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
 
@@ -210,26 +212,26 @@ export default function SentPage() {
       status === "READY" ? "Gotowe do wysylki" : "Wyslane"
     } ${shipment.companyName} ${shipment.id}`;
     const bodyLines = [
-      "FS LAGER — Powiadomienie",
-      "----------------------------------------",
+      "FS LAGER | POWIADOMIENIE",
+      "========================================",
       `Status: ${status === "READY" ? "GOTOWE DO WYSYLKI" : "WYSLANE"}`,
       `Data: ${formatDateTime(new Date())}`,
       "",
       `Klient: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
       `Adres: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
       "",
-      "Pozycje:",
+      "POZYCJE:",
       ...(shipment.items.length > 0
         ? shipment.items.map(
             (item) =>
-              `- ${modelLabel[item.model]} ${item.serialNumber} x${item.quantity}`
+              `• ${modelLabel[item.model]} ${item.serialNumber}  x${item.quantity}`
           )
         : ["- brak"]),
       "",
-      "Dodatkowe czesci:",
+      "DODATKOWE CZESCI:",
       ...(shipment.extras.length > 0
         ? shipment.extras.map(
-            (extra) => `- ${extra.name} x${extra.quantity}`
+            (extra) => `• ${extra.name}  x${extra.quantity}`
           )
         : ["- brak"]),
       "",
@@ -237,14 +239,15 @@ export default function SentPage() {
       "",
       "Wiadomosc wygenerowana automatycznie przez FS LAGER.",
     ];
-    const body = bodyLines.join("\n");
-    const params = new URLSearchParams();
-    if (notifyEmailCc) {
-      params.set("cc", notifyEmailCc);
-    }
-    params.set("subject", subject);
-    params.set("body", body);
-    return `mailto:${encodeURIComponent(notifyEmailTo)}?${params.toString()}`;
+    const body = bodyLines.join("\r\n");
+    const query = [
+      notifyEmailCc ? `cc=${encodeMailParam(notifyEmailCc)}` : null,
+      `subject=${encodeMailParam(subject)}`,
+      `body=${encodeMailParam(body)}`,
+    ]
+      .filter(Boolean)
+      .join("&");
+    return `mailto:${encodeURIComponent(notifyEmailTo)}?${query}`;
   };
 
   const productNumbersByModel = useMemo(() => {
