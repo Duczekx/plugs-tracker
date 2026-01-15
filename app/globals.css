@@ -1944,12 +1944,14 @@ textarea {
   z-index: 70;
   padding: 24px 5vw;
   backdrop-filter: blur(6px) saturate(120%);
+  overflow-x: hidden;
 }
 
 .modal-card {
   width: min(100%, 980px);
   max-height: 90vh;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
 }
 
