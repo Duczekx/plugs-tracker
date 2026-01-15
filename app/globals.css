@@ -1394,13 +1394,9 @@ textarea {
   .shipment-items-card .header-field input {
     max-width: 100%;
   }
-
-  .status-toggle {
-    display: none;
-  }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .sent-item {
     overflow: visible;
   }
@@ -1418,6 +1414,15 @@ textarea {
   .shipment-summary-right {
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .shipment-actions {
+    justify-content: flex-start;
+  }
+
+  .button.button-small {
+    width: auto;
   }
 
   .shipment-summary-main .shipment-title,
@@ -1578,8 +1583,10 @@ textarea {
 
 .shipment-actions {
   margin-top: 10px;
-  display: inline-flex;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .sent-list .shipment-item {
@@ -1646,7 +1653,7 @@ textarea {
 
 .shipment-summary {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   cursor: pointer;
@@ -1658,12 +1665,21 @@ textarea {
   align-items: center;
   grid-template-columns: auto 1fr;
   column-gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .shipment-summary-main .shipment-date,
 .shipment-summary-main .shipment-title,
 .shipment-summary-main .address-compact {
   grid-column: 2;
+}
+
+.shipment-summary-main .shipment-title,
+.shipment-summary-main .address-compact {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .expand-icon-left {
@@ -1674,11 +1690,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
 .status-toggle {
   display: inline-flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 4px;
   border-radius: 999px;
   background: rgba(12, 18, 32, 0.04);
@@ -1747,7 +1765,14 @@ textarea {
   padding: 0 14px 12px;
 }
 
-@media (max-width: 720px) {
+.sent-card,
+.sent-card .sent-list,
+.sent-card .sent-items {
+  overflow: visible;
+  overflow-x: visible;
+}
+
+@media (max-width: 640px) {
   .sent-list .sent-item {
     overflow: visible !important;
   }
@@ -1785,7 +1810,8 @@ textarea {
   }
 
   .sent-list .shipment-summary-right {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 6px;
   }
@@ -2100,24 +2126,6 @@ textarea {
 
   .variant-block {
     grid-template-columns: 1fr auto;
-  }
-
-  .shipment-summary {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .shipment-summary-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .shipment-summary-main {
-    width: 100%;
-  }
-
-  .address-compact {
-    max-width: 100%;
   }
 
   .modal-overlay {
