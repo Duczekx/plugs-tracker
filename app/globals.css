@@ -825,6 +825,11 @@ a {
   text-align: center;
 }
 
+.modal-card input[type="date"] {
+  width: 100%;
+  min-width: 0;
+}
+
 .header-field {
   display: grid;
   gap: 6px;
@@ -1424,6 +1429,17 @@ textarea {
     flex-wrap: wrap;
   }
 
+  .sent-list .sent-item {
+    grid-template-columns: 1fr;
+  }
+
+  .sent-list .shipment-summary-actions {
+    grid-column: 1;
+    width: 100%;
+    justify-self: stretch;
+    padding: 0 12px 10px;
+  }
+
   .shipment-actions {
     justify-content: flex-start;
   }
@@ -1633,6 +1649,28 @@ textarea {
   margin-top: 6px;
 }
 
+.sent-list .sent-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+}
+
+.sent-list .shipment-summary {
+  grid-column: 1;
+}
+
+.sent-list .shipment-summary-actions {
+  grid-column: 2;
+  align-self: start;
+  justify-self: end;
+  padding: 10px 12px;
+  display: flex;
+}
+
+.sent-list .sent-item > :not(.shipment-summary):not(.shipment-summary-actions) {
+  grid-column: 1 / -1;
+}
+
 .sent-list .shipment-summary .shipment-actions {
   gap: 6px;
 }
@@ -1810,7 +1848,7 @@ textarea {
 
   .sent-list .shipment-summary,
   .sent-list .shipment-summary-main,
-  .sent-list .shipment-summary-right {
+  .sent-list .shipment-summary-actions {
     width: 100%;
   }
 }
@@ -1830,11 +1868,8 @@ textarea {
     grid-row: auto;
   }
 
-  .sent-list .shipment-summary-right {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 6px;
+  .sent-list .shipment-summary-actions {
+    padding: 0 12px 10px;
   }
 
   .sent-list .shipment-title,
@@ -1944,13 +1979,17 @@ textarea {
   z-index: 70;
   padding: 24px 5vw;
   backdrop-filter: blur(6px) saturate(120%);
+  overflow: hidden;
 }
 
 .modal-card {
   width: min(100%, 980px);
   max-height: 90vh;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .modal-card .card-actions {
