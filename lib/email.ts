@@ -218,11 +218,11 @@ export const sendShipmentEmail = async (
   shipment: ShipmentWithDetails,
   type: EmailType
 ) => {
-  const outlookUser = process.env.OUTLOOK_USER;
-  const outlookPass = process.env.OUTLOOK_APP_PASSWORD;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const mailFrom = process.env.MAIL_FROM;
 
-  if (!outlookUser || !outlookPass) {
-    throw new Error("Missing Outlook credentials");
+  if (!resendApiKey || !mailFrom) {
+    throw new Error("Missing Resend configuration");
   }
 
   const recipients = [process.env.EMAIL_1, process.env.EMAIL_2].filter(
@@ -232,31 +232,37 @@ export const sendShipmentEmail = async (
     throw new Error("Missing recipients");
   }
 
-  const transport = nodemailer.createTransport({
-    host: "smtp-mail.outlook.com",
-    port: 587,
-    secure: false,
-    auth: { user: outlookUser, pass: outlookPass },
-    requireTLS: true,
-  });
-
   const subject =
     type === "ready"
       ? `Versandbereit: ${shipment.companyName}`
       : `Versendet: ${shipment.companyName}`;
 
-  const result = await transport.sendMail({
-    from: `"Plugs Tracker" <${outlookUser}>`,
-    to: recipients.join(", "),
-    subject,
-    html: buildEmailHtml(shipment, type),
-    text: buildEmailText(shipment, type),
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `Plugs Tracker <${mailFrom}>`,
+      to: recipients,
+      subject,
+      html: buildEmailHtml(shipment, type),
+      text: buildEmailText(shipment, type),
+    }),
   });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      payload?.message || `Resend error: ${response.status} ${response.statusText}`;
+    throw new Error(message);
+  }
 
   console.info("Email sent", {
     shipmentId: shipment.id,
-    messageId: result.messageId,
-    accepted: result.accepted,
-    rejected: result.rejected,
+    provider: "resend",
+    messageId: payload?.id ?? null,
+    recipients,
   });
 };
