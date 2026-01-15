@@ -1623,7 +1623,7 @@ textarea {
   border: 1px solid rgba(12, 18, 32, 0.08);
   border-radius: var(--radius-md);
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sent-item.status-ready {
