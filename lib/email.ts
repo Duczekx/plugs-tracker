@@ -166,6 +166,54 @@ const buildEmailHtml = (shipment: ShipmentWithDetails, type: EmailType) => {
   `;
 };
 
+const buildEmailText = (shipment: ShipmentWithDetails, type: EmailType) => {
+  const headline =
+    type === "ready" ? "Versandbereit gemeldet" : "Versand bestaetigt";
+  const intro =
+    type === "ready"
+      ? "Die folgende Sendung ist vorbereitet und bereit fuer den Versand."
+      : "Die folgende Sendung wurde an den Kunden verschickt.";
+
+  const addressLine = `${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`;
+
+  const items = shipment.items
+    .map(
+      (item) =>
+        `- ${modelLabel[item.model] ?? item.model} ${item.serialNumber} | ${variantLabel[item.variant] ?? item.variant} | Menge: ${item.quantity} | Bau-Nr: ${item.buildNumber} | Datum: ${formatDate(item.buildDate)} | Schwenkbock: ${item.isSchwenkbock ? "Ja" : "Nein"} | Eimerhalter: ${item.bucketHolder ? "Ja" : "Nein"} | Ventil: ${valveLabel[item.valveType] ?? item.valveType}`
+    )
+    .join("\n");
+
+  const extras = shipment.extras.length
+    ? shipment.extras
+        .map(
+          (extra) =>
+            `- ${extra.name} | Menge: ${extra.quantity} | Notiz: ${extra.note ? extra.note : "-"}`
+        )
+        .join("\n")
+    : "Keine Zusatzteile.";
+
+  return [
+    headline,
+    intro,
+    `Datum: ${formatDate(shipment.createdAt)}`,
+    "",
+    `${shipment.companyName}`,
+    `${shipment.firstName} ${shipment.lastName}`,
+    addressLine,
+    "",
+    "Positionen:",
+    items || "Keine Positionen.",
+    "",
+    "Zusatzteile:",
+    extras,
+    shipment.notes ? `\nNotizen: ${shipment.notes}` : "",
+    "",
+    "Automatisch generiert durch die Anwendung FS LAGER.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 export const sendShipmentEmail = async (
   shipment: ShipmentWithDetails,
   type: EmailType
@@ -195,10 +243,18 @@ export const sendShipmentEmail = async (
       ? `Versandbereit: ${shipment.companyName}`
       : `Versendet: ${shipment.companyName}`;
 
-  await transport.sendMail({
+  const result = await transport.sendMail({
     from: `"Plugs Tracker" <${user}>`,
     to: recipients.join(", "),
     subject,
     html: buildEmailHtml(shipment, type),
+    text: buildEmailText(shipment, type),
+  });
+
+  console.info("Email sent", {
+    shipmentId: shipment.id,
+    messageId: result.messageId,
+    accepted: result.accepted,
+    rejected: result.rejected,
   });
 };
