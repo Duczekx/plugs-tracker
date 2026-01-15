@@ -783,6 +783,13 @@ a {
   font-size: 12px;
 }
 
+.button-icon-only {
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+  justify-content: center;
+}
+
 .form {
   display: grid;
   gap: 14px;
@@ -1626,6 +1633,20 @@ textarea {
   margin-top: 6px;
 }
 
+.sent-list .shipment-summary .shipment-actions {
+  gap: 6px;
+}
+
+.sent-list .shipment-summary .button-small {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.sent-list .shipment-summary .status-toggle {
+  padding: 2px 4px;
+  gap: 6px;
+}
+
 .sent-item {
   border: 1px solid rgba(12, 18, 32, 0.08);
   border-radius: var(--radius-md);
@@ -1657,7 +1678,7 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   cursor: pointer;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .shipment-summary-main {
@@ -1762,7 +1783,7 @@ textarea {
 }
 
 .sent-items {
-  padding: 0 14px 12px;
+  padding: 0 12px 10px;
 }
 
 .sent-card,
@@ -1929,6 +1950,13 @@ textarea {
   width: min(100%, 980px);
   max-height: 90vh;
   overflow: auto;
+  position: relative;
+}
+
+.modal-card .card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
 }
 
 .confirm-card {

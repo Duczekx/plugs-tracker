@@ -777,18 +777,11 @@ export default function SentPage() {
               <div className="card-actions">
                 <button
                   type="button"
-                  className="button button-ghost button-small"
+                  className="button button-ghost button-small button-icon-only"
                   onClick={handleCancelEdit}
                   aria-label={t.cancel}
                 >
-                  ✕
-                </button>
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={handleCancelEdit}
-                >
-                  {t.cancel}
+                  X
                 </button>
               </div>
             </div>
@@ -1475,3 +1468,4 @@ export default function SentPage() {
     </div>
   );
 }
+
