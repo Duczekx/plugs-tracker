@@ -1251,61 +1251,61 @@ export default function SentPage() {
                       {shipment.country}
                     </div>
                   </div>
-                </summary>
-                <div className="shipment-summary-actions">
-                  <div className="shipment-actions">
-                    <div className="status-toggle">
+                  <div className="shipment-summary-right">
+                    <div className="shipment-actions">
+                      <div className="status-toggle">
+                        <button
+                          type="button"
+                          className={`button button-ghost button-small status-btn ${
+                            shipmentStatus === "READY" ? "active" : ""
+                          }`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setStatusPrompt({ shipmentId: shipment.id, status: "READY" });
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          {statusLabel.READY}
+                        </button>
+                        <button
+                          type="button"
+                          className={`button button-ghost button-small status-btn ${
+                            shipmentStatus === "SENT" ? "active" : ""
+                          }`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setStatusPrompt({ shipmentId: shipment.id, status: "SENT" });
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          {statusLabel.SENT}
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        className={`button button-ghost button-small status-btn ${
-                          shipmentStatus === "READY" ? "active" : ""
-                        }`}
+                        className="button button-ghost button-small"
                         onClick={(event) => {
                           event.preventDefault();
-                          setStatusPrompt({ shipmentId: shipment.id, status: "READY" });
+                          handleStartEdit(shipment);
                         }}
                         disabled={isReadOnly}
                       >
-                        {statusLabel.READY}
+                        {t.editShipment}
                       </button>
                       <button
                         type="button"
-                        className={`button button-ghost button-small status-btn ${
-                          shipmentStatus === "SENT" ? "active" : ""
-                        }`}
+                        className="button button-ghost button-small"
                         onClick={(event) => {
                           event.preventDefault();
-                          setStatusPrompt({ shipmentId: shipment.id, status: "SENT" });
+                          handleDeleteShipment(shipment.id);
                         }}
                         disabled={isReadOnly}
                       >
-                        {statusLabel.SENT}
+                        {t.delete}
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        handleStartEdit(shipment);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      {t.editShipment}
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        handleDeleteShipment(shipment.id);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      {t.delete}
-                    </button>
                   </div>
-                </div>
+                </summary>
                 <div className="shipment-items sent-items" style={{ marginTop: 10 }}>
                   {shipment.items.map((item) => (
                     <div key={item.id} className="shipment-item-card">
