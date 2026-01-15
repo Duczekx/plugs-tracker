@@ -233,7 +233,7 @@ export const sendShipmentEmail = async (
   }
 
   const transport = nodemailer.createTransport({
-    host: "smtp.office365.com",
+    host: "smtp-mail.outlook.com",
     port: 587,
     secure: false,
     auth: { user: outlookUser, pass: outlookPass },
