@@ -977,7 +977,7 @@ export default function SentPage() {
                   <h3 className="title title-with-icon">
                     <span
                       className={`title-icon confirm-icon ${
-                        statusPrompt.status === "READY"
+                        statusPrompt?.status === "READY"
                           ? "confirm-icon-ready"
                           : "confirm-icon-sent"
                       }`}
@@ -1359,12 +1359,12 @@ export default function SentPage() {
                         />
                       </svg>
                     </span>
-                    {statusPrompt.status === "READY"
+                    {statusPrompt?.status === "READY"
                       ? t.confirmReadyTitle
                       : t.confirmSentTitle}
                   </h3>
                   <p className="subtitle">
-                    {statusPrompt.status === "READY"
+                    {statusPrompt?.status === "READY"
                       ? t.confirmReadySubtitle
                       : t.confirmSentSubtitle}
                   </p>
