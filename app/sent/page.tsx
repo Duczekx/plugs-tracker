@@ -777,6 +777,14 @@ export default function SentPage() {
               <div className="card-actions">
                 <button
                   type="button"
+                  className="button button-ghost button-small"
+                  onClick={handleCancelEdit}
+                  aria-label={t.cancel}
+                >
+                  ✕
+                </button>
+                <button
+                  type="button"
                   className="button button-ghost"
                   onClick={handleCancelEdit}
                 >
@@ -963,7 +971,7 @@ export default function SentPage() {
                     <div className="shipment-actions">
                       <button
                         type="button"
-                        className="button button-ghost button-small"
+                        className="button button-ghost button-small edit-pulse"
                         onClick={() => handleEditExistingItem(index)}
                         disabled={isReadOnly}
                       >
@@ -1167,7 +1175,7 @@ export default function SentPage() {
         </div>
         )}
 
-        <section className="card">
+        <section className="card sent-card">
           <div className="card-header">
             <div>
               <h2 className="title title-with-icon">

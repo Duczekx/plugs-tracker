@@ -1806,6 +1806,19 @@ textarea {
   }
 }
 
+@media (max-width: 420px) {
+  .sent-card {
+    overflow: visible;
+  }
+
+  .sent-card .sent-list,
+  .sent-card .sent-item,
+  .sent-card .sent-item[open],
+  .sent-card .sent-items {
+    overflow: visible;
+  }
+}
+
 .card-actions {
   display: inline-flex;
   align-items: center;
@@ -1841,6 +1854,22 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+@keyframes editPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 124, 47, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(244, 124, 47, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 124, 47, 0);
+  }
+}
+
+.edit-pulse {
+  animation: editPulse 1.8s ease-in-out infinite;
 }
 
 .success {
