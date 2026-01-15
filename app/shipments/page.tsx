@@ -194,49 +194,58 @@ export default function ShipmentsPage() {
       SMALL: de.valveSmall,
       LARGE: de.valveLarge,
     };
+    const bullet = "•";
+    const statusText = status === "READY" ? "VERSANDBEREIT" : "GESENDET";
+    const statusIcon = status === "READY" ? "🟡" : "🟢";
     const formatItemLines = (item: ShipmentItemDraft) => {
       const lines = [
-        `- Plug: ${de.models[item.model]} ${item.serialNumber}`,
-        `- Bau-Nr: ${item.buildNumber}`,
-        `- Versanddatum: ${item.buildDate}`,
-        `- Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
-        `- Menge: ${item.quantity}`,
-        `- Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
-        `- 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
-        `- Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
+        `${bullet} Plug: ${de.models[item.model]} ${item.serialNumber}`,
+        `${bullet} Bau-Nr: ${item.buildNumber}`,
+        `${bullet} Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
+        `${bullet} Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
+        `${bullet} 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
+        `${bullet} Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
+        `${bullet} Menge: ${item.quantity} stk`,
       ];
       const extraParts = item.extraParts?.trim();
       if (extraParts) {
-        lines.push(`- Zusatzteile: ${extraParts}`);
+        lines.push(`${bullet} Zusatzteile: ${extraParts}`);
       }
+      lines.push("");
       return lines;
     };
+    const itemLines =
+      shipment.items.length > 0
+        ? shipment.items.flatMap((item) => formatItemLines(item))
+        : [`${bullet} keine`];
+    if (itemLines[itemLines.length - 1] === "") {
+      itemLines.pop();
+    }
+    const extraLines =
+      shipment.extras.length > 0
+        ? shipment.extras.map(
+            (extra) =>
+              `${bullet} ${extra.name} x${extra.quantity}${
+                extra.note ? ` (${extra.note})` : ""
+              }`
+          )
+        : [`${bullet} keine`];
     const subject = `[PLUGS] ${
       status === "READY" ? "Versandbereit" : "Gesendet"
     } ${shipment.companyName} ${shipment.id}`;
     const bodyLines = [
       "FS LAGER | BENACHRICHTIGUNG",
       "========================================",
-      `Status: ${status === "READY" ? "VERSANDBEREIT" : "GESENDET"}`,
-      `Datum: ${formatDateTime(new Date())}`,
+      `${statusIcon} Status: ${statusText}    Datum: ${formatDateTime(new Date())}`,
       "",
       `Kunde: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
       `Adresse: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
       "",
       "POSITIONEN:",
-      ...(shipment.items.length > 0
-        ? shipment.items.flatMap((item) => formatItemLines(item))
-        : ["- keine"]),
+      ...itemLines,
       "",
       "ZUSAETZLICHE TEILE:",
-      ...(shipment.extras.length > 0
-        ? shipment.extras.map(
-            (extra) =>
-              `- ${extra.name} x${extra.quantity}${
-                extra.note ? ` (${extra.note})` : ""
-              }`
-          )
-        : ["- keine"]),
+      ...extraLines,
       "",
       "Diese Nachricht wurde automatisch von FS LAGER erstellt.",
     ];
