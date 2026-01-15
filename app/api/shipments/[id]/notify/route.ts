@@ -42,6 +42,12 @@ export async function POST(
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Server error";
+    console.error("Email send failed", {
+      shipmentId,
+      type,
+      message,
+      stack: error instanceof Error ? error.stack : null,
+    });
     return NextResponse.json({ message }, { status: 500 });
   }
 }
