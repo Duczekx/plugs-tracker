@@ -1382,6 +1382,10 @@ textarea {
   .shipment-items-card .header-field input {
     max-width: 100%;
   }
+
+  .status-toggle {
+    display: none;
+  }
 }
 .shipment-items-card .form {
   gap: 18px;

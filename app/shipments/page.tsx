@@ -348,6 +348,8 @@ export default function ShipmentsPage() {
       return;
     }
 
+    const shipment = await response.json().catch(() => null);
+
     setItemForm(createEmptyItemForm());
     setItems([]);
     setExtras([]);
@@ -358,6 +360,22 @@ export default function ShipmentsPage() {
       setNotice(null);
     }, 1800);
     setIsSubmitting(false);
+
+    if (shipment?.id && confirm(t.confirmSendReadyEmail)) {
+      const notifyResponse = await fetch(
+        `/api/shipments/${shipment.id}/notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "ready" }),
+        }
+      );
+      if (!notifyResponse.ok) {
+        const body = await notifyResponse.json().catch(() => null);
+        const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
+        setNotice({ type: "error", message });
+      }
+    }
   };
 
   return (

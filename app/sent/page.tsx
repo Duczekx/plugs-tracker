@@ -471,6 +471,9 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.readOnlyNotice });
       return;
     }
+    if (status === "SENT" && !confirm(t.confirmSendSentEmail)) {
+      return;
+    }
     const response = await fetch(`/api/shipments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -488,6 +491,21 @@ export default function SentPage() {
       )
     );
     setNotice({ type: "success", message: t.saved });
+
+    if (status === "SENT") {
+      const notifyResponse = await fetch(`/api/shipments/${id}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "sent" }),
+      });
+      if (!notifyResponse.ok) {
+        const body = await notifyResponse.json().catch(() => null);
+        const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
+        setNotice({ type: "error", message });
+        return;
+      }
+      setNotice({ type: "success", message: t.emailSent });
+    }
   };
 
   return (
