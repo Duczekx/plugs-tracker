@@ -27,6 +27,11 @@ enum Model {
   FL_260
 }
 
+enum ShipmentStatus {
+  READY
+  SENT
+}
+
 model InventoryItem {
   id        Int      @id @default(autoincrement())
   model     Model    @default(FL_540)
@@ -51,6 +56,7 @@ model Shipment {
   country     String
   notes       String?
   createdAt   DateTime @default(now())
+  status      ShipmentStatus @default(READY)
 
   items       ShipmentItem[]
   extras      ShipmentExtraItem[]

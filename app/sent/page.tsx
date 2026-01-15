@@ -9,6 +9,7 @@ import { labels, Lang } from "@/lib/i18n";
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
 type ValveType = "NONE" | "SMALL" | "LARGE";
+type ShipmentStatus = "READY" | "SENT";
 
 type ShipmentItem = {
   id: number;
@@ -42,6 +43,7 @@ type Shipment = {
   country: string;
   notes?: string | null;
   createdAt: string;
+  status?: ShipmentStatus;
   items: ShipmentItem[];
   extras: ShipmentExtraItem[];
 };
@@ -169,6 +171,14 @@ export default function SentPage() {
       NONE: t.valveNone,
       SMALL: t.valveSmall,
       LARGE: t.valveLarge,
+    }),
+    [t]
+  );
+
+  const statusLabel = useMemo(
+    () => ({
+      READY: t.statusReady,
+      SENT: t.statusSent,
     }),
     [t]
   );
@@ -450,6 +460,33 @@ export default function SentPage() {
     }
     setShipments((prev) => prev.filter((shipment) => shipment.id !== id));
     await loadShipments();
+    setNotice({ type: "success", message: t.saved });
+  };
+
+  const handleUpdateShipmentStatus = async (
+    id: number,
+    status: ShipmentStatus
+  ) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    const response = await fetch(`/api/shipments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const message = body?.message ? `${t.error}${body.message}` : t.error;
+      setNotice({ type: "error", message });
+      return;
+    }
+    setShipments((prev) =>
+      prev.map((shipment) =>
+        shipment.id === id ? { ...shipment, status } : shipment
+      )
+    );
     setNotice({ type: "success", message: t.saved });
   };
 
@@ -1009,8 +1046,16 @@ export default function SentPage() {
           </div>
           <div className="shipments-list sent-list" style={{ marginTop: 16 }}>
             {filteredShipments.length === 0 && <p>{t.statusEmpty}</p>}
-            {filteredShipments.map((shipment) => (
-              <details key={shipment.id} className="shipment-item sent-item" open={false}>
+            {filteredShipments.map((shipment) => {
+              const shipmentStatus = shipment.status ?? "READY";
+              return (
+              <details
+                key={shipment.id}
+                className={`shipment-item sent-item ${
+                  shipmentStatus === "SENT" ? "status-sent" : "status-ready"
+                }`}
+                open={false}
+              >
                 <summary className="shipment-summary">
                   <div className="shipment-summary-main">
                     <span className="expand-icon expand-icon-left" aria-hidden="true">
@@ -1040,28 +1085,56 @@ export default function SentPage() {
                   </div>
                   <div className="shipment-summary-right">
                     <div className="shipment-actions">
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        handleStartEdit(shipment);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      {t.editShipment}
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-ghost button-small"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        handleDeleteShipment(shipment.id);
-                      }}
-                      disabled={isReadOnly}
-                    >
-                      {t.delete}
-                    </button>
+                      <div className="status-toggle">
+                        <button
+                          type="button"
+                          className={`button button-ghost button-small status-btn ${
+                            shipmentStatus === "READY" ? "active" : ""
+                          }`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handleUpdateShipmentStatus(shipment.id, "READY");
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          {statusLabel.READY}
+                        </button>
+                        <button
+                          type="button"
+                          className={`button button-ghost button-small status-btn ${
+                            shipmentStatus === "SENT" ? "active" : ""
+                          }`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handleUpdateShipmentStatus(shipment.id, "SENT");
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          {statusLabel.SENT}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleStartEdit(shipment);
+                        }}
+                        disabled={isReadOnly}
+                      >
+                        {t.editShipment}
+                      </button>
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleDeleteShipment(shipment.id);
+                        }}
+                        disabled={isReadOnly}
+                      >
+                        {t.delete}
+                      </button>
                     </div>
                   </div>
                 </summary>
@@ -1151,7 +1224,8 @@ export default function SentPage() {
                 )}
                 {shipment.notes && <div className="muted">{shipment.notes}</div>}
               </details>
-            ))}
+            );
+            })}
           </div>
         </section>
       </div>

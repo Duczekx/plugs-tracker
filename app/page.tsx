@@ -81,7 +81,6 @@ export default function Home() {
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [inventoryFilter, setInventoryFilter] = useState({
     model: "ALL",
-    serialNumber: "",
     variant: "ALL",
     schwenkbock: "ALL",
   });
@@ -188,12 +187,6 @@ export default function Home() {
         product.model !== inventoryFilter.model
       ) {
         return false;
-      }
-      if (inventoryFilter.serialNumber) {
-        const serial = Number(inventoryFilter.serialNumber);
-        if (!Number.isNaN(serial) && product.serialNumber !== serial) {
-          return false;
-        }
       }
       const bucket =
         inventoryFilter.schwenkbock === "SCHWENK"
@@ -735,16 +728,6 @@ export default function Home() {
                 </option>
               ))}
             </select>
-            <input
-              value={inventoryFilter.serialNumber}
-              onChange={(event) =>
-                setInventoryFilter((prev) => ({
-                  ...prev,
-                  serialNumber: event.target.value,
-                }))
-              }
-              placeholder={t.serialNumber}
-            />
             <select
               value={inventoryFilter.variant}
               onChange={(event) =>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { Model, ValveType, Variant } from "@prisma/client";
+import { Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
 
 export const runtime = "nodejs";
@@ -30,6 +30,9 @@ const isValveType = (value: string): value is ValveType =>
   value === ValveType.NONE ||
   value === ValveType.SMALL ||
   value === ValveType.LARGE;
+
+const isShipmentStatus = (value: string): value is ShipmentStatus =>
+  value === ShipmentStatus.READY || value === ShipmentStatus.SENT;
 
 type IncomingItem = {
   model: string;
@@ -124,6 +127,31 @@ export async function PATCH(
 
   const body = await request.json();
   const items = Array.isArray(body.items) ? (body.items as IncomingItem[]) : [];
+  const statusValue = typeof body.status === "string" ? body.status : null;
+  const status =
+    statusValue && isShipmentStatus(statusValue)
+      ? (statusValue as ShipmentStatus)
+      : null;
+
+  if (statusValue && !status) {
+    return NextResponse.json({ message: "Invalid status" }, { status: 400 });
+  }
+
+  if (!items.length && status) {
+    const existing = await prisma.shipment.findUnique({
+      where: { id: shipmentId },
+    });
+    if (!existing) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    const shipment = await prisma.shipment.update({
+      where: { id: shipmentId },
+      data: { status },
+      include: { items: true, extras: true },
+    });
+    return NextResponse.json(shipment);
+  }
+
   if (!items.length) {
     return NextResponse.json({ message: "Missing items" }, { status: 400 });
   }
@@ -249,6 +277,7 @@ export async function PATCH(
           city: String(body.city),
           country: String(body.country),
           notes: body.notes ? String(body.notes) : null,
+          ...(status ? { status } : {}),
           items: {
             deleteMany: {},
             create: validatedItems.map((item) => ({

@@ -1367,6 +1367,22 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 720px) {
+  .shipment-items-card .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .shipment-items-card .header-field {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .shipment-items-card .header-field input {
+    max-width: 100%;
+  }
+}
 .shipment-items-card .form {
   gap: 18px;
 }
@@ -1546,6 +1562,16 @@ textarea {
   overflow: hidden;
 }
 
+.sent-item.status-ready {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.sent-item.status-sent {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+}
+
 .sent-item summary {
   list-style: none;
 }
@@ -1586,6 +1612,29 @@ textarea {
   gap: 10px;
 }
 
+.status-toggle {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(12, 18, 32, 0.04);
+  border: 1px solid rgba(12, 18, 32, 0.1);
+}
+
+.status-btn.active {
+  color: var(--accent);
+}
+
+.status-ready .status-btn.active {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.status-sent .status-btn.active {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.2);
+}
+
 .shipment-date {
   margin-bottom: 6px;
 }
@@ -1613,6 +1662,14 @@ textarea {
 
 .shipment-summary:hover {
   background: rgba(12, 18, 32, 0.04);
+}
+
+.status-ready .shipment-summary:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.status-sent .shipment-summary:hover {
+  background: rgba(34, 197, 94, 0.16);
 }
 
 .address-compact {
