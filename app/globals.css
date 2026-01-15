@@ -1769,6 +1769,43 @@ textarea {
   }
 }
 
+@media (max-width: 420px) {
+  .sent-list .shipment-summary {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .sent-list .shipment-summary-main {
+    grid-template-columns: 1fr;
+    row-gap: 6px;
+  }
+
+  .sent-list .expand-icon-left {
+    grid-row: auto;
+  }
+
+  .sent-list .shipment-summary-right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .sent-list .shipment-title,
+  .sent-list .address-compact {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .sent-list .shipment-item-card {
+    padding: 10px;
+  }
+
+  .sent-list .shipment-item-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .card-actions {
   display: inline-flex;
   align-items: center;
