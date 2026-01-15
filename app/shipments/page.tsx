@@ -100,6 +100,9 @@ export default function ShipmentsPage() {
   const [customerForm, setCustomerForm] =
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [readyPrompt, setReadyPrompt] = useState<{
+    shipmentId: number;
+  } | null>(null);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
     message: string;
@@ -361,21 +364,32 @@ export default function ShipmentsPage() {
     }, 1800);
     setIsSubmitting(false);
 
-    if (shipment?.id && confirm(t.confirmSendReadyEmail)) {
-      const notifyResponse = await fetch(
-        `/api/shipments/${shipment.id}/notify`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "ready" }),
-        }
-      );
-      if (!notifyResponse.ok) {
-        const body = await notifyResponse.json().catch(() => null);
-        const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
-        setNotice({ type: "error", message });
-      }
+    if (shipment?.id) {
+      setReadyPrompt({ shipmentId: shipment.id });
     }
+  };
+
+  const handleReadyEmailChoice = async (sendEmail: boolean) => {
+    if (!readyPrompt) {
+      return;
+    }
+    const { shipmentId } = readyPrompt;
+    setReadyPrompt(null);
+    if (!sendEmail) {
+      return;
+    }
+    const notifyResponse = await fetch(`/api/shipments/${shipmentId}/notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "ready" }),
+    });
+    if (!notifyResponse.ok) {
+      const body = await notifyResponse.json().catch(() => null);
+      const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
+      setNotice({ type: "error", message });
+      return;
+    }
+    setNotice({ type: "success", message: t.emailSent });
   };
 
   return (
@@ -484,6 +498,68 @@ export default function ShipmentsPage() {
               </div>
               <div className="success-text">{notice.message}</div>
             </div>
+          </div>
+        )}
+        {readyPrompt && (
+          <div className="modal-overlay" role="dialog" aria-modal="true">
+            <section className="card modal-card confirm-card">
+              <div className="card-header">
+                <div>
+                  <h3 className="title title-with-icon">
+                    <span className="title-icon confirm-icon confirm-icon-ready" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="currentColor"
+                          opacity="0.12"
+                        />
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M4 7l8 6 8-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    {t.confirmReadyTitle}
+                  </h3>
+                  <p className="subtitle">{t.confirmReadySubtitle}</p>
+                </div>
+              </div>
+              <div className="confirm-actions">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => handleReadyEmailChoice(true)}
+                >
+                  {t.sendEmailAction}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => handleReadyEmailChoice(false)}
+                >
+                  {t.skipEmailAction}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setReadyPrompt(null)}
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </section>
           </div>
         )}
 

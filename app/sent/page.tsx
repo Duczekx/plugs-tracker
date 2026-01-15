@@ -141,6 +141,9 @@ export default function SentPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editCustomer, setEditCustomer] =
     useState<CustomerForm>(emptyCustomerForm);
+  const [sentPrompt, setSentPrompt] = useState<{
+    shipmentId: number;
+  } | null>(null);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
     message: string;
@@ -465,13 +468,11 @@ export default function SentPage() {
 
   const handleUpdateShipmentStatus = async (
     id: number,
-    status: ShipmentStatus
+    status: ShipmentStatus,
+    sendEmail: boolean
   ) => {
     if (isReadOnly) {
       setNotice({ type: "error", message: t.readOnlyNotice });
-      return;
-    }
-    if (status === "SENT" && !confirm(t.confirmSendSentEmail)) {
       return;
     }
     const response = await fetch(`/api/shipments/${id}`, {
@@ -492,7 +493,7 @@ export default function SentPage() {
     );
     setNotice({ type: "success", message: t.saved });
 
-    if (status === "SENT") {
+    if (status === "SENT" && sendEmail) {
       const notifyResponse = await fetch(`/api/shipments/${id}/notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -506,6 +507,15 @@ export default function SentPage() {
       }
       setNotice({ type: "success", message: t.emailSent });
     }
+  };
+
+  const handleSentChoice = async (sendEmail: boolean) => {
+    if (!sentPrompt) {
+      return;
+    }
+    const { shipmentId } = sentPrompt;
+    setSentPrompt(null);
+    await handleUpdateShipmentStatus(shipmentId, "SENT", sendEmail);
   };
 
   return (
@@ -900,7 +910,7 @@ export default function SentPage() {
               <div className="card-header">
                 <div>
                   <h3 className="title title-with-icon">
-                    <span className="title-icon" aria-hidden="true">
+                    <span className="title-icon confirm-icon confirm-icon-sent" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
                         <path
                           d="M6 7h12M6 12h6M6 17h10"
@@ -1111,7 +1121,11 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            handleUpdateShipmentStatus(shipment.id, "READY");
+                            handleUpdateShipmentStatus(
+                              shipment.id,
+                              "READY",
+                              false
+                            );
                           }}
                           disabled={isReadOnly}
                         >
@@ -1124,7 +1138,7 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            handleUpdateShipmentStatus(shipment.id, "SENT");
+                            setSentPrompt({ shipmentId: shipment.id });
                           }}
                           disabled={isReadOnly}
                         >
@@ -1246,6 +1260,68 @@ export default function SentPage() {
             })}
           </div>
         </section>
+        {sentPrompt && (
+          <div className="modal-overlay" role="dialog" aria-modal="true">
+            <section className="card modal-card confirm-card">
+              <div className="card-header">
+                <div>
+                  <h3 className="title title-with-icon">
+                    <span className="title-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="currentColor"
+                          opacity="0.12"
+                        />
+                        <path
+                          d="M4 7h16v10H4z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M4 7l8 6 8-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    {t.confirmSentTitle}
+                  </h3>
+                  <p className="subtitle">{t.confirmSentSubtitle}</p>
+                </div>
+              </div>
+              <div className="confirm-actions">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => handleSentChoice(true)}
+                >
+                  {t.sendEmailAction}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => handleSentChoice(false)}
+                >
+                  {t.skipEmailAction}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setSentPrompt(null)}
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );
