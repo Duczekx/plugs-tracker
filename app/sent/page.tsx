@@ -66,6 +66,14 @@ type Product = {
   serialNumber: number;
 };
 
+const notifyEmailTo =
+  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_TO ?? "";
+const notifyEmailCc =
+  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_CC ?? "";
+
+const formatDateTime = (value: Date) =>
+  value.toISOString().slice(0, 16).replace("T", " ");
+
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
 const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
 
@@ -141,8 +149,13 @@ export default function SentPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editCustomer, setEditCustomer] =
     useState<CustomerForm>(emptyCustomerForm);
-  const [sentPrompt, setSentPrompt] = useState<{
+  const [statusPrompt, setStatusPrompt] = useState<{
     shipmentId: number;
+    status: ShipmentStatus;
+  } | null>(null);
+  const [emailToast, setEmailToast] = useState<{
+    mailto: string | null;
+    message: string;
   } | null>(null);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
@@ -187,6 +200,43 @@ export default function SentPage() {
   );
 
   const modelLabel = useMemo(() => t.models, [t]);
+
+  const buildMailto = (shipment: Shipment, status: "READY" | "SENT") => {
+    if (!notifyEmailTo) {
+      return null;
+    }
+    const subject = `[PLUGS] ${
+      status === "READY" ? "Gotowe do wysylki" : "Wyslane"
+    } ${shipment.companyName} ${shipment.id}`;
+    const bodyLines = [
+      `Status: ${status === "READY" ? "GOTOWE DO WYSYLKI" : "WYSLANE"}`,
+      `Data: ${formatDateTime(new Date())}`,
+      `Klient: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
+      `Adres: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
+      "Pozycje:",
+      ...(shipment.items.length > 0
+        ? shipment.items.map(
+            (item) =>
+              `- ${modelLabel[item.model]} ${item.serialNumber} x${item.quantity}`
+          )
+        : ["- brak"]),
+      "Dodatkowe czesci:",
+      ...(shipment.extras.length > 0
+        ? shipment.extras.map(
+            (extra) => `- ${extra.name} x${extra.quantity}`
+          )
+        : ["- brak"]),
+      `Link: ${window.location.origin}/sent?shipmentId=${shipment.id}`,
+    ];
+    const body = bodyLines.join("\n");
+    const params = new URLSearchParams();
+    if (notifyEmailCc) {
+      params.set("cc", notifyEmailCc);
+    }
+    params.set("subject", subject);
+    params.set("body", body);
+    return `mailto:${encodeURIComponent(notifyEmailTo)}?${params.toString()}`;
+  };
 
   const productNumbersByModel = useMemo(() => {
     const map: Record<Model, number[]> = {
@@ -486,36 +536,35 @@ export default function SentPage() {
       setNotice({ type: "error", message });
       return;
     }
+    const updated = await response.json().catch(() => null);
     setShipments((prev) =>
       prev.map((shipment) =>
-        shipment.id === id ? { ...shipment, status } : shipment
+        shipment.id === id ? { ...shipment, ...updated } : shipment
       )
     );
-    setNotice({ type: "success", message: t.saved });
+    setNotice({ type: "success", message: t.statusSaved });
 
-    if (status === "SENT" && sendEmail) {
-      const notifyResponse = await fetch(`/api/shipments/${id}/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "sent" }),
-      });
-      if (!notifyResponse.ok) {
-        const body = await notifyResponse.json().catch(() => null);
-        const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
-        setNotice({ type: "error", message });
+    if (sendEmail) {
+      if (!notifyEmailTo) {
+        setEmailToast({ mailto: null, message: t.missingNotifyEmails });
         return;
       }
-      setNotice({ type: "success", message: t.emailSent });
+      const current =
+        updated ?? shipments.find((shipment) => shipment.id === id);
+      if (current) {
+        const mailto = buildMailto(current, status);
+        setEmailToast({ mailto, message: t.statusSaved });
+      }
     }
   };
 
-  const handleSentChoice = async (sendEmail: boolean) => {
-    if (!sentPrompt) {
+  const handleStatusChoice = async (sendEmail: boolean) => {
+    if (!statusPrompt) {
       return;
     }
-    const { shipmentId } = sentPrompt;
-    setSentPrompt(null);
-    await handleUpdateShipmentStatus(shipmentId, "SENT", sendEmail);
+    const { shipmentId, status } = statusPrompt;
+    setStatusPrompt(null);
+    await handleUpdateShipmentStatus(shipmentId, status, sendEmail);
   };
 
   return (
@@ -605,6 +654,22 @@ export default function SentPage() {
         {notice && (
           <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
             {notice.message}
+          </div>
+        )}
+        {emailToast && (
+          <div className="alert alert-action">
+            <span>{emailToast.message}</span>
+            {emailToast.mailto && (
+              <button
+                type="button"
+                className="button button-ghost button-small"
+                onClick={() => {
+                  window.location.href = emailToast.mailto ?? "";
+                }}
+              >
+                {t.openEmail}
+              </button>
+            )}
           </div>
         )}
 
@@ -910,7 +975,14 @@ export default function SentPage() {
               <div className="card-header">
                 <div>
                   <h3 className="title title-with-icon">
-                    <span className="title-icon confirm-icon confirm-icon-sent" aria-hidden="true">
+                    <span
+                      className={`title-icon confirm-icon ${
+                        statusPrompt.status === "READY"
+                          ? "confirm-icon-ready"
+                          : "confirm-icon-sent"
+                      }`}
+                      aria-hidden="true"
+                    >
                       <svg viewBox="0 0 24 24">
                         <path
                           d="M6 7h12M6 12h6M6 17h10"
@@ -1121,11 +1193,7 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            handleUpdateShipmentStatus(
-                              shipment.id,
-                              "READY",
-                              false
-                            );
+                            setStatusPrompt({ shipmentId: shipment.id, status: "READY" });
                           }}
                           disabled={isReadOnly}
                         >
@@ -1138,7 +1206,7 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            setSentPrompt({ shipmentId: shipment.id });
+                            setStatusPrompt({ shipmentId: shipment.id, status: "SENT" });
                           }}
                           disabled={isReadOnly}
                         >
@@ -1260,7 +1328,7 @@ export default function SentPage() {
             })}
           </div>
         </section>
-        {sentPrompt && (
+        {statusPrompt && (
           <div className="modal-overlay" role="dialog" aria-modal="true">
             <section className="card modal-card confirm-card">
               <div className="card-header">
@@ -1291,30 +1359,36 @@ export default function SentPage() {
                         />
                       </svg>
                     </span>
-                    {t.confirmSentTitle}
+                    {statusPrompt.status === "READY"
+                      ? t.confirmReadyTitle
+                      : t.confirmSentTitle}
                   </h3>
-                  <p className="subtitle">{t.confirmSentSubtitle}</p>
+                  <p className="subtitle">
+                    {statusPrompt.status === "READY"
+                      ? t.confirmReadySubtitle
+                      : t.confirmSentSubtitle}
+                  </p>
                 </div>
               </div>
               <div className="confirm-actions">
                 <button
                   type="button"
                   className="button"
-                  onClick={() => handleSentChoice(true)}
+                  onClick={() => handleStatusChoice(true)}
                 >
                   {t.sendEmailAction}
                 </button>
                 <button
                   type="button"
                   className="button button-ghost"
-                  onClick={() => handleSentChoice(false)}
+                  onClick={() => handleStatusChoice(false)}
                 >
                   {t.skipEmailAction}
                 </button>
                 <button
                   type="button"
                   className="button button-ghost"
-                  onClick={() => setSentPrompt(null)}
+                  onClick={() => setStatusPrompt(null)}
                 >
                   {t.cancel}
                 </button>

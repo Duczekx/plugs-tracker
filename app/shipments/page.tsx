@@ -78,6 +78,14 @@ const emptyCustomerForm: CustomerForm = {
   notes: "",
 };
 
+const notifyEmailTo =
+  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_TO ?? "";
+const notifyEmailCc =
+  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_CC ?? "";
+
+const formatDateTime = (value: Date) =>
+  value.toISOString().slice(0, 16).replace("T", " ");
+
 export default function ShipmentsPage() {
   const [lang, setLang] = useState<Lang>(() => {
     if (typeof window !== "undefined") {
@@ -101,7 +109,22 @@ export default function ShipmentsPage() {
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [readyPrompt, setReadyPrompt] = useState<{
-    shipmentId: number;
+    shipment: {
+      id: number;
+      companyName: string;
+      firstName: string;
+      lastName: string;
+      street: string;
+      postalCode: string;
+      city: string;
+      country: string;
+      items: ShipmentItemDraft[];
+      extras: ExtraItemDraft[];
+    };
+  } | null>(null);
+  const [emailToast, setEmailToast] = useState<{
+    mailto: string | null;
+    message: string;
   } | null>(null);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
@@ -142,6 +165,57 @@ export default function ShipmentsPage() {
   );
 
   const modelLabel = useMemo(() => t.models, [t]);
+
+  const buildMailto = (
+    shipment: {
+      id: number;
+      companyName: string;
+      firstName: string;
+      lastName: string;
+      street: string;
+      postalCode: string;
+      city: string;
+      country: string;
+      items: ShipmentItemDraft[];
+      extras: ExtraItemDraft[];
+    },
+    status: "READY" | "SENT"
+  ) => {
+    if (!notifyEmailTo) {
+      return null;
+    }
+    const subject = `[PLUGS] ${
+      status === "READY" ? "Gotowe do wysylki" : "Wyslane"
+    } ${shipment.companyName} ${shipment.id}`;
+    const bodyLines = [
+      `Status: ${status === "READY" ? "GOTOWE DO WYSYLKI" : "WYSLANE"}`,
+      `Data: ${formatDateTime(new Date())}`,
+      `Klient: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
+      `Adres: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
+      "Pozycje:",
+      ...(shipment.items.length > 0
+        ? shipment.items.map(
+            (item) =>
+              `- ${modelLabel[item.model]} ${item.serialNumber} x${item.quantity}`
+          )
+        : ["- brak"]),
+      "Dodatkowe czesci:",
+      ...(shipment.extras.length > 0
+        ? shipment.extras.map(
+            (extra) => `- ${extra.name} x${extra.quantity}`
+          )
+        : ["- brak"]),
+      `Link: ${window.location.origin}/sent?shipmentId=${shipment.id}`,
+    ];
+    const body = bodyLines.join("\n");
+    const params = new URLSearchParams();
+    if (notifyEmailCc) {
+      params.set("cc", notifyEmailCc);
+    }
+    params.set("subject", subject);
+    params.set("body", body);
+    return `mailto:${encodeURIComponent(notifyEmailTo)}?${params.toString()}`;
+  };
 
   const productNumbersByModel = useMemo(() => {
     const map: Record<Model, number[]> = {
@@ -365,7 +439,20 @@ export default function ShipmentsPage() {
     setIsSubmitting(false);
 
     if (shipment?.id) {
-      setReadyPrompt({ shipmentId: shipment.id });
+      setReadyPrompt({
+        shipment: {
+          id: shipment.id,
+          companyName: shipment.companyName,
+          firstName: shipment.firstName,
+          lastName: shipment.lastName,
+          street: shipment.street,
+          postalCode: shipment.postalCode,
+          city: shipment.city,
+          country: shipment.country,
+          items: shipment.items ?? [],
+          extras: shipment.extras ?? [],
+        },
+      });
     }
   };
 
@@ -373,23 +460,20 @@ export default function ShipmentsPage() {
     if (!readyPrompt) {
       return;
     }
-    const { shipmentId } = readyPrompt;
+    const { shipment } = readyPrompt;
     setReadyPrompt(null);
     if (!sendEmail) {
       return;
     }
-    const notifyResponse = await fetch(`/api/shipments/${shipmentId}/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "ready" }),
-    });
-    if (!notifyResponse.ok) {
-      const body = await notifyResponse.json().catch(() => null);
-      const message = body?.message ? `${t.error}${body.message}` : t.emailFailed;
-      setNotice({ type: "error", message });
+    if (!notifyEmailTo) {
+      setEmailToast({ mailto: null, message: t.missingNotifyEmails });
       return;
     }
-    setNotice({ type: "success", message: t.emailSent });
+    const mailto = buildMailto(shipment, "READY");
+    setEmailToast({
+      mailto,
+      message: t.statusSaved,
+    });
   };
 
   return (
@@ -498,6 +582,22 @@ export default function ShipmentsPage() {
               </div>
               <div className="success-text">{notice.message}</div>
             </div>
+          </div>
+        )}
+        {emailToast && (
+          <div className="alert alert-action">
+            <span>{emailToast.message}</span>
+            {emailToast.mailto && (
+              <button
+                type="button"
+                className="button button-ghost button-small"
+                onClick={() => {
+                  window.location.href = emailToast.mailto ?? "";
+                }}
+              >
+                {t.openEmail}
+              </button>
+            )}
           </div>
         )}
         {readyPrompt && (
