@@ -1425,6 +1425,13 @@ textarea {
     white-space: normal;
   }
 
+  .sent-list .shipment-title,
+  .shipment-summary-main .shipment-title,
+  .shipment-summary-main .address-compact {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
   .address-compact {
     overflow: visible;
     text-overflow: clip;
@@ -1437,6 +1444,7 @@ textarea {
 
   .sent-list .table-wrap {
     overflow-x: auto;
+    max-width: 100%;
   }
 }
 .shipment-items-card .form {
@@ -1737,6 +1745,28 @@ textarea {
 
 .sent-items {
   padding: 0 14px 12px;
+}
+
+@media (max-width: 720px) {
+  .sent-list .sent-item {
+    overflow: visible !important;
+  }
+
+  .sent-list .sent-items {
+    overflow: visible;
+    width: 100%;
+  }
+
+  .sent-list .shipment-item-card {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .sent-list .shipment-summary,
+  .sent-list .shipment-summary-main,
+  .sent-list .shipment-summary-right {
+    width: 100%;
+  }
 }
 
 .card-actions {

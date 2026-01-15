@@ -188,35 +188,33 @@ export default function ShipmentsPage() {
       return null;
     }
     const subject = `[PLUGS] ${
-      status === "READY" ? "Gotowe do wysylki" : "Wyslane"
+      status === "READY" ? "Versandbereit" : "Gesendet"
     } ${shipment.companyName} ${shipment.id}`;
     const bodyLines = [
-      "FS LAGER | POWIADOMIENIE",
+      "FS LAGER | BENACHRICHTIGUNG",
       "========================================",
-      `Status: ${status === "READY" ? "GOTOWE DO WYSYLKI" : "WYSLANE"}`,
-      `Data: ${formatDateTime(new Date())}`,
+      `Status: ${status === "READY" ? "VERSANDBEREIT" : "GESENDET"}`,
+      `Datum: ${formatDateTime(new Date())}`,
       "",
-      `Klient: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
-      `Adres: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
+      `Kunde: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
+      `Adresse: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
       "",
-      "POZYCJE:",
+      "POSITIONEN:",
       ...(shipment.items.length > 0
         ? shipment.items.map(
             (item) =>
               `• ${modelLabel[item.model]} ${item.serialNumber}  x${item.quantity}`
           )
-        : ["- brak"]),
+        : ["- keine"]),
       "",
-      "DODATKOWE CZESCI:",
+      "ZUSAETZLICHE TEILE:",
       ...(shipment.extras.length > 0
         ? shipment.extras.map(
             (extra) => `• ${extra.name}  x${extra.quantity}`
           )
-        : ["- brak"]),
+        : ["- keine"]),
       "",
-      `Link: ${window.location.origin}/sent?shipmentId=${shipment.id}`,
-      "",
-      "Wiadomosc wygenerowana automatycznie przez FS LAGER.",
+      "Diese Nachricht wurde automatisch von FS LAGER erstellt.",
     ];
     const body = bodyLines.join("\r\n");
     const query = [
@@ -651,6 +649,7 @@ export default function ShipmentsPage() {
                     className="button"
                     onClick={() => {
                       window.location.href = emailPrompt.mailto ?? "";
+                      setEmailPrompt(null);
                     }}
                   >
                     {t.openEmail}
