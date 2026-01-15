@@ -138,18 +138,43 @@ export async function PATCH(
   }
 
   if (!items.length && status) {
-    const existing = await prisma.shipment.findUnique({
-      where: { id: shipmentId },
-    });
-    if (!existing) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    try {
+      const shipment = await prisma.$transaction(async (tx) => {
+        const existing = await tx.shipment.findUnique({
+          where: { id: shipmentId },
+        });
+        if (!existing) {
+          throw new Error("NOT_FOUND");
+        }
+        const updated = await tx.shipment.update({
+          where: { id: shipmentId },
+          data: { status },
+          include: { items: true, extras: true },
+        });
+        await tx.activityLog.create({
+          data: {
+            type: "shipment.status",
+            entityType: "Shipment",
+            entityId: String(updated.id),
+            summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
+            meta: {
+              shipmentId: updated.id,
+              fromStatus: existing.status,
+              toStatus: status,
+            },
+          },
+        });
+        return updated;
+      });
+      return NextResponse.json(shipment);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message === "NOT_FOUND"
+          ? "Not found"
+          : "Server error";
+      const statusCode = message === "Not found" ? 404 : 500;
+      return NextResponse.json({ message }, { status: statusCode });
     }
-    const shipment = await prisma.shipment.update({
-      where: { id: shipmentId },
-      data: { status },
-      include: { items: true, extras: true },
-    });
-    return NextResponse.json(shipment);
   }
 
   if (!items.length) {
@@ -266,7 +291,7 @@ export async function PATCH(
         });
       }
 
-      return tx.shipment.update({
+      const updated = await tx.shipment.update({
         where: { id: shipmentId },
         data: {
           companyName: String(body.companyName),
@@ -296,6 +321,24 @@ export async function PATCH(
         },
         include: { items: true, extras: true },
       });
+
+      if (status && existing.status !== status) {
+        await tx.activityLog.create({
+          data: {
+            type: "shipment.status",
+            entityType: "Shipment",
+            entityId: String(updated.id),
+            summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
+            meta: {
+              shipmentId: updated.id,
+              fromStatus: existing.status,
+              toStatus: status,
+            },
+          },
+        });
+      }
+
+      return updated;
     });
 
     return NextResponse.json(shipment);
@@ -331,7 +374,7 @@ export async function DELETE(
     await prisma.$transaction(async (tx) => {
       const existing = await tx.shipment.findUnique({
         where: { id: shipmentId },
-        include: { items: true },
+        include: { items: true, extras: true },
       });
       if (!existing) {
         throw new Error("NOT_FOUND");
@@ -373,6 +416,21 @@ export async function DELETE(
       }
 
       await tx.shipment.delete({ where: { id: shipmentId } });
+
+      await tx.activityLog.create({
+        data: {
+          type: "shipment.delete",
+          entityType: "Shipment",
+          entityId: String(existing.id),
+          summary: `Shipment ${existing.id} deleted (${existing.companyName})`,
+          meta: {
+            shipmentId: existing.id,
+            companyName: existing.companyName,
+            itemsCount: existing.items.length,
+            extrasCount: existing.extras.length,
+          },
+        },
+      });
     });
 
     return NextResponse.json({ ok: true });

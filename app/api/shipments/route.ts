@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return tx.shipment.create({
+      const shipment = await tx.shipment.create({
         data: {
           companyName: String(body.companyName),
           firstName: String(body.firstName),
@@ -267,6 +267,24 @@ export async function POST(request: NextRequest) {
         },
         include: { items: true, extras: true },
       });
+
+      await tx.activityLog.create({
+        data: {
+          type: "shipment.create",
+          entityType: "Shipment",
+          entityId: String(shipment.id),
+          summary: `Shipment ${shipment.id} created for ${shipment.companyName}`,
+          meta: {
+            shipmentId: shipment.id,
+            status: shipment.status,
+            companyName: shipment.companyName,
+            itemsCount: shipment.items.length,
+            extrasCount: shipment.extras.length,
+          },
+        },
+      });
+
+      return shipment;
     });
 
     return NextResponse.json(shipment, { status: 201 });

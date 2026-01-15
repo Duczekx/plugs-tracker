@@ -43,38 +43,69 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const current = await prisma.inventoryItem.upsert({
-    where: {
-      model_serialNumber_variant_isSchwenkbock: {
-        model,
-        serialNumber,
-        variant,
-        isSchwenkbock,
-      },
-    },
-    update: {},
-    create: { model, serialNumber, variant, isSchwenkbock, quantity: 0 },
-  });
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const current = await tx.inventoryItem.upsert({
+        where: {
+          model_serialNumber_variant_isSchwenkbock: {
+            model,
+            serialNumber,
+            variant,
+            isSchwenkbock,
+          },
+        },
+        update: {},
+        create: { model, serialNumber, variant, isSchwenkbock, quantity: 0 },
+      });
 
-  const nextQuantity = current.quantity + delta;
-  if (nextQuantity < 0) {
-    return NextResponse.json(
-      { message: "Insufficient stock" },
-      { status: 409 }
-    );
+      const nextQuantity = current.quantity + delta;
+      if (nextQuantity < 0) {
+        throw new Error("INSUFFICIENT_STOCK");
+      }
+
+      const result = await tx.inventoryItem.update({
+        where: {
+          model_serialNumber_variant_isSchwenkbock: {
+            model,
+            serialNumber,
+            variant,
+            isSchwenkbock,
+          },
+        },
+        data: { quantity: nextQuantity },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          type: "inventory.adjust",
+          entityType: "InventoryItem",
+          entityId: `${model}-${serialNumber}-${variant}-${isSchwenkbock ? "S" : "N"}`,
+          summary: `Adjust ${model} ${serialNumber} ${variant} ${
+            isSchwenkbock ? "Schwenkbock" : "Standard"
+          }: ${current.quantity} -> ${nextQuantity} (delta ${delta})`,
+          meta: {
+            model,
+            serialNumber,
+            variant,
+            isSchwenkbock,
+            delta,
+            previousQuantity: current.quantity,
+            nextQuantity,
+          },
+        },
+      });
+
+      return result;
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") {
+      return NextResponse.json(
+        { message: "Insufficient stock" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
-
-  const updated = await prisma.inventoryItem.update({
-    where: {
-      model_serialNumber_variant_isSchwenkbock: {
-        model,
-        serialNumber,
-        variant,
-        isSchwenkbock,
-      },
-    },
-    data: { quantity: nextQuantity },
-  });
-
-  return NextResponse.json(updated);
 }

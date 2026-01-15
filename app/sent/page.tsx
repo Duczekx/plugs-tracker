@@ -215,6 +215,29 @@ export default function SentPage() {
     if (!notifyEmailTo) {
       return null;
     }
+    const de = labels.de;
+    const valveLabelDe = {
+      NONE: de.valveNone,
+      SMALL: de.valveSmall,
+      LARGE: de.valveLarge,
+    };
+    const formatItemLine = (item: ShipmentItem) => {
+      const lineParts = [
+        `${de.models[item.model]} ${item.serialNumber}`,
+        `Bau-Nr: ${item.buildNumber}`,
+        `Versanddatum: ${item.buildDate}`,
+        `Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
+        `Menge: ${item.quantity}`,
+        `Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
+        `6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
+        `Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
+      ];
+      const extraParts = item.extraParts?.trim();
+      if (extraParts) {
+        lineParts.push(`Zusatzteile: ${extraParts}`);
+      }
+      return `- ${lineParts.join(" | ")}`;
+    };
     const subject = `[PLUGS] ${
       status === "READY" ? "Versandbereit" : "Gesendet"
     } ${shipment.companyName} ${shipment.id}`;
@@ -229,18 +252,19 @@ export default function SentPage() {
       "",
       "POSITIONEN:",
       ...(shipment.items.length > 0
-        ? shipment.items.map(
-            (item) =>
-              `• ${modelLabel[item.model]} ${item.serialNumber}  x${item.quantity}`
-          )
+        ? shipment.items.map((item) => formatItemLine(item))
         : ["- keine"]),
       "",
       "ZUSAETZLICHE TEILE:",
       ...(shipment.extras.length > 0
         ? shipment.extras.map(
-            (extra) => `• ${extra.name}  x${extra.quantity}`
+            (extra) =>
+              `- ${extra.name} x${extra.quantity}${
+                extra.note ? ` (${extra.note})` : ""
+              }`
           )
         : ["- keine"]),
+      ...(shipment.notes ? ["", `Notizen: ${shipment.notes}`] : []),
       "",
       "Diese Nachricht wurde automatisch von FS LAGER erstellt.",
     ];
@@ -1485,4 +1509,5 @@ export default function SentPage() {
     </div>
   );
 }
+
 

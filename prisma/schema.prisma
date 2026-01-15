@@ -91,3 +91,16 @@ model ShipmentExtraItem {
 
   @@index([shipmentId])
 }
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  type       String
+  entityType String
+  entityId   String
+  summary    String
+  meta       Json?
+
+  @@index([createdAt])
+  @@index([type])
+}
