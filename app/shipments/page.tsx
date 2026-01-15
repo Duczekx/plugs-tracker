@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
+import { getCached, setCached } from "@/lib/client-cache";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -243,12 +244,7 @@ export default function ShipmentsPage() {
     return map;
   }, [products]);
 
-  const loadProducts = async () => {
-    const response = await fetch("/api/products", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-    const data: Product[] = await response.json();
+  const applyProducts = (data: Product[]) => {
     setProducts(data);
     if (data.length > 0 && itemForm.serialNumber === 0) {
       const first = data.find((item) => item.model === itemForm.model) ?? data[0];
@@ -256,6 +252,21 @@ export default function ShipmentsPage() {
         setItemForm((prev) => ({ ...prev, serialNumber: first.serialNumber }));
       }
     }
+  };
+
+  const loadProducts = async () => {
+    const cached = getCached<Product[]>("products");
+    if (cached) {
+      applyProducts(cached);
+      return;
+    }
+    const response = await fetch("/api/products", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const data: Product[] = await response.json();
+    setCached("products", data);
+    applyProducts(data);
   };
 
   useEffect(() => {

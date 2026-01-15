@@ -825,6 +825,11 @@ a {
   text-align: center;
 }
 
+.modal-card input[type="date"] {
+  width: 100%;
+  min-width: 0;
+}
+
 .header-field {
   display: grid;
   gap: 6px;

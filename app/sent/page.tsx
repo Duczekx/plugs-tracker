@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
+import { getCached, setCached } from "@/lib/client-cache";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -140,10 +141,11 @@ export default function SentPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [filter, setFilter] = useState({
+  const [filterInput, setFilterInput] = useState({
     buildNumber: "",
     company: "",
   });
+  const [filter, setFilter] = useState(filterInput);
   const [editId, setEditId] = useState<number | null>(null);
   const [editItems, setEditItems] = useState<ShipmentItemDraft[]>([]);
   const [editItemForm, setEditItemForm] =
@@ -174,6 +176,11 @@ export default function SentPage() {
   useEffect(() => {
     setIsReadOnly(document.cookie.includes("pt_mode=review"));
   }, []);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setFilter(filterInput), 300);
+    return () => clearTimeout(handle);
+  }, [filterInput]);
 
   const t = labels[lang];
 
@@ -283,12 +290,7 @@ export default function SentPage() {
     });
   }, [shipments, filter]);
 
-  const loadProducts = async () => {
-    const response = await fetch("/api/products", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-    const data: Product[] = await response.json();
+  const applyProducts = (data: Product[]) => {
     setProducts(data);
     if (data.length > 0 && editItemForm.serialNumber === 0) {
       const first = data.find((item) => item.model === editItemForm.model) ?? data[0];
@@ -296,6 +298,21 @@ export default function SentPage() {
         setEditItemForm((prev) => ({ ...prev, serialNumber: first.serialNumber }));
       }
     }
+  };
+
+  const loadProducts = async () => {
+    const cached = getCached<Product[]>("products");
+    if (cached) {
+      applyProducts(cached);
+      return;
+    }
+    const response = await fetch("/api/products", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const data: Product[] = await response.json();
+    setCached("products", data);
+    applyProducts(data);
   };
 
   const loadShipments = async () => {
@@ -331,7 +348,7 @@ export default function SentPage() {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = event.target;
-    setFilter((prev) => ({ ...prev, [name]: value }));
+    setFilterInput((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditItemChange = (
@@ -1201,13 +1218,13 @@ export default function SentPage() {
             <span className="pill">{t.filters}</span>
             <input
               name="company"
-              value={filter.company}
+              value={filterInput.company}
               onChange={handleFilterChange}
               placeholder={t.companyNameSearch}
             />
             <input
               name="buildNumber"
-              value={filter.buildNumber}
+              value={filterInput.buildNumber}
               onChange={handleFilterChange}
               placeholder={t.buildNumber}
             />

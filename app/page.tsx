@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
+import { clearCached, getCached, setCached } from "@/lib/client-cache";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -216,12 +217,7 @@ export default function Home() {
     setInventory(data);
   };
 
-  const loadProducts = async () => {
-    const response = await fetch("/api/products", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-    const data: Product[] = await response.json();
+  const applyProducts = (data: Product[]) => {
     setProducts(data);
     if (data.length > 0) {
       const hasCurrentAdjust = data.some((item) => item.model === adjustModel);
@@ -234,8 +230,28 @@ export default function Home() {
     }
   };
 
-  const refreshAll = async () => {
-    await Promise.all([loadInventory(), loadProducts()]);
+  const loadProducts = async (options?: { force?: boolean }) => {
+    if (!options?.force) {
+      const cached = getCached<Product[]>("products");
+      if (cached) {
+        applyProducts(cached);
+        return;
+      }
+    }
+    const response = await fetch("/api/products", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const data: Product[] = await response.json();
+    setCached("products", data);
+    applyProducts(data);
+  };
+
+  const refreshAll = async (options?: { forceProducts?: boolean }) => {
+    await Promise.all([
+      loadInventory(),
+      loadProducts({ force: options?.forceProducts }),
+    ]);
   };
 
   useEffect(() => {
@@ -366,7 +382,8 @@ export default function Home() {
     }
 
     setProductForm(emptyProductForm);
-    await refreshAll();
+    clearCached("products");
+    await refreshAll({ forceProducts: true });
     setNotice({ type: "success", message: t.saved });
   };
 
@@ -389,7 +406,8 @@ export default function Home() {
       setNotice({ type: "error", message });
       return;
     }
-    await refreshAll();
+    clearCached("products");
+    await refreshAll({ forceProducts: true });
     setNotice({ type: "success", message: t.saved });
   };
 
