@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { QueryMode } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { blockIfNotAdmin } from "@/lib/access";
 
 export const runtime = "nodejs";
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
     query.length > 0
       ? {
           OR: [
-            { summary: { contains: query, mode: QueryMode.insensitive } },
-            { type: { contains: query, mode: QueryMode.insensitive } },
-            { entityType: { contains: query, mode: QueryMode.insensitive } },
-            { entityId: { contains: query, mode: QueryMode.insensitive } },
+            { summary: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { type: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { entityType: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { entityId: { contains: query, mode: Prisma.QueryMode.insensitive } },
           ],
         }
       : undefined;
