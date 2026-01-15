@@ -1366,6 +1366,18 @@ textarea {
   .shipment-extra-card .extra-row {
     grid-template-columns: 1fr;
   }
+
+  .sent-item {
+    overflow: visible;
+  }
+
+  .sent-list .shipment-item-card {
+    width: 100%;
+  }
+
+  .address-compact {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 720px) {
