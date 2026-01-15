@@ -218,10 +218,11 @@ export const sendShipmentEmail = async (
   shipment: ShipmentWithDetails,
   type: EmailType
 ) => {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) {
-    throw new Error("Missing Gmail credentials");
+  const outlookUser = process.env.OUTLOOK_USER;
+  const outlookPass = process.env.OUTLOOK_APP_PASSWORD;
+
+  if (!outlookUser || !outlookPass) {
+    throw new Error("Missing Outlook credentials");
   }
 
   const recipients = [process.env.EMAIL_1, process.env.EMAIL_2].filter(
@@ -232,10 +233,11 @@ export const sendShipmentEmail = async (
   }
 
   const transport = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: { user, pass },
+    host: "smtp.office365.com",
+    port: 587,
+    secure: false,
+    auth: { user: outlookUser, pass: outlookPass },
+    requireTLS: true,
   });
 
   const subject =
@@ -244,7 +246,7 @@ export const sendShipmentEmail = async (
       : `Versendet: ${shipment.companyName}`;
 
   const result = await transport.sendMail({
-    from: `"Plugs Tracker" <${user}>`,
+    from: `"Plugs Tracker" <${outlookUser}>`,
     to: recipients.join(", "),
     subject,
     html: buildEmailHtml(shipment, type),
