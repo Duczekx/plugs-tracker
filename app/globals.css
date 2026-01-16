@@ -853,6 +853,24 @@ a {
   width: 18ch;
 }
 
+.customer-card .card-header {
+  flex-wrap: wrap;
+}
+
+.customer-card .card-header > div {
+  min-width: 0;
+}
+
+.customer-card .header-field {
+  flex: 0 1 220px;
+  max-width: 100%;
+  justify-items: start;
+}
+
+.customer-card .header-field input {
+  width: 100%;
+}
+
 .form-actions {
   display: flex;
   justify-content: center;
