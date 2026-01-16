@@ -795,17 +795,6 @@ export default function ShipmentsPage() {
                 </h2>
                 <p className="subtitle">{t.shipmentItemsSubtitle}</p>
               </div>
-              <label className="header-field">
-                <span>{t.buildDate}</span>
-                <input
-                  type="date"
-                  name="buildDate"
-                  value={itemForm.buildDate}
-                  onChange={handleItemChange}
-                  required
-                  disabled={isReadOnly}
-                />
-              </label>
             </div>
             <div className="form-row form-row-compact">
               <label>
@@ -1107,6 +1096,17 @@ export default function ShipmentsPage() {
               </h2>
               <p className="subtitle">{t.shipmentCustomerSubtitle}</p>
             </div>
+            <label className="header-field">
+              <span>{t.buildDate}</span>
+              <input
+                type="date"
+                name="buildDate"
+                value={itemForm.buildDate}
+                onChange={handleItemChange}
+                required
+                disabled={isReadOnly}
+              />
+            </label>
           </div>
           <form
             id="shipment-form"

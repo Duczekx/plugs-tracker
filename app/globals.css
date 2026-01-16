@@ -849,6 +849,10 @@ a {
   min-width: 0;
 }
 
+.header-field input[type="date"] {
+  width: 10ch;
+}
+
 .form-actions {
   display: flex;
   justify-content: center;
@@ -1404,6 +1408,21 @@ textarea {
   }
 
   .shipment-items-card .header-field input {
+    max-width: 100%;
+  }
+
+  .customer-card .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .customer-card .header-field {
+    width: 100%;
+    justify-items: start;
+    margin-top: 8px;
+  }
+
+  .customer-card .header-field input {
     max-width: 100%;
   }
 }
