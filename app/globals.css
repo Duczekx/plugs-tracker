@@ -903,6 +903,10 @@ a {
   max-width: 100%;
 }
 
+.mobile-only {
+  display: none;
+}
+
 .form-actions {
   display: flex;
   justify-content: center;
@@ -1447,12 +1451,36 @@ textarea {
 }
 
 @media (max-width: 720px) {
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .customer-date-field {
+    margin-top: 6px;
+    gap: 6px;
+  }
+
+  .customer-date-field .label-with-icon {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .customer-date-field input {
+    width: 30%;
+    padding: 12px 14px;
+    margin-top: 4px;
+  }
+
   .card {
     padding: 16px;
   }
 
   .customer-form {
-    margin-top: 4px;
+    margin-top: 0;
   }
 
   .form {
@@ -1475,14 +1503,6 @@ textarea {
     gap: 12px;
   }
 
-  .customer-date-field {
-    display: grid;
-    gap: 4px;
-  }
-
-  .customer-date-field .label-with-icon {
-    line-height: 1.1;
-  }
 
   .shipment-items-card .card-header {
     flex-direction: column;
@@ -1501,7 +1521,8 @@ textarea {
   .customer-card .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 6px;
+    margin-bottom: 6px;
   }
 
   .customer-card .header-field {

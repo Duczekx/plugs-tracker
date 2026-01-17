@@ -138,6 +138,7 @@ export default function ShipmentsPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     try {
@@ -147,6 +148,17 @@ export default function ShipmentsPage() {
 
   useEffect(() => {
     setIsReadOnly(document.cookie.includes("pt_mode=review"));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const media = window.matchMedia("(max-width: 720px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   const t = labels[lang];
@@ -1103,7 +1115,7 @@ export default function ShipmentsPage() {
               </h2>
               <p className="subtitle">{t.shipmentCustomerSubtitle}</p>
             </div>
-            <label className="customer-date-field">
+            <label className="customer-date-field desktop-only">
               <span className="label-with-icon">
                 <span className="label-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
@@ -1125,8 +1137,8 @@ export default function ShipmentsPage() {
                 name="buildDate"
                 value={itemForm.buildDate}
                 onChange={handleHeaderBuildDatePickerChange}
-                required
-                disabled={isReadOnly}
+                required={!isMobile}
+                disabled={isMobile || isReadOnly}
               />
             </label>
           </div>
@@ -1136,6 +1148,32 @@ export default function ShipmentsPage() {
             onSubmit={handleShipmentSubmit}
           >
             <div className="customer-grid">
+              <label className="customer-date-field mobile-only customer-wide">
+                <span className="label-with-icon">
+                  <span className="label-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M7 4v3M17 4v3M4 9h16M6 9h12v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  {t.buildDate}
+                </span>
+                <input
+                  className="date-input"
+                  type="date"
+                  name="buildDateMobile"
+                  value={itemForm.buildDate}
+                  onChange={handleHeaderBuildDatePickerChange}
+                  required={isMobile}
+                  disabled={!isMobile || isReadOnly}
+                />
+              </label>
               <label className="customer-wide">
                 <span className="label-with-icon">
                   <span className="label-icon" aria-hidden="true">
