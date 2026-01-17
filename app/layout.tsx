@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Space_Grotesk } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -43,6 +44,7 @@ export default function RootLayout({
     <html lang="pl">
       <body className={`${spaceGrotesk.variable} ${fraunces.variable}`}>
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
