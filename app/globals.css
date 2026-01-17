@@ -849,8 +849,29 @@ a {
   min-width: 0;
 }
 
-.header-field input[type="date"] {
-  width: 18ch;
+.header-field input.date-input-compact {
+  width: 12ch;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.date-field input {
+  width: auto;
+}
+
+.date-input-text {
+  display: none;
+}
+
+.date-input-picker {
+  width: 20ch;
 }
 
 .customer-card .card-header {
@@ -862,13 +883,24 @@ a {
 }
 
 .customer-card .header-field {
-  flex: 0 1 220px;
+  flex: 0 1 280px;
   max-width: 100%;
   justify-items: start;
 }
 
 .customer-card .header-field input {
   width: 100%;
+}
+
+.customer-card .customer-date-field {
+  flex: 0 1 280px;
+  max-width: 100%;
+  justify-items: start;
+}
+
+.customer-card .header-field input.date-input-compact {
+  width: 12ch;
+  max-width: 100%;
 }
 
 .form-actions {
@@ -1415,6 +1447,43 @@ textarea {
 }
 
 @media (max-width: 720px) {
+  .card {
+    padding: 16px;
+  }
+
+  .customer-form {
+    margin-top: 4px;
+  }
+
+  .form {
+    gap: 10px;
+  }
+
+  .form-row {
+    gap: 8px;
+  }
+
+  .customer-grid {
+    gap: 10px;
+  }
+
+  .title + .subtitle {
+    margin-top: 4px;
+  }
+
+  .card-header {
+    gap: 12px;
+  }
+
+  .customer-date-field {
+    display: grid;
+    gap: 4px;
+  }
+
+  .customer-date-field .label-with-icon {
+    line-height: 1.1;
+  }
+
   .shipment-items-card .card-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1432,16 +1501,34 @@ textarea {
   .customer-card .card-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
   }
 
   .customer-card .header-field {
     width: 100%;
     justify-items: start;
-    margin-top: 8px;
+    margin-top: 0;
   }
 
   .customer-card .header-field input {
     max-width: 100%;
+  }
+
+  .customer-card .header-field input.date-input-compact {
+    width: 14ch;
+  }
+
+  .header-field {
+    gap: 4px;
+  }
+
+  .customer-card .header-field span {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .customer-card .customer-date-field {
+    width: 100%;
   }
 }
 

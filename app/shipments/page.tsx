@@ -335,6 +335,13 @@ export default function ShipmentsPage() {
     }));
   };
 
+  const handleHeaderBuildDatePickerChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const nextValue = event.target.value;
+    setItemForm((prev) => ({ ...prev, buildDate: nextValue }));
+  };
+
   const handleCustomerChange = (
     event: ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -1096,13 +1103,28 @@ export default function ShipmentsPage() {
               </h2>
               <p className="subtitle">{t.shipmentCustomerSubtitle}</p>
             </div>
-            <label className="header-field">
-              <span>{t.buildDate}</span>
+            <label className="customer-date-field">
+              <span className="label-with-icon">
+                <span className="label-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M7 4v3M17 4v3M4 9h16M6 9h12v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                {t.buildDate}
+              </span>
               <input
+                className="date-input"
                 type="date"
                 name="buildDate"
                 value={itemForm.buildDate}
-                onChange={handleItemChange}
+                onChange={handleHeaderBuildDatePickerChange}
                 required
                 disabled={isReadOnly}
               />
