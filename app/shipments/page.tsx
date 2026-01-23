@@ -28,6 +28,7 @@ type ExtraItemDraft = {
   name: string;
   quantity: number;
   note: string;
+  partId: number | null;
 };
 
 type CustomerForm = {
@@ -44,6 +45,11 @@ type CustomerForm = {
 type Product = {
   model: Model;
   serialNumber: number;
+};
+
+type PartOption = {
+  id: number;
+  name: string;
 };
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
@@ -66,6 +72,7 @@ const emptyExtraForm: ExtraItemDraft = {
   name: "",
   quantity: 1,
   note: "",
+  partId: null,
 };
 
 const emptyCustomerForm: CustomerForm = {
@@ -108,6 +115,8 @@ export default function ShipmentsPage() {
   const [items, setItems] = useState<ShipmentItemDraft[]>([]);
   const [extraForm, setExtraForm] = useState<ExtraItemDraft>(emptyExtraForm);
   const [extras, setExtras] = useState<ExtraItemDraft[]>([]);
+  const [partOptions, setPartOptions] = useState<PartOption[]>([]);
+  const [partQuery, setPartQuery] = useState("");
   const [customerForm, setCustomerForm] =
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,6 +169,41 @@ export default function ShipmentsPage() {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setPartQuery(extraForm.name.trim());
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [extraForm.name]);
+
+  useEffect(() => {
+    const loadPartOptions = async () => {
+      const params = new URLSearchParams();
+      params.set("per", "50");
+      if (partQuery) {
+        params.set("q", partQuery);
+      }
+      const response = await fetch(`/api/parts?${params.toString()}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      setPartOptions(data.items ?? []);
+    };
+    loadPartOptions().catch(() => null);
+  }, [partQuery]);
+
+  useEffect(() => {
+    const match = partOptions.find(
+      (part) => part.name.toLowerCase() === extraForm.name.trim().toLowerCase()
+    );
+    if (match && extraForm.partId !== match.id) {
+      setExtraForm((prev) => ({ ...prev, partId: match.id }));
+    }
+  }, [partOptions, extraForm.name, extraForm.partId]);
 
   const t = labels[lang];
 
@@ -370,9 +414,14 @@ export default function ShipmentsPage() {
   ) => {
     const target = event.target as HTMLInputElement;
     const { name, value } = target;
+    const nextName = name === "name" ? value : extraForm.name;
+    const match = partOptions.find(
+      (part) => part.name.toLowerCase() === nextName.trim().toLowerCase()
+    );
     setExtraForm((prev) => ({
       ...prev,
       [name]: name === "quantity" ? Number(value) : value,
+      partId: match ? match.id : name === "name" ? null : prev.partId,
     }));
   };
 
@@ -427,7 +476,10 @@ export default function ShipmentsPage() {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
     }
-    setExtras((prev) => [...prev, { name, quantity, note }]);
+    setExtras((prev) => [
+      ...prev,
+      { name, quantity, note, partId: extraForm.partId },
+    ]);
     setExtraForm(emptyExtraForm);
     setExtraNotice({ type: "success", message: t.extraItemAdded });
     setTimeout(() => {
@@ -480,6 +532,7 @@ export default function ShipmentsPage() {
           name: extra.name,
           quantity: extra.quantity,
           note: extra.note ? extra.note : null,
+          partId: extra.partId,
         })),
       }),
     });
@@ -598,6 +651,12 @@ export default function ShipmentsPage() {
                 href="/"
               >
                 {t.inventoryTab}
+              </Link>
+              <Link
+                className={`tab-link ${pathname === "/parts" ? "tab-active" : ""}`}
+                href="/parts"
+              >
+                {t.partsTab}
               </Link>
               <Link
                 className={`tab-link ${
@@ -994,10 +1053,16 @@ export default function ShipmentsPage() {
                   value={extraForm.name}
                   onChange={handleExtraChange}
                   placeholder={t.extraItemPlaceholder}
+                  list="extra-part-options"
                   required
                   disabled={isReadOnly}
                   minLength={2}
                 />
+                <datalist id="extra-part-options">
+                  {partOptions.map((part) => (
+                    <option key={part.id} value={part.name} />
+                  ))}
+                </datalist>
               </label>
               <label>
                 {t.quantity}

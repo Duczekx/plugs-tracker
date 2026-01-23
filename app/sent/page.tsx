@@ -10,7 +10,7 @@ import { getCached, setCached } from "@/lib/client-cache";
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
 type ValveType = "NONE" | "SMALL" | "LARGE";
-type ShipmentStatus = "READY" | "SENT";
+type ShipmentStatus = "RESERVED" | "READY" | "SENT";
 
 type ShipmentItem = {
   id: number;
@@ -31,6 +31,7 @@ type ShipmentExtraItem = {
   name: string;
   quantity: number;
   note?: string | null;
+  partId?: number | null;
 };
 
 type Shipment = {
@@ -203,6 +204,7 @@ export default function SentPage() {
 
   const statusLabel = useMemo(
     () => ({
+      RESERVED: t.statusReserved,
       READY: t.statusReady,
       SENT: t.statusSent,
     }),
@@ -605,6 +607,9 @@ export default function SentPage() {
     setNotice({ type: "success", message: t.statusSaved });
 
     if (sendEmail) {
+      if (status === "RESERVED") {
+        return;
+      }
       if (!notifyEmailTo) {
         setEmailPrompt({
           mailto: null,
@@ -620,6 +625,13 @@ export default function SentPage() {
         setEmailPrompt({ mailto, message: t.statusSaved, status });
       }
     }
+    if (updated?.stockWarnings?.length) {
+      const count = updated.stockWarnings.length;
+      setNotice({
+        type: "error",
+        message: t.stockWarning.replace("{count}", String(count)),
+      });
+    }
   };
 
   const handleStatusChoice = async (sendEmail: boolean) => {
@@ -628,7 +640,11 @@ export default function SentPage() {
     }
     const { shipmentId, status } = statusPrompt;
     setStatusPrompt(null);
-    await handleUpdateShipmentStatus(shipmentId, status, sendEmail);
+    await handleUpdateShipmentStatus(
+      shipmentId,
+      status,
+      status === "RESERVED" ? false : sendEmail
+    );
   };
 
   return (
@@ -676,6 +692,12 @@ export default function SentPage() {
                 href="/"
               >
                 {t.inventoryTab}
+              </Link>
+              <Link
+                className={`tab-link ${pathname === "/parts" ? "tab-active" : ""}`}
+                href="/parts"
+              >
+                {t.partsTab}
               </Link>
               <Link
                 className={`tab-link ${
@@ -1270,7 +1292,11 @@ export default function SentPage() {
               <details
                 key={shipment.id}
                 className={`shipment-item sent-item ${
-                  shipmentStatus === "SENT" ? "status-sent" : "status-ready"
+                  shipmentStatus === "SENT"
+                    ? "status-sent"
+                    : shipmentStatus === "RESERVED"
+                    ? "status-reserved"
+                    : "status-ready"
                 }`}
                 open={false}
               >
@@ -1304,6 +1330,19 @@ export default function SentPage() {
                   <div className="shipment-summary-right">
                     <div className="shipment-actions">
                       <div className="status-toggle">
+                        <button
+                          type="button"
+                          className={`button button-ghost button-small status-btn ${
+                            shipmentStatus === "RESERVED" ? "active" : ""
+                          }`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setStatusPrompt({ shipmentId: shipment.id, status: "RESERVED" });
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          {statusLabel.RESERVED}
+                        </button>
                         <button
                           type="button"
                           className={`button button-ghost button-small status-btn ${
@@ -1479,30 +1518,46 @@ export default function SentPage() {
                     </span>
                     {statusPrompt?.status === "READY"
                       ? t.confirmReadyTitle
+                      : statusPrompt?.status === "RESERVED"
+                      ? t.confirmReservedTitle
                       : t.confirmSentTitle}
                   </h3>
                   <p className="subtitle">
                     {statusPrompt?.status === "READY"
                       ? t.confirmReadySubtitle
+                      : statusPrompt?.status === "RESERVED"
+                      ? t.confirmReservedSubtitle
                       : t.confirmSentSubtitle}
                   </p>
                 </div>
               </div>
               <div className="confirm-actions">
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => handleStatusChoice(true)}
-                >
-                  {t.sendEmailAction}
-                </button>
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={() => handleStatusChoice(false)}
-                >
-                  {t.skipEmailAction}
-                </button>
+                {statusPrompt?.status !== "RESERVED" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => handleStatusChoice(true)}
+                    >
+                      {t.sendEmailAction}
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-ghost"
+                      onClick={() => handleStatusChoice(false)}
+                    >
+                      {t.skipEmailAction}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => handleStatusChoice(false)}
+                  >
+                    {t.skipEmailAction}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="button button-ghost"

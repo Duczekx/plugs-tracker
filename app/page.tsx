@@ -451,6 +451,12 @@ export default function Home() {
                 {t.inventoryTab}
               </Link>
               <Link
+                className={`tab-link ${pathname === "/parts" ? "tab-active" : ""}`}
+                href="/parts"
+              >
+                {t.partsTab}
+              </Link>
+              <Link
                 className={`tab-link ${
                   pathname === "/shipments" ? "tab-active" : ""
                 }`}
