@@ -28,8 +28,22 @@ enum Model {
 }
 
 enum ShipmentStatus {
+  RESERVED
   READY
   SENT
+}
+
+enum BomConfiguration {
+  STANDARD
+  STANDARD_6_2
+  SCHWENKBOCK
+  SCHWENKBOCK_6_2
+}
+
+enum PartMovementReason {
+  READY_SHIPMENT
+  ROLLBACK_SHIPMENT
+  MANUAL_ADJUST
 }
 
 model InventoryItem {
@@ -70,6 +84,7 @@ model ShipmentItem {
   serialNumber  Int       @default(0)
   variant       Variant
   isSchwenkbock Boolean   @default(false)
+  configuration BomConfiguration @default(STANDARD)
   quantity      Int
   buildNumber   String
   buildDate     DateTime
@@ -84,12 +99,71 @@ model ShipmentExtraItem {
   id         Int      @id @default(autoincrement())
   shipmentId Int
   shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  partId     Int?
+  part       Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
   name       String
   quantity   Int
   note       String?
   createdAt  DateTime @default(now())
 
   @@index([shipmentId])
+  @@index([partId])
+}
+
+model Part {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  unit              String   @default("szt")
+  stock             Int      @default(0)
+  shopUrl           String?
+  shopName          String?
+  warningThreshold  Int?
+  criticalThreshold Int?
+
+  bomItems   BomItem[]
+  movements  PartMovement[]
+
+  @@index([name])
+  @@index([stock])
+}
+
+model Bom {
+  id            Int              @id @default(autoincrement())
+  modelName     String
+  configuration BomConfiguration
+
+  items BomItem[]
+
+  @@unique([modelName, configuration])
+}
+
+model BomItem {
+  id         Int   @id @default(autoincrement())
+  bomId      Int
+  bom        Bom  @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  partId     Int
+  part       Part @relation(fields: [partId], references: [id], onDelete: Cascade)
+  qtyPerPlow Int
+
+  @@unique([bomId, partId])
+}
+
+model PartMovement {
+  id         Int                @id @default(autoincrement())
+  partId     Int
+  part       Part               @relation(fields: [partId], references: [id], onDelete: Cascade)
+  delta      Int
+  reason     PartMovementReason
+  shipmentId Int?
+  shipment   Shipment?          @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  note       String?
+  actor      String?
+  createdAt  DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([partId])
+  @@index([shipmentId])
+  @@index([reason])
 }
 
 model ActivityLog {
