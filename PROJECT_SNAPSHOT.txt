@@ -8,27 +8,37 @@ Repo
 Purpose
 - Inventory + shipments tracking for Flaechenschneeschieber GmbH.
 - Supports login, read-only review mode, shipments with plugs and extra parts.
+- Adds parts warehouse, BOM recipes, and stock movements ledger.
 
 Key Pages
 - / (Magazyn): inventory overview, adjustments, add/remove products.
+- /parts (Czesci): parts list, search, manual stock adjustment, order link.
 - /shipments (Zamowienia): add plugs, add extra parts, customer data, order summary list.
 - /sent (Wyslane): history + edit shipments, shows extras-only shipments.
+- /admin (private): BOM editor, parts admin, movements ledger.
 
 Auth / Review Mode
 - Login protected by APP_PASSWORD.
 - Review mode via /review?token=REVIEW_TOKEN.
 - Read-only blocks edits in UI and API. Cookie: pt_mode=review.
+- Admin login at /admin with ADMIN_PASSWORD (HttpOnly cookie, 24h).
 
 DB / Prisma
-- Models: InventoryItem, Shipment, ShipmentItem, ShipmentExtraItem.
+- Models: InventoryItem, Shipment, ShipmentItem, ShipmentExtraItem, Part, Bom, BomItem, PartMovement.
 - ShipmentExtraItem stores manual extras: name, quantity, note.
 - Migration added: 20260113150000_add_shipment_extra_items.
+- Migration added: 20260124090000_add_parts_bom_and_reserved_status.
+- ShipmentStatus: RESERVED, READY, SENT. ShipmentItem has configuration (BOM mapping).
 
 API
 - POST /api/shipments: accepts items + extras; allows extras-only shipment.
 - PATCH /api/shipments/[id]: updates shipment, checks duplicate buildNumber.
 - GET /api/shipments: includes items + extras.
 - /api/products GET seeds fixed products (safe even if seed fails).
+- /api/parts GET/POST, /api/parts/[id] PATCH, /api/parts/adjust POST.
+- /api/parts/movements GET (admin).
+- /api/bom GET/PUT (admin).
+- /api/admin/login, /api/admin/logout.
 
 UI Notes
 - Shipments page has 3 cards side-by-side: Add plug, Extra parts, Customer data.
@@ -38,6 +48,7 @@ UI Notes
 Validation Rules
 - buildNumber required, unique within a shipment (UI + API).
 - extras: name >= 2 chars, quantity >= 1.
+- parts adjust: delta must be integer, non-zero.
 
 Texts
 - "Wysylki" tab renamed to "Zamowienia".
@@ -48,6 +59,7 @@ Env Vars (Vercel)
 - DATABASE_URL
 - APP_PASSWORD
 - REVIEW_TOKEN
+- ADMIN_PASSWORD
 
 Run Locally
 - npm install

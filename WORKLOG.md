@@ -7,6 +7,11 @@
 - Added safe `localStorage` access to avoid mobile crash.
 - Switched from `middleware.ts` to `proxy.ts`.
 - Fixed login redirect to use 303 after POST.
+- Added parts module (public `/parts`) with stock list, search, manual adjust, and order link.
+- Added admin panel (`/admin`) with login, BOM editor, parts admin, and movements ledger.
+- Added new shipment status `RESERVED` and stock movements on READY with rollback/delta.
+- Added Prisma models: Part, Bom, BomItem, PartMovement + configuration on shipment items.
+- Added part selection for shipment extras and BOM-based stock deduction.
 
 ## Current production domains
 - https://flachenschneeschieber.vercel.app
@@ -19,6 +24,7 @@
 - DATABASE_URL
 - APP_PASSWORD
 - REVIEW_TOKEN = review-9f3a2c7e7d1a
+- ADMIN_PASSWORD
 
 ## Notes
 - Review mode is per-browser (cookie `pt_mode=review`).
