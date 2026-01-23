@@ -14,15 +14,17 @@ CREATE TYPE "PartMovementReason" AS ENUM (
 ALTER TYPE "ShipmentStatus" ADD VALUE 'RESERVED';
 
 ALTER TABLE "ShipmentItem"
-ADD COLUMN "configuration" "BomConfiguration" NOT NULL DEFAULT 'STANDARD';
+ADD COLUMN IF NOT EXISTS "configuration" "BomConfiguration" NOT NULL DEFAULT 'STANDARD';
 
 UPDATE "ShipmentItem"
-SET "configuration" = CASE
-  WHEN "isSchwenkbock" = TRUE AND "valveType" <> 'NONE' THEN 'SCHWENKBOCK_6_2'
-  WHEN "isSchwenkbock" = TRUE THEN 'SCHWENKBOCK'
-  WHEN "valveType" <> 'NONE' THEN 'STANDARD_6_2'
-  ELSE 'STANDARD'
-END;
+SET "configuration" = (
+  CASE
+    WHEN "isSchwenkbock" = TRUE AND "valveType" <> 'NONE' THEN 'SCHWENKBOCK_6_2'
+    WHEN "isSchwenkbock" = TRUE THEN 'SCHWENKBOCK'
+    WHEN "valveType" <> 'NONE' THEN 'STANDARD_6_2'
+    ELSE 'STANDARD'
+  END
+)::"BomConfiguration";
 
 CREATE TABLE "Part" (
   "id" SERIAL NOT NULL,
