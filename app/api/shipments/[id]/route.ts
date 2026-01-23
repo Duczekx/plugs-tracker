@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
+import { BomConfiguration, Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
+import {
+  applyShipmentPartDeltas,
+  buildPartsSummary,
+  calculateShipmentDelta,
+} from "@/lib/parts-ledger";
 
 export const runtime = "nodejs";
 
@@ -32,7 +37,23 @@ const isValveType = (value: string): value is ValveType =>
   value === ValveType.LARGE;
 
 const isShipmentStatus = (value: string): value is ShipmentStatus =>
-  value === ShipmentStatus.READY || value === ShipmentStatus.SENT;
+  value === ShipmentStatus.RESERVED ||
+  value === ShipmentStatus.READY ||
+  value === ShipmentStatus.SENT;
+
+const deriveConfiguration = (item: Pick<IncomingItem, "isSchwenkbock" | "valveType">) => {
+  const hasValve = item.valveType !== ValveType.NONE;
+  if (item.isSchwenkbock && hasValve) {
+    return BomConfiguration.SCHWENKBOCK_6_2;
+  }
+  if (item.isSchwenkbock) {
+    return BomConfiguration.SCHWENKBOCK;
+  }
+  if (hasValve) {
+    return BomConfiguration.STANDARD_6_2;
+  }
+  return BomConfiguration.STANDARD;
+};
 
 type IncomingItem = {
   model: string;
@@ -86,6 +107,10 @@ const normalizeItems = (items: IncomingItem[]) =>
       serialNumber,
       variant,
       isSchwenkbock: Boolean(item.isSchwenkbock),
+      configuration: deriveConfiguration({
+        isSchwenkbock: Boolean(item.isSchwenkbock),
+        valveType: valveType as ValveType,
+      }),
       quantity,
       buildNumber,
       buildDate,
@@ -139,9 +164,10 @@ export async function PATCH(
 
   if (!items.length && status) {
     try {
-      const shipment = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         const existing = await tx.shipment.findUnique({
           where: { id: shipmentId },
+          include: { items: true, extras: true },
         });
         if (!existing) {
           throw new Error("NOT_FOUND");
@@ -151,6 +177,27 @@ export async function PATCH(
           data: { status },
           include: { items: true, extras: true },
         });
+
+        let stockWarnings = [];
+        if (status === ShipmentStatus.READY) {
+          const summary = await buildPartsSummary(tx, updated.items, updated.extras);
+          const deltaByPartId = await calculateShipmentDelta(
+            tx,
+            updated.id,
+            summary.requiredByPartId
+          );
+          stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+        }
+
+        if (status === ShipmentStatus.RESERVED) {
+          const deltaByPartId = await calculateShipmentDelta(
+            tx,
+            updated.id,
+            new Map()
+          );
+          stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+        }
+
         await tx.activityLog.create({
           data: {
             type: "shipment.status",
@@ -164,9 +211,12 @@ export async function PATCH(
             },
           },
         });
-        return updated;
+        return { updated, stockWarnings };
       });
-      return NextResponse.json(shipment);
+      return NextResponse.json({
+        ...result.updated,
+        stockWarnings: result.stockWarnings,
+      });
     } catch (error) {
       const message =
         error instanceof Error && error.message === "NOT_FOUND"
@@ -310,6 +360,7 @@ export async function PATCH(
               serialNumber: item.serialNumber,
               variant: item.variant as Variant,
               isSchwenkbock: item.isSchwenkbock,
+              configuration: item.configuration,
               quantity: item.quantity,
               buildNumber: item.buildNumber,
               buildDate: item.buildDate,
@@ -321,6 +372,27 @@ export async function PATCH(
         },
         include: { items: true, extras: true },
       });
+
+      const nextStatus = status ?? existing.status;
+      let stockWarnings = [];
+      if (nextStatus === ShipmentStatus.READY) {
+        const summary = await buildPartsSummary(tx, updated.items, updated.extras);
+        const deltaByPartId = await calculateShipmentDelta(
+          tx,
+          updated.id,
+          summary.requiredByPartId
+        );
+        stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+      }
+
+      if (nextStatus === ShipmentStatus.RESERVED) {
+        const deltaByPartId = await calculateShipmentDelta(
+          tx,
+          updated.id,
+          new Map()
+        );
+        stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+      }
 
       if (status && existing.status !== status) {
         await tx.activityLog.create({
@@ -338,10 +410,13 @@ export async function PATCH(
         });
       }
 
-      return updated;
+      return { updated, stockWarnings };
     });
 
-    return NextResponse.json(shipment);
+    return NextResponse.json({
+      ...shipment.updated,
+      stockWarnings: shipment.stockWarnings,
+    });
   } catch (error) {
     const message =
       error instanceof Error && error.message === "NOT_FOUND"

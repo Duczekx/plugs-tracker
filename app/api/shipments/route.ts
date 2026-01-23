@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { Model, ValveType, Variant } from "@prisma/client";
+import { BomConfiguration, Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
+import {
+  applyShipmentPartDeltas,
+  buildPartsSummary,
+  calculateShipmentDelta,
+} from "@/lib/parts-ledger";
 
 export const runtime = "nodejs";
 
@@ -48,6 +53,21 @@ type IncomingExtraItem = {
   name: string;
   quantity: number;
   note?: string | null;
+  partId?: number | null;
+};
+
+const deriveConfiguration = (item: Pick<IncomingItem, "isSchwenkbock" | "valveType">) => {
+  const hasValve = item.valveType !== ValveType.NONE;
+  if (item.isSchwenkbock && hasValve) {
+    return BomConfiguration.SCHWENKBOCK_6_2;
+  }
+  if (item.isSchwenkbock) {
+    return BomConfiguration.SCHWENKBOCK;
+  }
+  if (hasValve) {
+    return BomConfiguration.STANDARD_6_2;
+  }
+  return BomConfiguration.STANDARD;
 };
 
 const inventoryKey = (
@@ -116,6 +136,7 @@ export async function POST(request: NextRequest) {
     serialNumber: number;
     variant: string;
     isSchwenkbock: boolean;
+    configuration: BomConfiguration;
     quantity: number;
     buildNumber: string;
     buildDate: Date;
@@ -123,8 +144,12 @@ export async function POST(request: NextRequest) {
     valveType: string;
     extraParts: string | null;
   }[] = [];
-  let validatedExtras: { name: string; quantity: number; note: string | null }[] =
-    [];
+  let validatedExtras: {
+    name: string;
+    quantity: number;
+    note: string | null;
+    partId: number | null;
+  }[] = [];
 
   try {
     validatedItems = items.map((item) => {
@@ -155,6 +180,10 @@ export async function POST(request: NextRequest) {
         serialNumber,
         variant,
         isSchwenkbock: Boolean(item.isSchwenkbock),
+        configuration: deriveConfiguration({
+          isSchwenkbock: Boolean(item.isSchwenkbock),
+          valveType: valveType as ValveType,
+        }),
         quantity,
         buildNumber,
         buildDate,
@@ -169,6 +198,7 @@ export async function POST(request: NextRequest) {
     validatedExtras = extras.map((extra) => {
       const name = String(extra.name || "").trim();
       const quantity = Number(extra.quantity);
+      const partId = Number(extra.partId);
       const note = extra.note ? String(extra.note).trim() : null;
 
       if (name.length < 2 || !Number.isInteger(quantity) || quantity <= 0) {
@@ -179,6 +209,7 @@ export async function POST(request: NextRequest) {
         name,
         quantity,
         note: note ? note : null,
+        partId: Number.isInteger(partId) && partId > 0 ? partId : null,
       };
     });
   } catch {
@@ -192,7 +223,7 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const shipment = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       for (const [key, totalQty] of totals.entries()) {
         const [model, serial, variant, schwenkFlag] = key.split("-");
         const serialNumber = Number(serial);
@@ -249,6 +280,7 @@ export async function POST(request: NextRequest) {
               serialNumber: item.serialNumber,
               variant: item.variant as Variant,
               isSchwenkbock: item.isSchwenkbock,
+              configuration: item.configuration,
               quantity: item.quantity,
               buildNumber: item.buildNumber,
               buildDate: item.buildDate,
@@ -262,11 +294,23 @@ export async function POST(request: NextRequest) {
               name: extra.name,
               quantity: extra.quantity,
               note: extra.note,
+              partId: extra.partId,
             })),
           },
         },
         include: { items: true, extras: true },
       });
+
+      let stockWarnings = [];
+      if (shipment.status === ShipmentStatus.READY) {
+        const summary = await buildPartsSummary(tx, shipment.items, shipment.extras);
+        const deltaByPartId = await calculateShipmentDelta(
+          tx,
+          shipment.id,
+          summary.requiredByPartId
+        );
+        stockWarnings = await applyShipmentPartDeltas(tx, shipment.id, deltaByPartId);
+      }
 
       await tx.activityLog.create({
         data: {
@@ -284,10 +328,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return shipment;
+      return { shipment, stockWarnings };
     });
 
-    return NextResponse.json(shipment, { status: 201 });
+    return NextResponse.json(
+      { ...result.shipment, stockWarnings: result.stockWarnings },
+      { status: 201 }
+    );
   } catch (error) {
     const message =
       error instanceof Error && error.message === "INSUFFICIENT_STOCK"
