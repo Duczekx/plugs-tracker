@@ -54,17 +54,7 @@ const configurations = [
 const PAGE_SIZE = 50;
 
 export default function AdminPanel() {
-  const [lang, setLang] = useState<Lang>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("plugs-tracker-lang");
-        if (stored === "pl" || stored === "de") {
-          return stored;
-        }
-      } catch {}
-    }
-    return "pl";
-  });
+  const [lang, setLang] = useState<Lang>("pl");
   const [tab, setTab] = useState<"bom" | "parts" | "movements">("bom");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
     null
@@ -102,6 +92,15 @@ export default function AdminPanel() {
     to: "",
   });
   const [movementFilters, setMovementFilters] = useState(movementFilterInput);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("plugs-tracker-lang");
+      if (stored === "pl" || stored === "de") {
+        setLang(stored);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     try {

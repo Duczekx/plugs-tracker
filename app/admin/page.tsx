@@ -4,7 +4,8 @@ import AdminLogin from "./login-form";
 import AdminPanel from "./panel";
 
 export default async function AdminPage() {
-  const cookieValue = cookies().get(getAdminCookieName())?.value;
+  const cookieStore = await cookies();
+  const cookieValue = cookieStore.get(getAdminCookieName())?.value;
   const isAdmin = await verifyAdminSession(cookieValue);
 
   if (!isAdmin) {

@@ -38,17 +38,7 @@ const getStockClass = (stock: number) => {
 };
 
 export default function PartsPage() {
-  const [lang, setLang] = useState<Lang>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("plugs-tracker-lang");
-        if (stored === "pl" || stored === "de") {
-          return stored;
-        }
-      } catch {}
-    }
-    return "pl";
-  });
+  const [lang, setLang] = useState<Lang>("pl");
   const pathname = usePathname();
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [parts, setParts] = useState<Part[]>([]);
@@ -61,6 +51,15 @@ export default function PartsPage() {
   );
   const [adjustTarget, setAdjustTarget] = useState<Part | null>(null);
   const [adjustForm, setAdjustForm] = useState({ delta: 0, note: "" });
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("plugs-tracker-lang");
+      if (stored === "pl" || stored === "de") {
+        setLang(stored);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     try {

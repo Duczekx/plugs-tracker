@@ -4,20 +4,19 @@ import { useEffect, useState } from "react";
 import { labels, Lang } from "@/lib/i18n";
 
 export default function AdminLogin() {
-  const [lang, setLang] = useState<Lang>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("plugs-tracker-lang");
-        if (stored === "pl" || stored === "de") {
-          return stored;
-        }
-      } catch {}
-    }
-    return "pl";
-  });
+  const [lang, setLang] = useState<Lang>("pl");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<"invalid" | "missing" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("plugs-tracker-lang");
+      if (stored === "pl" || stored === "de") {
+        setLang(stored);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     try {
