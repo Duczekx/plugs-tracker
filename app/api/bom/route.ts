@@ -6,6 +6,11 @@ import type { BomConfiguration } from "@prisma/client";
 
 export const runtime = "nodejs";
 
+type BomItemInput = {
+  partId: number;
+  qtyPerPlow: number;
+};
+
 const allowedConfigurations = new Set<BomConfiguration>([
   "STANDARD",
   "STANDARD_6_2",
@@ -61,14 +66,14 @@ export async function PUT(request: NextRequest) {
   }
 
   const configuration = configurationRaw as BomConfiguration;
-  const normalizedItems = items.map((item: { partId: number; qtyPerPlow: number }) => ({
+  const normalizedItems: BomItemInput[] = items.map((item: BomItemInput) => ({
     partId: Number(item.partId),
     qtyPerPlow: Number(item.qtyPerPlow),
   }));
 
   if (
     normalizedItems.some(
-      (item: { partId: number; qtyPerPlow: number }) =>
+      (item) =>
         !Number.isInteger(item.partId) ||
         item.partId <= 0 ||
         !Number.isInteger(item.qtyPerPlow) ||
