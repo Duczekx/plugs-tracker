@@ -13,6 +13,13 @@
 - Added Prisma models: Part, Bom, BomItem, PartMovement + configuration on shipment items.
 - Added part selection for shipment extras and BOM-based stock deduction.
 
+## Recent fixes (2026-01-24)
+- Fixed failed migration `20260124090000_add_parts_bom_and_reserved_status` by casting enum default.
+- Added missing Prisma back-relations for parts/extras and shipment/part movements.
+- Fixed BOM API typing for BomConfiguration and BOM item inputs.
+- Fixed parts search typing by using `Prisma.QueryMode.insensitive`.
+- Fixed stock warnings typing in shipments endpoints to satisfy TS build.
+
 ## Current production domains
 - https://flachenschneeschieber.vercel.app
 
