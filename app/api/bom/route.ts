@@ -68,7 +68,7 @@ export async function PUT(request: NextRequest) {
 
   if (
     normalizedItems.some(
-      (item) =>
+      (item: { partId: number; qtyPerPlow: number }) =>
         !Number.isInteger(item.partId) ||
         item.partId <= 0 ||
         !Number.isInteger(item.qtyPerPlow) ||
