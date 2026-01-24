@@ -74,6 +74,7 @@ model Shipment {
 
   items       ShipmentItem[]
   extras      ShipmentExtraItem[]
+  movements   PartMovement[]
 }
 
 model ShipmentItem {
@@ -121,6 +122,7 @@ model Part {
   criticalThreshold Int?
 
   bomItems   BomItem[]
+  extras     ShipmentExtraItem[]
   movements  PartMovement[]
 
   @@index([name])
