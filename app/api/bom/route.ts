@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
+import type { BomConfiguration } from "@prisma/client";
 
 export const runtime = "nodejs";
 
-const allowedConfigurations = new Set([
+const allowedConfigurations = new Set<BomConfiguration>([
   "STANDARD",
   "STANDARD_6_2",
   "SCHWENKBOCK",
@@ -20,12 +21,13 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const modelName = String(searchParams.get("modelName") ?? "").trim();
-  const configuration = String(searchParams.get("configuration") ?? "").trim();
+  const configurationRaw = String(searchParams.get("configuration") ?? "").trim();
 
-  if (!modelName || !allowedConfigurations.has(configuration)) {
+  if (!modelName || !allowedConfigurations.has(configurationRaw as BomConfiguration)) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
+  const configuration = configurationRaw as BomConfiguration;
   const bom = await prisma.bom.findUnique({
     where: { modelName_configuration: { modelName, configuration } },
     include: {
@@ -51,13 +53,14 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const modelName = String(body?.modelName ?? "").trim();
-  const configuration = String(body?.configuration ?? "").trim();
+  const configurationRaw = String(body?.configuration ?? "").trim();
   const items = Array.isArray(body?.items) ? body.items : [];
 
-  if (!modelName || !allowedConfigurations.has(configuration)) {
+  if (!modelName || !allowedConfigurations.has(configurationRaw as BomConfiguration)) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
+  const configuration = configurationRaw as BomConfiguration;
   const normalizedItems = items.map((item: { partId: number; qtyPerPlow: number }) => ({
     partId: Number(item.partId),
     qtyPerPlow: Number(item.qtyPerPlow),
