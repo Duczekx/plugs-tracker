@@ -47,20 +47,20 @@ enum PartMovementReason {
 }
 
 model InventoryItem {
-  id        Int      @id @default(autoincrement())
-  model     Model    @default(FL_540)
-  serialNumber Int @default(0)
-  variant   Variant
-  isSchwenkbock Boolean @default(false)
-  quantity  Int      @default(0)
-  isManual  Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  model         Model    @default(FL_540)
+  serialNumber  Int      @default(0)
+  variant       Variant
+  isSchwenkbock Boolean  @default(false)
+  quantity      Int      @default(0)
+  isManual      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
 
   @@unique([model, serialNumber, variant, isSchwenkbock])
 }
 
 model Shipment {
-  id          Int      @id @default(autoincrement())
+  id          Int            @id @default(autoincrement())
   companyName String
   firstName   String
   lastName    String
@@ -69,28 +69,28 @@ model Shipment {
   city        String
   country     String
   notes       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime       @default(now())
   status      ShipmentStatus @default(READY)
 
-  items       ShipmentItem[]
-  extras      ShipmentExtraItem[]
-  movements   PartMovement[]
+  items         ShipmentItem[]
+  extras        ShipmentExtraItem[]
+  partMovements PartMovement[]
 }
 
 model ShipmentItem {
-  id            Int       @id @default(autoincrement())
+  id            Int              @id @default(autoincrement())
   shipmentId    Int
-  shipment      Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  model         Model     @default(FL_540)
-  serialNumber  Int       @default(0)
+  shipment      Shipment         @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  model         Model            @default(FL_540)
+  serialNumber  Int              @default(0)
   variant       Variant
-  isSchwenkbock Boolean   @default(false)
+  isSchwenkbock Boolean          @default(false)
   configuration BomConfiguration @default(STANDARD)
   quantity      Int
   buildNumber   String
   buildDate     DateTime
-  bucketHolder  Boolean   @default(false)
-  valveType     ValveType @default(NONE)
+  bucketHolder  Boolean          @default(false)
+  valveType     ValveType        @default(NONE)
   extraParts    String?
 
   @@index([shipmentId])
@@ -112,18 +112,18 @@ model ShipmentExtraItem {
 }
 
 model Part {
-  id                Int      @id @default(autoincrement())
-  name              String   @unique
-  unit              String   @default("szt")
-  stock             Int      @default(0)
+  id                Int     @id @default(autoincrement())
+  name              String  @unique
+  unit              String  @default("szt")
+  stock             Int     @default(0)
   shopUrl           String?
   shopName          String?
   warningThreshold  Int?
   criticalThreshold Int?
 
-  bomItems   BomItem[]
-  extras     ShipmentExtraItem[]
-  movements  PartMovement[]
+  bomItems           BomItem[]
+  shipmentExtraItems ShipmentExtraItem[]
+  movements          PartMovement[]
 
   @@index([name])
   @@index([stock])
@@ -140,7 +140,7 @@ model Bom {
 }
 
 model BomItem {
-  id         Int   @id @default(autoincrement())
+  id         Int  @id @default(autoincrement())
   bomId      Int
   bom        Bom  @relation(fields: [bomId], references: [id], onDelete: Cascade)
   partId     Int
