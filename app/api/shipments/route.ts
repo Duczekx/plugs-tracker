@@ -6,6 +6,7 @@ import {
   applyShipmentPartDeltas,
   buildPartsSummary,
   calculateShipmentDelta,
+  type StockWarning,
 } from "@/lib/parts-ledger";
 
 export const runtime = "nodejs";
@@ -301,7 +302,7 @@ export async function POST(request: NextRequest) {
         include: { items: true, extras: true },
       });
 
-      let stockWarnings = [];
+      let stockWarnings: StockWarning[] = [];
       if (shipment.status === ShipmentStatus.READY) {
         const summary = await buildPartsSummary(tx, shipment.items, shipment.extras);
         const deltaByPartId = await calculateShipmentDelta(

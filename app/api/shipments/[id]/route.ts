@@ -6,6 +6,7 @@ import {
   applyShipmentPartDeltas,
   buildPartsSummary,
   calculateShipmentDelta,
+  type StockWarning,
 } from "@/lib/parts-ledger";
 
 export const runtime = "nodejs";
@@ -178,7 +179,7 @@ export async function PATCH(
           include: { items: true, extras: true },
         });
 
-        let stockWarnings = [];
+        let stockWarnings: StockWarning[] = [];
         if (status === ShipmentStatus.READY) {
           const summary = await buildPartsSummary(tx, updated.items, updated.extras);
           const deltaByPartId = await calculateShipmentDelta(
@@ -374,7 +375,7 @@ export async function PATCH(
       });
 
       const nextStatus = status ?? existing.status;
-      let stockWarnings = [];
+      let stockWarnings: StockWarning[] = [];
       if (nextStatus === ShipmentStatus.READY) {
         const summary = await buildPartsSummary(tx, updated.items, updated.extras);
         const deltaByPartId = await calculateShipmentDelta(
