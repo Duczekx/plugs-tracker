@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -14,11 +15,11 @@ export async function GET(request: NextRequest) {
   const take = Math.min(200, Math.max(1, Number(searchParams.get("per") ?? PAGE_SIZE)));
   const skip = (page - 1) * take;
 
-  const where = query
+  const where: Prisma.PartWhereInput | undefined = query
     ? {
         name: {
           contains: query,
-          mode: "insensitive",
+          mode: Prisma.QueryMode.insensitive,
         },
       }
     : undefined;
