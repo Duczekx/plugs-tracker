@@ -14,7 +14,7 @@ CREATE TYPE "PartMovementReason" AS ENUM (
 ALTER TYPE "ShipmentStatus" ADD VALUE 'RESERVED';
 
 ALTER TABLE "ShipmentItem"
-ADD COLUMN IF NOT EXISTS "configuration" "BomConfiguration" NOT NULL DEFAULT 'STANDARD';
+ADD COLUMN IF NOT EXISTS "configuration" "BomConfiguration" NOT NULL DEFAULT 'STANDARD'::"BomConfiguration";
 
 UPDATE "ShipmentItem"
 SET "configuration" = (
