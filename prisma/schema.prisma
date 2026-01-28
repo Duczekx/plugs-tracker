@@ -40,6 +40,13 @@ enum BomConfiguration {
   SCHWENKBOCK_6_2
 }
 
+enum BomType {
+  STANDARD
+  ADDON_6_2
+  SCHWENKBOCK_3000
+  SCHWENKBOCK_2000
+}
+
 enum PartMovementReason {
   READY_SHIPMENT
   ROLLBACK_SHIPMENT
@@ -132,11 +139,11 @@ model Part {
 model Bom {
   id            Int              @id @default(autoincrement())
   modelName     String
-  configuration BomConfiguration
+  bomType       BomType
 
   items BomItem[]
 
-  @@unique([modelName, configuration])
+  @@unique([modelName, bomType])
 }
 
 model BomItem {

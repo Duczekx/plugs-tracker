@@ -2939,6 +2939,12 @@ textarea {
   margin-top: 18px;
 }
 
+.bom-section + .bom-section {
+  margin-top: 22px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(12, 18, 32, 0.08);
+}
+
 .compact-table th,
 .compact-table td {
   padding: 8px 10px;

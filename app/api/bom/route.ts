@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
-import type { BomConfiguration } from "@prisma/client";
+import type { BomType } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -11,12 +11,15 @@ type BomItemInput = {
   qtyPerPlow: number;
 };
 
-const allowedConfigurations = new Set<BomConfiguration>([
+const allowedBomTypes = new Set<BomType>([
   "STANDARD",
-  "STANDARD_6_2",
-  "SCHWENKBOCK",
-  "SCHWENKBOCK_6_2",
+  "ADDON_6_2",
+  "SCHWENKBOCK_3000",
+  "SCHWENKBOCK_2000",
 ]);
+
+const isGlobalBomType = (bomType: BomType) =>
+  bomType === "SCHWENKBOCK_3000" || bomType === "SCHWENKBOCK_2000";
 
 export async function GET(request: NextRequest) {
   const adminBlocked = await blockIfNotAdmin(request);
@@ -26,15 +29,19 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const modelName = String(searchParams.get("modelName") ?? "").trim();
-  const configurationRaw = String(searchParams.get("configuration") ?? "").trim();
+  const bomTypeRaw = String(searchParams.get("bomType") ?? "").trim();
 
-  if (!modelName || !allowedConfigurations.has(configurationRaw as BomConfiguration)) {
+  if (!allowedBomTypes.has(bomTypeRaw as BomType)) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
-  const configuration = configurationRaw as BomConfiguration;
+  const bomType = bomTypeRaw as BomType;
+  const normalizedModelName = isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+  if (!normalizedModelName) {
+    return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
+  }
   const bom = await prisma.bom.findUnique({
-    where: { modelName_configuration: { modelName, configuration } },
+    where: { modelName_bomType: { modelName: normalizedModelName, bomType } },
     include: {
       items: {
         include: { part: true },
@@ -58,14 +65,18 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const modelName = String(body?.modelName ?? "").trim();
-  const configurationRaw = String(body?.configuration ?? "").trim();
+  const bomTypeRaw = String(body?.bomType ?? "").trim();
   const items = Array.isArray(body?.items) ? body.items : [];
 
-  if (!modelName || !allowedConfigurations.has(configurationRaw as BomConfiguration)) {
+  if (!allowedBomTypes.has(bomTypeRaw as BomType)) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
-  const configuration = configurationRaw as BomConfiguration;
+  const bomType = bomTypeRaw as BomType;
+  const normalizedModelName = isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+  if (!normalizedModelName) {
+    return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
+  }
   const normalizedItems: BomItemInput[] = items.map((item: BomItemInput) => ({
     partId: Number(item.partId),
     qtyPerPlow: Number(item.qtyPerPlow),
@@ -86,9 +97,9 @@ export async function PUT(request: NextRequest) {
   try {
     const bom = await prisma.$transaction(async (tx) => {
       const record = await tx.bom.upsert({
-        where: { modelName_configuration: { modelName, configuration } },
+        where: { modelName_bomType: { modelName: normalizedModelName, bomType } },
         update: {},
-        create: { modelName, configuration },
+        create: { modelName: normalizedModelName, bomType },
       });
 
       await tx.bomItem.deleteMany({ where: { bomId: record.id } });

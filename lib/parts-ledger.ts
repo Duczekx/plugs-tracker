@@ -1,5 +1,5 @@
 import {
-  BomConfiguration,
+  BomType,
   Model,
   Prisma,
   ShipmentExtraItem,
@@ -17,7 +17,7 @@ export type StockWarning = {
 
 export type PartsSummary = {
   requiredByPartId: Map<number, number>;
-  missingBom: Array<{ modelName: string; configuration: BomConfiguration }>;
+  missingBom: Array<{ modelName: string; bomType: BomType }>;
   unmatchedExtras: string[];
 };
 
@@ -34,20 +34,71 @@ const hasValve = (valveType: ValveType) => valveType !== "NONE";
 
 export const getModelName = (model: Model) => modelNameMap[model];
 
-export const getConfiguration = (item: Pick<ShipmentItem, "configuration" | "isSchwenkbock" | "valveType">) => {
-  if (item.configuration) {
-    return item.configuration;
+const schwenk3000Models = new Set<Model>([
+  "FL_640",
+  "FL_540",
+  "FL_470",
+  "FL_400",
+]);
+const schwenk2000Models = new Set<Model>(["FL_340", "FL_260"]);
+
+const getSchwenkbockType = (model: Model): BomType => {
+  if (schwenk3000Models.has(model)) {
+    return "SCHWENKBOCK_3000";
   }
-  if (item.isSchwenkbock && hasValve(item.valveType)) {
-    return BomConfiguration.SCHWENKBOCK_6_2;
+  if (schwenk2000Models.has(model)) {
+    return "SCHWENKBOCK_2000";
   }
-  if (item.isSchwenkbock) {
-    return BomConfiguration.SCHWENKBOCK;
+  return "SCHWENKBOCK_2000";
+};
+
+type BomLookup = Map<
+  string,
+  { items: { partId: number; qtyPerPlow: number }[] }
+>;
+
+type BomKey = { modelName: string; bomType: BomType };
+
+const buildBomKey = (modelName: string, bomType: BomType) =>
+  `${modelName}::${bomType}`;
+
+export const getPartsForPlow = (
+  model: Model,
+  hasSchwenkbock: boolean,
+  hasSixTwo: boolean,
+  bomLookup: BomLookup
+) => {
+  const requiredByPartId = new Map<number, number>();
+  const missingBom: BomKey[] = [];
+  const modelName = getModelName(model);
+
+  const requiredKeys: BomKey[] = [
+    { modelName, bomType: "STANDARD" },
+  ];
+
+  if (hasSixTwo) {
+    requiredKeys.push({ modelName, bomType: "ADDON_6_2" });
   }
-  if (hasValve(item.valveType)) {
-    return BomConfiguration.STANDARD_6_2;
+
+  if (hasSchwenkbock) {
+    requiredKeys.push({ modelName: "GLOBAL", bomType: getSchwenkbockType(model) });
   }
-  return BomConfiguration.STANDARD;
+
+  requiredKeys.forEach((key) => {
+    const bom = bomLookup.get(buildBomKey(key.modelName, key.bomType));
+    if (!bom) {
+      missingBom.push(key);
+      return;
+    }
+    bom.items.forEach((item) => {
+      requiredByPartId.set(
+        item.partId,
+        (requiredByPartId.get(item.partId) ?? 0) + item.qtyPerPlow
+      );
+    });
+  });
+
+  return { requiredByPartId, missingBom };
 };
 
 export const buildPartsSummary = async (
@@ -56,45 +107,57 @@ export const buildPartsSummary = async (
   extras: ShipmentExtraItem[]
 ): Promise<PartsSummary> => {
   const requiredByPartId = new Map<number, number>();
-  const missingBom: Array<{ modelName: string; configuration: BomConfiguration }> = [];
+  const missingBom: BomKey[] = [];
 
-  const bomKeys = items.map((item) => ({
-    modelName: getModelName(item.model),
-    configuration: getConfiguration(item),
-  }));
-  const bomLookup = new Map<string, { items: { partId: number; qtyPerPlow: number }[] }>();
+  const bomKeys = new Map<string, BomKey>();
+  items.forEach((item) => {
+    const modelName = getModelName(item.model);
+    const hasSixTwo = hasValve(item.valveType);
+    bomKeys.set(buildBomKey(modelName, "STANDARD"), {
+      modelName,
+      bomType: "STANDARD",
+    });
+    if (hasSixTwo) {
+      bomKeys.set(buildBomKey(modelName, "ADDON_6_2"), {
+        modelName,
+        bomType: "ADDON_6_2",
+      });
+    }
+    if (item.isSchwenkbock) {
+      const schwenkType = getSchwenkbockType(item.model);
+      bomKeys.set(buildBomKey("GLOBAL", schwenkType), {
+        modelName: "GLOBAL",
+        bomType: schwenkType,
+      });
+    }
+  });
 
-  if (bomKeys.length > 0) {
+  const bomLookup: BomLookup = new Map();
+  if (bomKeys.size > 0) {
     const boms = await tx.bom.findMany({
       where: {
-        OR: bomKeys.map((key) => ({
+        OR: Array.from(bomKeys.values()).map((key) => ({
           modelName: key.modelName,
-          configuration: key.configuration,
+          bomType: key.bomType,
         })),
       },
       include: { items: true },
     });
     boms.forEach((bom) => {
-      const key = `${bom.modelName}::${bom.configuration}`;
-      bomLookup.set(key, { items: bom.items });
+      bomLookup.set(buildBomKey(bom.modelName, bom.bomType), { items: bom.items });
     });
   }
 
   items.forEach((item) => {
-    const modelName = getModelName(item.model);
-    const configuration = getConfiguration(item);
-    const key = `${modelName}::${configuration}`;
-    const bom = bomLookup.get(key);
-    if (!bom) {
-      missingBom.push({ modelName, configuration });
-      return;
-    }
-    bom.items.forEach((bomItem) => {
-      const delta = bomItem.qtyPerPlow * item.quantity;
-      requiredByPartId.set(
-        bomItem.partId,
-        (requiredByPartId.get(bomItem.partId) ?? 0) + delta
-      );
+    const hasSixTwo = hasValve(item.valveType);
+    const { requiredByPartId: partsForPlow, missingBom: missingForPlow } =
+      getPartsForPlow(item.model, item.isSchwenkbock, hasSixTwo, bomLookup);
+
+    missingForPlow.forEach((missing) => missingBom.push(missing));
+
+    partsForPlow.forEach((qtyPerPlow, partId) => {
+      const delta = qtyPerPlow * item.quantity;
+      requiredByPartId.set(partId, (requiredByPartId.get(partId) ?? 0) + delta);
     });
   });
 

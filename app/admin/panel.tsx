@@ -20,6 +20,8 @@ type BomItem = {
   part?: { name: string };
 };
 
+type BomType = "STANDARD" | "ADDON_6_2" | "SCHWENKBOCK_3000" | "SCHWENKBOCK_2000";
+
 type Movement = {
   id: number;
   partId: number;
@@ -45,11 +47,9 @@ type MovementsResponse = {
 };
 
 const models = ["FL 640", "FL 540", "FL 470", "FL 400", "FL 340", "FL 260"];
-const configurations = [
-  { value: "STANDARD", label: "Standard" },
-  { value: "STANDARD_6_2", label: "Standard + 6/2" },
-  { value: "SCHWENKBOCK", label: "Schwenkbock" },
-  { value: "SCHWENKBOCK_6_2", label: "Schwenkbock + 6/2" },
+const schwenkOptions: { value: BomType; label: string }[] = [
+  { value: "SCHWENKBOCK_3000", label: "Schwenkbock 3000" },
+  { value: "SCHWENKBOCK_2000", label: "Schwenkbock 2000" },
 ];
 
 const PAGE_SIZE = 50;
@@ -61,13 +61,25 @@ export default function AdminPanel() {
     null
   );
 
-  const [modelName, setModelName] = useState(models[0]);
-  const [configuration, setConfiguration] = useState(configurations[0].value);
-  const [bomItems, setBomItems] = useState<BomItem[]>([]);
-  const [bomPartQuery, setBomPartQuery] = useState("");
+  const [standardModel, setStandardModel] = useState(models[0]);
+  const [addonModel, setAddonModel] = useState(models[0]);
+  const [schwenkType, setSchwenkType] = useState<BomType>("SCHWENKBOCK_3000");
+
+  const [standardItems, setStandardItems] = useState<BomItem[]>([]);
+  const [addonItems, setAddonItems] = useState<BomItem[]>([]);
+  const [schwenkItems, setSchwenkItems] = useState<BomItem[]>([]);
+
+  const [standardPartQuery, setStandardPartQuery] = useState("");
+  const [addonPartQuery, setAddonPartQuery] = useState("");
+  const [schwenkPartQuery, setSchwenkPartQuery] = useState("");
   const [bomPartOptions, setBomPartOptions] = useState<Part[]>([]);
-  const [bomQty, setBomQty] = useState(1);
-  const [isSavingBom, setIsSavingBom] = useState(false);
+
+  const [standardQty, setStandardQty] = useState(1);
+  const [addonQty, setAddonQty] = useState(1);
+  const [schwenkQty, setSchwenkQty] = useState(1);
+  const [isSavingStandard, setIsSavingStandard] = useState(false);
+  const [isSavingAddon, setIsSavingAddon] = useState(false);
+  const [isSavingSchwenk, setIsSavingSchwenk] = useState(false);
 
   const [parts, setParts] = useState<Part[]>([]);
   const [partsPage, setPartsPage] = useState(1);
@@ -113,24 +125,52 @@ export default function AdminPanel() {
   const t = labels[lang];
 
 
-  const loadBom = async () => {
-    const params = new URLSearchParams({
-      modelName,
-      configuration,
-    });
+  const loadBomByType = async (bomType: BomType, modelName: string) => {
+    const params = new URLSearchParams();
+    params.set("bomType", bomType);
+    if (modelName) {
+      params.set("modelName", modelName);
+    }
     const response = await fetch(`/api/bom?${params.toString()}`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(await response.text());
     }
     const data = await response.json();
-    setBomItems(data.bom?.items ?? []);
+    return data.bom?.items ?? [];
   };
 
   useEffect(() => {
-    loadBom().catch(() => {
-      setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
-    });
-  }, [modelName, configuration]);
+    if (tab !== "bom") {
+      return;
+    }
+    loadBomByType("STANDARD", standardModel)
+      .then(setStandardItems)
+      .catch(() => {
+        setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
+      });
+  }, [tab, standardModel]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
+    loadBomByType("ADDON_6_2", addonModel)
+      .then(setAddonItems)
+      .catch(() => {
+        setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
+      });
+  }, [tab, addonModel]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
+    loadBomByType(schwenkType, "")
+      .then(setSchwenkItems)
+      .catch(() => {
+        setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
+      });
+  }, [tab, schwenkType]);
 
   useEffect(() => {
     const handle = setTimeout(() => setPartsQuery(partsQueryInput), 400);
@@ -179,20 +219,44 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    loadPartOptions(bomPartQuery).catch(() => null);
-  }, [bomPartQuery]);
-
-  const saveBomItems = async (nextItems: BomItem[]) => {
-    if (isSavingBom) {
+    if (tab !== "bom") {
       return;
     }
-    setIsSavingBom(true);
+    loadPartOptions(standardPartQuery).catch(() => null);
+  }, [tab, standardPartQuery]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
+    loadPartOptions(addonPartQuery).catch(() => null);
+  }, [tab, addonPartQuery]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
+    loadPartOptions(schwenkPartQuery).catch(() => null);
+  }, [tab, schwenkPartQuery]);
+
+  const saveBomItems = async (
+    bomType: BomType,
+    modelName: string,
+    nextItems: BomItem[],
+    setItems: (items: BomItem[]) => void,
+    setSaving: (value: boolean) => void,
+    isSaving: boolean
+  ) => {
+    if (isSaving) {
+      return;
+    }
+    setSaving(true);
     const response = await fetch("/api/bom", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         modelName,
-        configuration,
+        bomType,
         items: nextItems.map((item) => ({
           partId: item.partId,
           qtyPerPlow: item.qtyPerPlow,
@@ -201,37 +265,57 @@ export default function AdminPanel() {
     });
     if (!response.ok) {
       setNotice({ type: "error", message: t.error });
-      setIsSavingBom(false);
+      setSaving(false);
       return;
     }
     const data = await response.json();
-    setBomItems(data.bom?.items ?? []);
+    setItems(data.bom?.items ?? []);
     setNotice({ type: "success", message: t.saved });
-    setIsSavingBom(false);
+    setSaving(false);
   };
 
-  const handleAddBomItem = async (event: FormEvent<HTMLFormElement>) => {
+  const addBomItem = async (
+    event: FormEvent<HTMLFormElement>,
+    partQuery: string,
+    qty: number,
+    items: BomItem[],
+    setItems: (items: BomItem[]) => void,
+    setQuery: (value: string) => void,
+    setQty: (value: number) => void,
+    bomType: BomType,
+    modelName: string,
+    setSaving: (value: boolean) => void,
+    isSaving: boolean
+  ) => {
     event.preventDefault();
-    const partName = bomPartQuery.trim().toLowerCase();
+    const partName = partQuery.trim().toLowerCase();
     const part = bomPartOptions.find(
       (option) => option.name.toLowerCase() === partName
     );
-    if (!part || !Number.isInteger(bomQty) || bomQty <= 0) {
+    if (!part || !Number.isInteger(qty) || qty <= 0) {
       setNotice({ type: "error", message: t.error });
       return;
     }
     const nextItems = [
-      ...bomItems.filter((item) => item.partId !== part.id),
-      { partId: part.id, qtyPerPlow: bomQty, part: { name: part.name } },
+      ...items.filter((item) => item.partId !== part.id),
+      { partId: part.id, qtyPerPlow: qty, part: { name: part.name } },
     ];
-    await saveBomItems(nextItems);
-    setBomPartQuery("");
-    setBomQty(1);
+    await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
+    setQuery("");
+    setQty(1);
   };
 
-  const handleRemoveBomItem = async (partId: number) => {
-    const nextItems = bomItems.filter((item) => item.partId !== partId);
-    await saveBomItems(nextItems);
+  const removeBomItem = async (
+    partId: number,
+    items: BomItem[],
+    setItems: (items: BomItem[]) => void,
+    bomType: BomType,
+    modelName: string,
+    setSaving: (value: boolean) => void,
+    isSaving: boolean
+  ) => {
+    const nextItems = items.filter((item) => item.partId !== partId);
+    await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
   };
 
   const handleNewPartChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -422,100 +506,358 @@ export default function AdminPanel() {
                 <p className="subtitle">{t.bomConfigLabel}</p>
               </div>
             </div>
-            <div className="form-row">
-              <label>
-                {t.bomModelLabel}
-                <select value={modelName} onChange={(event) => setModelName(event.target.value)}>
-                  {models.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {t.bomConfigLabel}
-                <select
-                  value={configuration}
-                  onChange={(event) => setConfiguration(event.target.value)}
-                >
-                  {configurations.map((config) => (
-                    <option key={config.value} value={config.value}>
-                      {config.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
 
-            <form className="form form-compact" onSubmit={handleAddBomItem}>
-              <div className="form-row">
-                <label className="form-grow">
-                  {t.bomPartLabel}
-                  <input
-                    list="bom-parts"
-                    value={bomPartQuery}
-                    onChange={(event) => setBomPartQuery(event.target.value)}
-                    placeholder={t.partsSearch}
-                  />
-                  <datalist id="bom-parts">
-                    {bomPartOptions.map((part) => (
-                      <option key={part.id} value={part.name} />
-                    ))}
-                  </datalist>
-                </label>
-                <label>
-                  {t.bomQtyLabel}
-                  <input
-                    type="number"
-                    value={bomQty}
-                    onChange={(event) => setBomQty(Number(event.target.value))}
-                    min={1}
-                    step="1"
-                  />
-                </label>
-                <div className="form-actions form-actions-tight">
-                  <button type="submit" className="button" disabled={isSavingBom}>
-                    {t.bomAddItem}
-                  </button>
+            <div className="bom-section">
+              <div className="card-header">
+                <div>
+                  <h3 className="title">{t.standard}</h3>
+                  <p className="subtitle">{t.bomModelLabel}</p>
                 </div>
               </div>
-            </form>
+              <div className="form-row">
+                <label>
+                  {t.bomModelLabel}
+                  <select
+                    value={standardModel}
+                    onChange={(event) => setStandardModel(event.target.value)}
+                  >
+                    {models.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
-            <div className="table-wrap">
-              <table className="inventory-table compact-table">
-                <thead>
-                  <tr>
-                    <th>{t.bomPartLabel}</th>
-                    <th>{t.bomQtyLabel}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {bomItems.length === 0 && (
+              <form
+                className="form form-compact"
+                onSubmit={(event) =>
+                  addBomItem(
+                    event,
+                    standardPartQuery,
+                    standardQty,
+                    standardItems,
+                    setStandardItems,
+                    setStandardPartQuery,
+                    setStandardQty,
+                    "STANDARD",
+                    standardModel,
+                    setIsSavingStandard,
+                    isSavingStandard
+                  )
+                }
+              >
+                <div className="form-row">
+                  <label className="form-grow">
+                    {t.bomPartLabel}
+                    <input
+                      list="bom-parts"
+                      value={standardPartQuery}
+                      onChange={(event) => setStandardPartQuery(event.target.value)}
+                      placeholder={t.partsSearch}
+                    />
+                    <datalist id="bom-parts">
+                      {bomPartOptions.map((part) => (
+                        <option key={part.id} value={part.name} />
+                      ))}
+                    </datalist>
+                  </label>
+                  <label>
+                    {t.bomQtyLabel}
+                    <input
+                      type="number"
+                      value={standardQty}
+                      onChange={(event) => setStandardQty(Number(event.target.value))}
+                      min={1}
+                      step="1"
+                    />
+                  </label>
+                  <div className="form-actions form-actions-tight">
+                    <button type="submit" className="button" disabled={isSavingStandard}>
+                      {t.bomAddItem}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="table-wrap">
+                <table className="inventory-table compact-table">
+                  <thead>
                     <tr>
-                      <td colSpan={3} className="muted">
-                        {t.bomEmpty}
-                      </td>
+                      <th>{t.bomPartLabel}</th>
+                      <th>{t.bomQtyLabel}</th>
+                      <th />
                     </tr>
-                  )}
-                  {bomItems.map((item) => (
-                    <tr key={item.partId}>
-                      <td>{item.part?.name ?? item.partId}</td>
-                      <td>{item.qtyPerPlow}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="button button-ghost button-small"
-                          onClick={() => handleRemoveBomItem(item.partId)}
-                        >
-                          {t.delete}
-                        </button>
-                      </td>
+                  </thead>
+                  <tbody>
+                    {standardItems.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="muted">
+                          {t.bomEmpty}
+                        </td>
+                      </tr>
+                    )}
+                    {standardItems.map((item) => (
+                      <tr key={item.partId}>
+                        <td>{item.part?.name ?? item.partId}</td>
+                        <td>{item.qtyPerPlow}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() =>
+                              removeBomItem(
+                                item.partId,
+                                standardItems,
+                                setStandardItems,
+                                "STANDARD",
+                                standardModel,
+                                setIsSavingStandard,
+                                isSavingStandard
+                              )
+                            }
+                          >
+                            {t.delete}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bom-section">
+              <div className="card-header">
+                <div>
+                  <h3 className="title">6/2</h3>
+                  <p className="subtitle">{t.bomModelLabel}</p>
+                </div>
+              </div>
+              <div className="form-row">
+                <label>
+                  {t.bomModelLabel}
+                  <select
+                    value={addonModel}
+                    onChange={(event) => setAddonModel(event.target.value)}
+                  >
+                    {models.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <form
+                className="form form-compact"
+                onSubmit={(event) =>
+                  addBomItem(
+                    event,
+                    addonPartQuery,
+                    addonQty,
+                    addonItems,
+                    setAddonItems,
+                    setAddonPartQuery,
+                    setAddonQty,
+                    "ADDON_6_2",
+                    addonModel,
+                    setIsSavingAddon,
+                    isSavingAddon
+                  )
+                }
+              >
+                <div className="form-row">
+                  <label className="form-grow">
+                    {t.bomPartLabel}
+                    <input
+                      list="bom-parts"
+                      value={addonPartQuery}
+                      onChange={(event) => setAddonPartQuery(event.target.value)}
+                      placeholder={t.partsSearch}
+                    />
+                  </label>
+                  <label>
+                    {t.bomQtyLabel}
+                    <input
+                      type="number"
+                      value={addonQty}
+                      onChange={(event) => setAddonQty(Number(event.target.value))}
+                      min={1}
+                      step="1"
+                    />
+                  </label>
+                  <div className="form-actions form-actions-tight">
+                    <button type="submit" className="button" disabled={isSavingAddon}>
+                      {t.bomAddItem}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="table-wrap">
+                <table className="inventory-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>{t.bomPartLabel}</th>
+                      <th>{t.bomQtyLabel}</th>
+                      <th />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {addonItems.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="muted">
+                          {t.bomEmpty}
+                        </td>
+                      </tr>
+                    )}
+                    {addonItems.map((item) => (
+                      <tr key={item.partId}>
+                        <td>{item.part?.name ?? item.partId}</td>
+                        <td>{item.qtyPerPlow}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() =>
+                              removeBomItem(
+                                item.partId,
+                                addonItems,
+                                setAddonItems,
+                                "ADDON_6_2",
+                                addonModel,
+                                setIsSavingAddon,
+                                isSavingAddon
+                              )
+                            }
+                          >
+                            {t.delete}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bom-section">
+              <div className="card-header">
+                <div>
+                  <h3 className="title">{t.schwenkbock}</h3>
+                  <p className="subtitle">{t.bomConfigLabel}</p>
+                </div>
+              </div>
+              <div className="form-row">
+                <label>
+                  {t.bomConfigLabel}
+                  <select
+                    value={schwenkType}
+                    onChange={(event) => setSchwenkType(event.target.value as BomType)}
+                  >
+                    {schwenkOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <form
+                className="form form-compact"
+                onSubmit={(event) =>
+                  addBomItem(
+                    event,
+                    schwenkPartQuery,
+                    schwenkQty,
+                    schwenkItems,
+                    setSchwenkItems,
+                    setSchwenkPartQuery,
+                    setSchwenkQty,
+                    schwenkType,
+                    "GLOBAL",
+                    setIsSavingSchwenk,
+                    isSavingSchwenk
+                  )
+                }
+              >
+                <div className="form-row">
+                  <label className="form-grow">
+                    {t.bomPartLabel}
+                    <input
+                      list="bom-parts"
+                      value={schwenkPartQuery}
+                      onChange={(event) => setSchwenkPartQuery(event.target.value)}
+                      placeholder={t.partsSearch}
+                    />
+                  </label>
+                  <label>
+                    {t.bomQtyLabel}
+                    <input
+                      type="number"
+                      value={schwenkQty}
+                      onChange={(event) => setSchwenkQty(Number(event.target.value))}
+                      min={1}
+                      step="1"
+                    />
+                  </label>
+                  <div className="form-actions form-actions-tight">
+                    <button type="submit" className="button" disabled={isSavingSchwenk}>
+                      {t.bomAddItem}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="table-wrap">
+                <table className="inventory-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>{t.bomPartLabel}</th>
+                      <th>{t.bomQtyLabel}</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schwenkItems.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="muted">
+                          {t.bomEmpty}
+                        </td>
+                      </tr>
+                    )}
+                    {schwenkItems.map((item) => (
+                      <tr key={item.partId}>
+                        <td>{item.part?.name ?? item.partId}</td>
+                        <td>{item.qtyPerPlow}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="button button-ghost button-small"
+                            onClick={() =>
+                              removeBomItem(
+                                item.partId,
+                                schwenkItems,
+                                setSchwenkItems,
+                                schwenkType,
+                                "GLOBAL",
+                                setIsSavingSchwenk,
+                                isSavingSchwenk
+                              )
+                            }
+                          >
+                            {t.delete}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
         )}
