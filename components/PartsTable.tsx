@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-import type { MouseEvent } from "react";
+import { useMemo, useState } from "react";
 
 type Part = {
   id: number;
@@ -54,19 +53,7 @@ export default function PartsTable({
   onDelete,
 }: PartsTableProps) {
   const rows = useMemo(() => parts, [parts]);
-
-  const closeMenu = (event: MouseEvent<HTMLButtonElement>) => {
-    const details = (event.currentTarget as HTMLElement).closest("details");
-    if (details) {
-      details.removeAttribute("open");
-    }
-  };
-
-  const handleCopy = async (name: string) => {
-    try {
-      await navigator.clipboard.writeText(name);
-    } catch {}
-  };
+  const [activePart, setActivePart] = useState<Part | null>(null);
 
   return (
     <div className={`parts-table ${mode === "admin" ? "parts-table-admin" : "parts-table-public"}`}>
@@ -109,67 +96,19 @@ export default function PartsTable({
               </div>
               {mode === "admin" && (
                 <div className="parts-actions-cell">
-                  <details className="parts-menu">
-                    <summary
-                      className="button button-ghost button-icon-only"
-                      aria-label="Menu"
-                      title="Menu"
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="6" cy="12" r="1.6" fill="currentColor" />
-                        <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-                        <circle cx="18" cy="12" r="1.6" fill="currentColor" />
-                      </svg>
-                    </summary>
-                    <div className="parts-menu-panel">
-                      {onAdjust && (
-                        <button
-                          type="button"
-                          className="button button-ghost button-small"
-                          onClick={(event) => {
-                            onAdjust(part);
-                            closeMenu(event);
-                          }}
-                        >
-                          {labels.partsAdjust}
-                        </button>
-                      )}
-                      {onEdit && (
-                        <button
-                          type="button"
-                          className="button button-ghost button-small"
-                          onClick={(event) => {
-                            onEdit(part);
-                            closeMenu(event);
-                          }}
-                        >
-                          <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                              d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          {labels.partsEdit}
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          type="button"
-                          className="button button-ghost button-small button-danger"
-                          onClick={(event) => {
-                            onDelete(part);
-                            closeMenu(event);
-                          }}
-                        >
-                          {labels.partsDelete}
-                        </button>
-                      )}
-                    </div>
-                  </details>
+                  <button
+                    type="button"
+                    className="button button-ghost button-icon-only"
+                    aria-label="Menu"
+                    title="Menu"
+                    onClick={() => setActivePart(part)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="6" cy="12" r="1.6" fill="currentColor" />
+                      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                      <circle cx="18" cy="12" r="1.6" fill="currentColor" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
@@ -226,72 +165,100 @@ export default function PartsTable({
             </div>
             {mode === "admin" && (
               <div className="parts-card-actions">
-                <details className="parts-menu">
-                  <summary
-                    className="button button-ghost button-icon-only"
-                    aria-label="Menu"
-                    title="Menu"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="6" cy="12" r="1.6" fill="currentColor" />
-                      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-                      <circle cx="18" cy="12" r="1.6" fill="currentColor" />
-                    </svg>
-                  </summary>
-                  <div className="parts-menu-panel">
-                    {onAdjust && (
-                      <button
-                        type="button"
-                        className="button button-ghost button-small"
-                        onClick={(event) => {
-                          onAdjust(part);
-                          closeMenu(event);
-                        }}
-                      >
-                        {labels.partsAdjust}
-                      </button>
-                    )}
-                    {onEdit && (
-                      <button
-                        type="button"
-                        className="button button-ghost button-small"
-                        onClick={(event) => {
-                          onEdit(part);
-                          closeMenu(event);
-                        }}
-                      >
-                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                          <path
-                            d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        {labels.partsEdit}
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button
-                        type="button"
-                        className="button button-ghost button-small button-danger"
-                        onClick={(event) => {
-                          onDelete(part);
-                          closeMenu(event);
-                        }}
-                      >
-                        {labels.partsDelete}
-                      </button>
-                    )}
-                  </div>
-                </details>
+                <button
+                  type="button"
+                  className="button button-ghost button-icon-only"
+                  aria-label="Menu"
+                  title="Menu"
+                  onClick={() => setActivePart(part)}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="6" cy="12" r="1.6" fill="currentColor" />
+                    <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                    <circle cx="18" cy="12" r="1.6" fill="currentColor" />
+                  </svg>
+                </button>
               </div>
             )}
           </section>
         ))}
       </div>
+
+      {activePart && (
+        <div
+          className="modal-overlay parts-action-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActivePart(null)}
+        >
+          <section
+            className="card parts-action-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="card-header">
+              <div>
+                <h3 className="title title-with-icon">{activePart.name}</h3>
+                <p className="subtitle">{labels.actionsLabel}</p>
+              </div>
+            </div>
+            <div className="parts-action-buttons">
+              {onAdjust && (
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => {
+                    onAdjust(activePart);
+                    setActivePart(null);
+                  }}
+                >
+                  {labels.partsAdjust}
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => {
+                    onEdit(activePart);
+                    setActivePart(null);
+                  }}
+                >
+                  <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {labels.partsEdit}
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  className="button button-ghost button-danger"
+                  onClick={() => {
+                    onDelete(activePart);
+                    setActivePart(null);
+                  }}
+                >
+                  {labels.partsDelete}
+                </button>
+              )}
+              <button
+                type="button"
+                className="button"
+                onClick={() => setActivePart(null)}
+              >
+                OK
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
