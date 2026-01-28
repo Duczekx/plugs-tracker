@@ -145,6 +145,14 @@ export async function DELETE(
   }
 
   try {
+    const [bomUsage, movementUsage] = await prisma.$transaction([
+      prisma.bomItem.count({ where: { partId } }),
+      prisma.partMovement.count({ where: { partId } }),
+    ]);
+    if (bomUsage > 0 || movementUsage > 0) {
+      return NextResponse.json({ message: "PART_IN_USE" }, { status: 409 });
+    }
+
     const part = await prisma.part.update({
       where: { id: partId },
       data: { isArchived: true },

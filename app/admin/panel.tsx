@@ -473,7 +473,12 @@ export default function AdminPanel() {
     }
     const response = await fetch(`/api/parts/${part.id}`, { method: "DELETE" });
     if (!response.ok) {
-      setNotice({ type: "error", message: t.error });
+      const body = await response.json().catch(() => null);
+      const message =
+        body?.message === "PART_IN_USE"
+          ? t.partsDeleteBlocked
+          : t.error;
+      setNotice({ type: "error", message });
       return;
     }
     setParts((prev) => prev.filter((item) => item.id !== part.id));
