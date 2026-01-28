@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
+import PartsTable from "@/components/PartsTable";
 import MobileNav from "@/app/mobile-nav";
 
 type Part = {
@@ -25,19 +26,6 @@ type PartsResponse = {
 
 const PAGE_SIZE = 50;
 
-const getStockClass = (stock: number) => {
-  if (stock < 0) {
-    return "stock-negative";
-  }
-  if (stock < 10) {
-    return "stock-low";
-  }
-  if (stock <= 50) {
-    return "stock-warn";
-  }
-  return "stock-good";
-};
-
 export default function PartsPage() {
   const [lang, setLang] = useState<Lang>("pl");
   const pathname = usePathname();
@@ -45,6 +33,7 @@ export default function PartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
@@ -96,6 +85,7 @@ export default function PartsPage() {
     setParts(data.items);
     setTotalPages(data.totalPages);
     setPage(data.page);
+    setTotalCount(data.totalCount);
   };
 
   useEffect(() => {
@@ -271,54 +261,34 @@ export default function PartsPage() {
               </h2>
               <p className="subtitle">{t.partsPageSubtitle}</p>
             </div>
-            <div className="filter-row parts-search">
-              <input
-                value={queryInput}
-                onChange={handleQueryChange}
-                placeholder={t.partsSearch}
-              />
-            </div>
           </div>
 
-          <div className="parts-list">
-            {parts.length === 0 && <p>{t.inventoryEmpty}</p>}
-            {parts.map((part) => (
-              <div key={part.id} className="parts-row">
-                <div className="parts-main">
-                  <div className="parts-title">{part.name}</div>
-                  {part.shopName && <div className="muted">{part.shopName}</div>}
-                  <div className="parts-meta">
-                    <span className={`stock-badge ${getStockClass(part.stock)}`}>
-                      {t.partsStock}: {part.stock}
-                    </span>
-                    <span className="pill">{t.partsUnit}: {part.unit}</span>
-                  </div>
-                </div>
-                <div className="parts-actions">
-                  <button
-                    type="button"
-                    className="button button-ghost button-small"
-                    onClick={() => setAdjustTarget(part)}
-                    disabled={isReadOnly}
-                  >
-                    {t.partsAdjust}
-                  </button>
-                  {part.shopUrl ? (
-                    <a
-                      className="button button-ghost button-small"
-                      href={part.shopUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {t.partsOrder}
-                    </a>
-                  ) : (
-                    <span className="muted">{t.partsNoLink}</span>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="parts-search-bar">
+            <input
+              value={queryInput}
+              onChange={handleQueryChange}
+              placeholder={t.partsSearch}
+            />
+            <span className="pill">
+              {t.resultsLabel}: {totalCount}
+            </span>
           </div>
+
+          <PartsTable
+            parts={parts}
+            labels={{
+              partsTitle: t.partsTitle,
+              partsStock: t.partsStock,
+              partsUnit: t.partsUnit,
+              shopNameLabel: t.shopNameLabel,
+              shopUrlLabel: t.shopUrlLabel,
+              partsEmpty: t.partsEmpty,
+              partsAdjust: t.partsAdjust,
+              actionsLabel: t.actionsLabel,
+              copyName: t.copyName,
+            }}
+            mode="public"
+          />
 
           <div className="pagination">
             <button
@@ -327,7 +297,7 @@ export default function PartsPage() {
               onClick={() => handlePageChange(page - 1)}
               disabled={page <= 1}
             >
-              ‹
+              &lsaquo;
             </button>
             <span className="pill">
               {page} / {totalPages}
@@ -338,7 +308,7 @@ export default function PartsPage() {
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPages}
             >
-              ›
+              &rsaquo;
             </button>
           </div>
         </section>

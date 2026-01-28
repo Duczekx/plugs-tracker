@@ -2728,32 +2728,199 @@ textarea {
   gap: 8px;
 }
 
-.stock-badge {
-  padding: 4px 10px;
-  border-radius: 999px;
+.parts-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.parts-search-bar input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.parts-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.parts-table-head,
+.parts-table-row {
+  display: grid;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.parts-table-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(90deg, rgba(12, 18, 32, 0.08), rgba(12, 18, 32, 0.02));
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  border: 1px solid rgba(12, 18, 32, 0.12);
+}
+
+.parts-table-body {
+  display: grid;
+  gap: 6px;
+}
+
+.parts-table-body > div {
+  min-width: 0;
+}
+
+.parts-table-row {
   border: 1px solid rgba(12, 18, 32, 0.08);
-  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.92);
+  transition: background 0.2s ease;
 }
 
-.stock-good {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
+.parts-table-row > div {
+  min-width: 0;
 }
 
-.stock-warn {
-  background: rgba(245, 158, 11, 0.18);
-  border-color: rgba(245, 158, 11, 0.35);
+.parts-table-row:nth-child(even) {
+  background: rgba(12, 18, 32, 0.03);
 }
 
-.stock-low {
+.parts-table-row:hover {
+  background: rgba(12, 18, 32, 0.06);
+}
+
+.parts-table-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.parts-name-text {
+  font-weight: 600;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.parts-copy-btn {
+  flex: 0 0 auto;
+}
+
+.parts-table-empty {
+  padding: 12px 4px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.parts-link-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.parts-table-admin .parts-table-head,
+.parts-table-admin .parts-table-row {
+  grid-template-columns: minmax(220px, 2fr) minmax(80px, 0.6fr) minmax(80px, 0.6fr) minmax(140px, 1fr) minmax(120px, 0.8fr) minmax(120px, 0.7fr);
+}
+
+.parts-table-public .parts-table-head,
+.parts-table-public .parts-table-row {
+  grid-template-columns: minmax(220px, 2fr) minmax(80px, 0.6fr) minmax(80px, 0.6fr) minmax(140px, 1fr) minmax(120px, 0.8fr);
+}
+
+.parts-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.parts-card-item {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(12, 18, 32, 0.08);
+  box-shadow: 0 10px 24px rgba(12, 18, 32, 0.06);
+}
+
+.parts-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.parts-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.parts-card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.parts-card-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .parts-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .parts-search-bar input {
+    width: 100%;
+  }
+
+  .parts-table-head {
+    position: static;
+  }
+}
+
+.stock-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.stock-badge-low {
   background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #991b1b;
 }
 
-.stock-negative {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: rgba(239, 68, 68, 0.55);
-  color: #991b1b;
+.stock-badge-warn {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+
+.stock-badge-good {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.32);
+  color: #166534;
 }
 
 .pagination {

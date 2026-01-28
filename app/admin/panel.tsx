@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { labels, Lang } from "@/lib/i18n";
+import PartsTable from "@/components/PartsTable";
 
 type Part = {
   id: number;
@@ -71,6 +72,7 @@ export default function AdminPanel() {
   const [parts, setParts] = useState<Part[]>([]);
   const [partsPage, setPartsPage] = useState(1);
   const [partsTotalPages, setPartsTotalPages] = useState(1);
+  const [partsTotalCount, setPartsTotalCount] = useState(0);
   const [partsQuery, setPartsQuery] = useState("");
   const [partsQueryInput, setPartsQueryInput] = useState("");
   const [newPart, setNewPart] = useState({
@@ -150,6 +152,7 @@ export default function AdminPanel() {
     setParts(data.items);
     setPartsPage(data.page);
     setPartsTotalPages(data.totalPages);
+    setPartsTotalCount(data.totalCount);
   };
 
   useEffect(() => {
@@ -573,44 +576,33 @@ export default function AdminPanel() {
               </div>
             </form>
 
-            <div className="filter-row parts-search">
+            <div className="parts-search-bar">
               <input
                 value={partsQueryInput}
                 onChange={(event) => setPartsQueryInput(event.target.value)}
                 placeholder={t.partsSearch}
               />
+            <span className="pill">
+              {t.resultsLabel}: {partsTotalCount}
+            </span>
             </div>
 
-            <div className="table-wrap">
-              <table className="inventory-table compact-table">
-                <thead>
-                  <tr>
-                    <th>{t.partsTitle}</th>
-                    <th>{t.partsStock}</th>
-                    <th>{t.partsUnit}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {parts.map((part) => (
-                    <tr key={part.id}>
-                      <td>{part.name}</td>
-                      <td>{part.stock}</td>
-                      <td>{part.unit}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="button button-ghost button-small"
-                          onClick={() => handleEditPart(part)}
-                        >
-                          {t.editItem}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PartsTable
+              parts={parts}
+              labels={{
+              partsTitle: t.partsTitle,
+              partsStock: t.partsStock,
+              partsUnit: t.partsUnit,
+              shopNameLabel: t.shopNameLabel,
+              shopUrlLabel: t.shopUrlLabel,
+              partsEmpty: t.partsEmpty,
+              partsAdjust: t.partsAdjust,
+              actionsLabel: t.actionsLabel,
+              copyName: t.copyName,
+            }}
+              mode="admin"
+              onEdit={handleEditPart}
+            />
 
             <div className="pagination">
               <button
@@ -619,7 +611,7 @@ export default function AdminPanel() {
                 onClick={() => loadParts(partsPage - 1, partsQuery)}
                 disabled={partsPage <= 1}
               >
-                ‹
+                &lsaquo;
               </button>
               <span className="pill">
                 {partsPage} / {partsTotalPages}
@@ -630,7 +622,7 @@ export default function AdminPanel() {
                 onClick={() => loadParts(partsPage + 1, partsQuery)}
                 disabled={partsPage >= partsTotalPages}
               >
-                ›
+                &rsaquo;
               </button>
             </div>
           </section>
@@ -711,7 +703,7 @@ export default function AdminPanel() {
                 onClick={() => loadMovements(movementsPage - 1, movementFilters)}
                 disabled={movementsPage <= 1}
               >
-                ‹
+                &lsaquo;
               </button>
               <span className="pill">
                 {movementsPage} / {movementsTotalPages}
@@ -722,7 +714,7 @@ export default function AdminPanel() {
                 onClick={() => loadMovements(movementsPage + 1, movementFilters)}
                 disabled={movementsPage >= movementsTotalPages}
               >
-                ›
+                &rsaquo;
               </button>
             </div>
           </section>
