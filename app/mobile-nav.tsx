@@ -15,6 +15,7 @@ type MobileNavProps = {
 
 export default function MobileNav({ lang, setLang, pathname, t }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [drawerTop, setDrawerTop] = useState(0);
 
   const items = useMemo(
     () => [
@@ -25,6 +26,33 @@ export default function MobileNav({ lang, setLang, pathname, t }: MobileNavProps
     ],
     [t]
   );
+
+  const updateDrawerTop = () => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const header = document.querySelector("header.card");
+    if (!header) {
+      setDrawerTop(0);
+      return;
+    }
+    const rect = header.getBoundingClientRect();
+    const nextTop = Math.max(0, Math.round(rect.bottom));
+    setDrawerTop(nextTop);
+  };
+
+  useEffect(() => {
+    updateDrawerTop();
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.addEventListener("resize", updateDrawerTop);
+    return () => window.removeEventListener("resize", updateDrawerTop);
+  }, []);
+
+  useEffect(() => {
+    updateDrawerTop();
+  }, [isOpen]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -59,7 +87,11 @@ export default function MobileNav({ lang, setLang, pathname, t }: MobileNavProps
         </span>
       </button>
 
-      <div className={`mobile-drawer ${isOpen ? "open" : ""}`} id="mobile-drawer">
+      <div
+        className={`mobile-drawer ${isOpen ? "open" : ""}`}
+        id="mobile-drawer"
+        style={{ ["--mobile-drawer-top" as string]: `${drawerTop}px` }}
+      >
         <button
           type="button"
           className="mobile-drawer-overlay"
@@ -71,11 +103,11 @@ export default function MobileNav({ lang, setLang, pathname, t }: MobileNavProps
             <span className="pill">Menu</span>
             <button
               type="button"
-              className="button button-ghost button-icon-only"
+              className="button button-ghost button-icon-only mobile-drawer-close"
               onClick={closeMenu}
               aria-label="Zamknij menu"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="mobile-drawer-close-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   d="M6 6l12 12M18 6l-12 12"
                   stroke="currentColor"

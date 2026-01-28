@@ -681,12 +681,12 @@ export default function SentPage() {
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
-            <MobileNav lang={lang} setLang={setLang} pathname={pathname} t={t} />
+            <div />
           </div>
         </header>
         <div className="sticky-nav">
           <div className="sticky-nav-inner">
-            <div />
+            <MobileNav lang={lang} setLang={setLang} pathname={pathname} t={t} />
             <div className="tabs">
               <Link
                 className={`tab-link ${pathname === "/" ? "tab-active" : ""}`}
