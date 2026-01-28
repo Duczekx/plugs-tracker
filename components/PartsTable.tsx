@@ -87,26 +87,6 @@ export default function PartsTable({
             <div key={part.id} className="parts-table-row">
               <div className="parts-table-name">
                 <div className="parts-name-text">{part.name}</div>
-                {mode === "admin" && (
-                  <button
-                    type="button"
-                    className="button button-ghost button-icon-only parts-copy-btn"
-                    onClick={() => handleCopy(part.name)}
-                    aria-label={labels.copyName}
-                    title={labels.copyName}
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M9 9h10v10H9zM5 5h10v10"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                )}
               </div>
               <div>
                 <span className={getStockTone(part.stock)}>{part.stock}</span>
@@ -128,7 +108,7 @@ export default function PartsTable({
                 )}
               </div>
               {mode === "admin" && (
-                <div>
+                <div className="parts-actions-cell">
                   <details className="parts-menu">
                     <summary
                       className="button button-ghost button-icon-only"
@@ -163,6 +143,16 @@ export default function PartsTable({
                             closeMenu(event);
                           }}
                         >
+                          <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                              d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.6"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                           {labels.partsEdit}
                         </button>
                       )}
@@ -193,26 +183,6 @@ export default function PartsTable({
           <section key={part.id} className="card parts-card-item">
             <div className="parts-card-title">
               <div className="parts-name-text">{part.name}</div>
-              {mode === "admin" && (
-                <button
-                  type="button"
-                  className="button button-ghost button-icon-only parts-copy-btn"
-                  onClick={() => handleCopy(part.name)}
-                  aria-label={labels.copyName}
-                  title={labels.copyName}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M9 9h10v10H9zM5 5h10v10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              )}
             </div>
             <div className="parts-card-grid">
               <div>
@@ -290,6 +260,16 @@ export default function PartsTable({
                           closeMenu(event);
                         }}
                       >
+                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path
+                            d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                         {labels.partsEdit}
                       </button>
                     )}
