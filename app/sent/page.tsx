@@ -1319,11 +1319,7 @@ export default function SentPage() {
                 }`}
                 open={false}
               >
-                <summary
-                  className={`shipment-summary ${
-                    shipmentStatus === "RESERVED" ? "has-reserved" : ""
-                  }`}
-                >
+                <summary className="shipment-summary">
                   <div className="shipment-summary-main">
                     <span className="expand-icon expand-icon-left" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
@@ -1337,21 +1333,23 @@ export default function SentPage() {
                         />
                       </svg>
                     </span>
-                    <div className="shipment-date">
-                      <span className="item-date">
-                        {formatDate(getShipmentDate(shipment))}
-                      </span>
-                    </div>
-                    <div className="shipment-title">
-                      {shipment.companyName} - {shipment.firstName} {shipment.lastName}
-                    </div>
-                    <div className="muted address-compact">
-                      {shipment.street}, {shipment.postalCode} {shipment.city},{" "}
-                      {shipment.country}
+                    <div className="shipment-text">
+                      <div className="shipment-date">
+                        <span className="item-date">
+                          {formatDate(getShipmentDate(shipment))}
+                        </span>
+                      </div>
+                      <div className="shipment-title">
+                        {shipment.companyName} - {shipment.firstName} {shipment.lastName}
+                      </div>
+                      <div className="muted address-compact">
+                        {shipment.street}, {shipment.postalCode} {shipment.city},{" "}
+                        {shipment.country}
+                      </div>
                     </div>
                   </div>
                   {shipmentStatus === "RESERVED" && (
-                    <div className="shipment-summary-status">
+                    <div className="shipment-summary-reserved">
                       <span className="pill reserved-pulse">{statusLabel.RESERVED}</span>
                     </div>
                   )}
