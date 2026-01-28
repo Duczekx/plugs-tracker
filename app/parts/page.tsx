@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
+import MobileNav from "@/app/mobile-nav";
 
 type Part = {
   id: number;
@@ -186,7 +187,7 @@ export default function PartsPage() {
               </h1>
               <p className="subtitle">{t.partsPageSubtitle}</p>
             </div>
-            <div />
+            <MobileNav lang={lang} setLang={setLang} pathname={pathname} t={t} />
           </div>
         </header>
         <div className="sticky-nav">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
 import { clearCached, getCached, setCached } from "@/lib/client-cache";
+import MobileNav from "@/app/mobile-nav";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -437,7 +438,7 @@ export default function Home() {
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
-            <div />
+            <MobileNav lang={lang} setLang={setLang} pathname={pathname} t={t} />
           </div>
         </header>
         <div className="sticky-nav">
