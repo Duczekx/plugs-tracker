@@ -275,6 +275,7 @@ export async function POST(request: NextRequest) {
           city: String(body.city),
           country: String(body.country),
           notes: body.notes ? String(body.notes) : null,
+          status: ShipmentStatus.RESERVED,
           items: {
             create: validatedItems.map((item) => ({
               model: item.model as Model,

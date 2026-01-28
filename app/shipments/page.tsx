@@ -87,16 +87,6 @@ const emptyCustomerForm: CustomerForm = {
   notes: "",
 };
 
-const notifyEmailTo =
-  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_TO ?? "";
-const notifyEmailCc =
-  process.env.NEXT_PUBLIC_NOTIFY_EMAIL_CC ?? "";
-
-const formatDateTime = (value: Date) =>
-  value.toISOString().slice(0, 16).replace("T", " ");
-
-const encodeMailParam = (value: string) => encodeURIComponent(value);
-
 export default function ShipmentsPage() {
   const [lang, setLang] = useState<Lang>(() => {
     if (typeof window !== "undefined") {
@@ -121,25 +111,7 @@ export default function ShipmentsPage() {
   const [customerForm, setCustomerForm] =
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [readyPrompt, setReadyPrompt] = useState<{
-    shipment: {
-      id: number;
-      companyName: string;
-      firstName: string;
-      lastName: string;
-      street: string;
-      postalCode: string;
-      city: string;
-      country: string;
-      items: ShipmentItemDraft[];
-      extras: ExtraItemDraft[];
-    };
-  } | null>(null);
-  const [emailPrompt, setEmailPrompt] = useState<{
-    mailto: string | null;
-    message: string;
-    status: "READY" | "SENT";
-  } | null>(null);
+  const [reservedSuccess, setReservedSuccess] = useState(false);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
     message: string;
@@ -227,95 +199,6 @@ export default function ShipmentsPage() {
 
   const modelLabel = useMemo(() => t.models, [t]);
 
-  const buildMailto = (
-    shipment: {
-      id: number;
-      companyName: string;
-      firstName: string;
-      lastName: string;
-      street: string;
-      postalCode: string;
-      city: string;
-      country: string;
-      items: ShipmentItemDraft[];
-      extras: ExtraItemDraft[];
-    },
-    status: "READY" | "SENT"
-  ) => {
-    if (!notifyEmailTo) {
-      return null;
-    }
-    const de = labels.de;
-    const valveLabelDe = {
-      NONE: de.valveNone,
-      SMALL: de.valveSmall,
-      LARGE: de.valveLarge,
-    };
-    const bullet = "•";
-    const statusText = status === "READY" ? "VERSANDBEREIT" : "GESENDET";
-    const statusIcon = status === "READY" ? "🟡" : "🟢";
-    const formatItemLines = (item: ShipmentItemDraft) => {
-      const lines = [
-        `${bullet} Plug: ${de.models[item.model]} ${item.serialNumber}`,
-        `${bullet} Bau-Nr: ${item.buildNumber}`,
-        `${bullet} Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
-        `${bullet} Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
-        `${bullet} 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
-        `${bullet} Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
-        `${bullet} Menge: ${item.quantity} stk`,
-      ];
-      const extraParts = item.extraParts?.trim();
-      if (extraParts) {
-        lines.push(`${bullet} Zusatzteile: ${extraParts}`);
-      }
-      lines.push("");
-      return lines;
-    };
-    const itemLines =
-      shipment.items.length > 0
-        ? shipment.items.flatMap((item) => formatItemLines(item))
-        : [`${bullet} keine`];
-    if (itemLines[itemLines.length - 1] === "") {
-      itemLines.pop();
-    }
-    const extraLines =
-      shipment.extras.length > 0
-        ? shipment.extras.map(
-            (extra) =>
-              `${bullet} ${extra.name} x${extra.quantity}${
-                extra.note ? ` (${extra.note})` : ""
-              }`
-          )
-        : [`${bullet} keine`];
-    const subject = `[PLUGS] ${
-      status === "READY" ? "Versandbereit" : "Gesendet"
-    } ${shipment.companyName} ${shipment.id}`;
-    const bodyLines = [
-      "FS LAGER | BENACHRICHTIGUNG",
-      "========================================",
-      `${statusIcon} Status: ${statusText}    Datum: ${formatDateTime(new Date())}`,
-      "",
-      `Kunde: ${shipment.companyName} ${shipment.firstName} ${shipment.lastName}`,
-      `Adresse: ${shipment.street}, ${shipment.postalCode} ${shipment.city}, ${shipment.country}`,
-      "",
-      "POSITIONEN:",
-      ...itemLines,
-      "",
-      "ZUSAETZLICHE TEILE:",
-      ...extraLines,
-      "",
-      "Diese Nachricht wurde automatisch von FS LAGER erstellt.",
-    ];
-    const body = bodyLines.join("\r\n");
-    const query = [
-      notifyEmailCc ? `cc=${encodeMailParam(notifyEmailCc)}` : null,
-      `subject=${encodeMailParam(subject)}`,
-      `body=${encodeMailParam(body)}`,
-    ]
-      .filter(Boolean)
-      .join("&");
-    return `mailto:${encodeURIComponent(notifyEmailTo)}?${query}`;
-  };
 
   const productNumbersByModel = useMemo(() => {
     const map: Record<Model, number[]> = {
@@ -558,53 +441,11 @@ export default function ShipmentsPage() {
     setExtras([]);
     setExtraForm(emptyExtraForm);
     setCustomerForm(emptyCustomerForm);
-    setNotice({ type: "success", message: t.shipmentSaved });
-    setTimeout(() => {
-      setNotice(null);
-    }, 1800);
+    setNotice(null);
     setIsSubmitting(false);
-
     if (shipment?.id) {
-      setReadyPrompt({
-        shipment: {
-          id: shipment.id,
-          companyName: shipment.companyName,
-          firstName: shipment.firstName,
-          lastName: shipment.lastName,
-          street: shipment.street,
-          postalCode: shipment.postalCode,
-          city: shipment.city,
-          country: shipment.country,
-          items: shipment.items ?? [],
-          extras: shipment.extras ?? [],
-        },
-      });
+      setReservedSuccess(true);
     }
-  };
-
-  const handleReadyEmailChoice = async (sendEmail: boolean) => {
-    if (!readyPrompt) {
-      return;
-    }
-    const { shipment } = readyPrompt;
-    setReadyPrompt(null);
-    if (!sendEmail) {
-      return;
-    }
-    if (!notifyEmailTo) {
-      setEmailPrompt({
-        mailto: null,
-        message: t.missingNotifyEmails,
-        status: "READY",
-      });
-      return;
-    }
-    const mailto = buildMailto(shipment, "READY");
-    setEmailPrompt({
-      mailto,
-      message: t.statusSaved,
-      status: "READY",
-    });
   };
 
   return (
@@ -702,152 +543,43 @@ export default function ShipmentsPage() {
             {notice.message}
           </div>
         )}
-        {notice && notice.type === "success" && (
-          <div className="success-overlay" role="status" aria-live="polite">
-            <div className="success-card">
-              <div className="success-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M5 13l4 4L19 7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div className="success-text">{notice.message}</div>
-            </div>
-          </div>
-        )}
-        {emailPrompt && (
-          <div className="modal-overlay" role="dialog" aria-modal="true">
-            <section className="card modal-card confirm-card">
+        {reservedSuccess && (
+          <div className="success-overlay" role="dialog" aria-modal="true">
+            <section className="card reserve-success-card">
               <div className="card-header">
                 <div>
                   <h3 className="title title-with-icon">
-                    <span
-                      className={`title-icon confirm-icon ${
-                        emailPrompt.status === "READY"
-                          ? "confirm-icon-ready"
-                          : "confirm-icon-sent"
-                      }`}
-                      aria-hidden="true"
-                    >
+                    <span className="title-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
                         <path
-                          d="M4 7h16v10H4z"
-                          fill="currentColor"
-                          opacity="0.12"
-                        />
-                        <path
-                          d="M4 7h16v10H4z"
+                          d="M5 13l4 4L19 7"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 7l8 6 8-6"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
+                          strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                       </svg>
                     </span>
-                    {t.statusSaved}
+                    {t.shipmentReservedSuccessTitle}
                   </h3>
-                  <p className="subtitle">{emailPrompt.message}</p>
                 </div>
               </div>
-              <div className="confirm-actions">
-                {emailPrompt.mailto ? (
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={() => {
-                      window.location.href = emailPrompt.mailto ?? "";
-                      setEmailPrompt(null);
-                    }}
-                  >
-                    {t.openEmail}
-                  </button>
-                ) : (
-                  <span className="muted">{t.missingNotifyEmails}</span>
-                )}
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={() => setEmailPrompt(null)}
-                >
-                  {t.cancel}
-                </button>
-              </div>
-            </section>
-          </div>
-        )}
-        {readyPrompt && (
-          <div className="modal-overlay" role="dialog" aria-modal="true">
-            <section className="card modal-card confirm-card">
-              <div className="card-header">
-                <div>
-                  <h3 className="title title-with-icon">
-                    <span className="title-icon confirm-icon confirm-icon-ready" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <path
-                          d="M4 7h16v10H4z"
-                          fill="currentColor"
-                          opacity="0.12"
-                        />
-                        <path
-                          d="M4 7h16v10H4z"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 7l8 6 8-6"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    {t.confirmReadyTitle}
-                  </h3>
-                  <p className="subtitle">{t.confirmReadySubtitle}</p>
-                </div>
-              </div>
-              <div className="confirm-actions">
+              <div className="form-actions reserve-success-actions">
                 <button
                   type="button"
                   className="button"
-                  onClick={() => handleReadyEmailChoice(true)}
+                  onClick={() => setReservedSuccess(false)}
                 >
-                  {t.sendEmailAction}
+                  {t.shipmentReservedSuccessOk}
                 </button>
-                <button
-                  type="button"
+                <Link
                   className="button button-ghost"
-                  onClick={() => handleReadyEmailChoice(false)}
+                  href="/sent"
+                  onClick={() => setReservedSuccess(false)}
                 >
-                  {t.skipEmailAction}
-                </button>
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={() => setReadyPrompt(null)}
-                >
-                  {t.cancel}
-                </button>
+                  {t.shipmentReservedSuccessGo}
+                </Link>
               </div>
             </section>
           </div>
@@ -1593,6 +1325,7 @@ export default function ShipmentsPage() {
     </div>
   );
 }
+
 
 
 
