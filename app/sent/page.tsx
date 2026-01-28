@@ -157,7 +157,8 @@ export default function SentPage() {
     useState<CustomerForm>(emptyCustomerForm);
   const [statusPrompt, setStatusPrompt] = useState<{
     shipmentId: number;
-    status: ShipmentStatus;
+    status: "READY" | "SENT";
+    fromStatus: ShipmentStatus;
   } | null>(null);
   const [emailPrompt, setEmailPrompt] = useState<{
     mailto: string | null;
@@ -635,16 +636,33 @@ export default function SentPage() {
     }
   };
 
+  const handleStatusRequest = (
+    shipmentId: number,
+    nextStatus: "READY" | "SENT",
+    currentStatus: ShipmentStatus
+  ) => {
+    if (currentStatus === nextStatus) {
+      return;
+    }
+    if (nextStatus === "READY" && currentStatus !== "RESERVED") {
+      void handleUpdateShipmentStatus(shipmentId, nextStatus, false);
+      return;
+    }
+    setStatusPrompt({ shipmentId, status: nextStatus, fromStatus: currentStatus });
+  };
+
   const handleStatusChoice = async (sendEmail: boolean) => {
     if (!statusPrompt) {
       return;
     }
-    const { shipmentId, status } = statusPrompt;
+    const { shipmentId, status, fromStatus } = statusPrompt;
     setStatusPrompt(null);
+    const allowEmail =
+      status === "SENT" || (status === "READY" && fromStatus === "RESERVED");
     await handleUpdateShipmentStatus(
       shipmentId,
       status,
-      status === "RESERVED" ? false : sendEmail
+      allowEmail ? sendEmail : false
     );
   };
 
@@ -1301,7 +1319,11 @@ export default function SentPage() {
                 }`}
                 open={false}
               >
-                <summary className="shipment-summary">
+                <summary
+                  className={`shipment-summary ${
+                    shipmentStatus === "RESERVED" ? "has-reserved" : ""
+                  }`}
+                >
                   <div className="shipment-summary-main">
                     <span className="expand-icon expand-icon-left" aria-hidden="true">
                       <svg viewBox="0 0 24 24">
@@ -1328,22 +1350,14 @@ export default function SentPage() {
                       {shipment.country}
                     </div>
                   </div>
+                  {shipmentStatus === "RESERVED" && (
+                    <div className="shipment-summary-status">
+                      <span className="pill reserved-pulse">{statusLabel.RESERVED}</span>
+                    </div>
+                  )}
                   <div className="shipment-summary-right">
                     <div className="shipment-actions">
                       <div className="status-toggle">
-                        <button
-                          type="button"
-                          className={`button button-ghost button-small status-btn ${
-                            shipmentStatus === "RESERVED" ? "active" : ""
-                          }`}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            setStatusPrompt({ shipmentId: shipment.id, status: "RESERVED" });
-                          }}
-                          disabled={isReadOnly}
-                        >
-                          {statusLabel.RESERVED}
-                        </button>
                         <button
                           type="button"
                           className={`button button-ghost button-small status-btn ${
@@ -1351,7 +1365,7 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            setStatusPrompt({ shipmentId: shipment.id, status: "READY" });
+                            handleStatusRequest(shipment.id, "READY", shipmentStatus);
                           }}
                           disabled={isReadOnly}
                         >
@@ -1364,7 +1378,7 @@ export default function SentPage() {
                           }`}
                           onClick={(event) => {
                             event.preventDefault();
-                            setStatusPrompt({ shipmentId: shipment.id, status: "SENT" });
+                            handleStatusRequest(shipment.id, "SENT", shipmentStatus);
                           }}
                           disabled={isReadOnly}
                         >
@@ -1519,46 +1533,30 @@ export default function SentPage() {
                     </span>
                     {statusPrompt?.status === "READY"
                       ? t.confirmReadyTitle
-                      : statusPrompt?.status === "RESERVED"
-                      ? t.confirmReservedTitle
                       : t.confirmSentTitle}
                   </h3>
                   <p className="subtitle">
                     {statusPrompt?.status === "READY"
                       ? t.confirmReadySubtitle
-                      : statusPrompt?.status === "RESERVED"
-                      ? t.confirmReservedSubtitle
                       : t.confirmSentSubtitle}
                   </p>
                 </div>
               </div>
               <div className="confirm-actions">
-                {statusPrompt?.status !== "RESERVED" ? (
-                  <>
-                    <button
-                      type="button"
-                      className="button"
-                      onClick={() => handleStatusChoice(true)}
-                    >
-                      {t.sendEmailAction}
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-ghost"
-                      onClick={() => handleStatusChoice(false)}
-                    >
-                      {t.skipEmailAction}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={() => handleStatusChoice(false)}
-                  >
-                    {t.skipEmailAction}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => handleStatusChoice(true)}
+                >
+                  {t.sendEmailAction}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => handleStatusChoice(false)}
+                >
+                  {t.skipEmailAction}
+                </button>
                 <button
                   type="button"
                   className="button button-ghost"

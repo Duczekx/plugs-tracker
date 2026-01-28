@@ -2036,12 +2036,16 @@ textarea {
 }
 
 .shipment-summary {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
   gap: 12px;
   cursor: pointer;
   padding: 10px 12px;
+}
+
+.shipment-summary.has-reserved {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, auto);
 }
 
 .shipment-summary-main {
@@ -2049,7 +2053,6 @@ textarea {
   align-items: center;
   grid-template-columns: auto 1fr;
   column-gap: 12px;
-  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -2074,7 +2077,36 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  flex: 0 0 auto;
+  justify-self: end;
+}
+
+.shipment-summary-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  min-height: 32px;
+  max-width: 220px;
+  text-align: center;
+}
+
+.reserved-pulse {
+  animation: reservedPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes reservedPulse {
+  0% {
+    background: rgba(245, 158, 11, 0.18);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    background: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.08);
+  }
+  100% {
+    background: rgba(245, 158, 11, 0.18);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0);
+  }
 }
 
 .status-toggle {
@@ -2187,16 +2219,25 @@ textarea {
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 640px) {
   .sent-list .shipment-summary {
     padding: 10px 12px;
     gap: 8px;
+    grid-template-columns: 1fr;
   }
 
   .sent-list .shipment-summary-main {
     grid-template-columns: 1fr;
     row-gap: 6px;
   }
+
+  .sent-list .shipment-summary-status {
+    justify-self: start;
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 420px) {
 
   .sent-list .expand-icon-left {
     grid-row: auto;
@@ -2402,6 +2443,20 @@ textarea {
   align-items: center;
   gap: 12px;
   animation: successPop 0.3s ease;
+}
+
+.reserve-success-card {
+  width: min(100%, 560px);
+  text-align: center;
+}
+
+.reserve-success-card .card-header {
+  justify-content: center;
+}
+
+.reserve-success-actions {
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .success-icon {
