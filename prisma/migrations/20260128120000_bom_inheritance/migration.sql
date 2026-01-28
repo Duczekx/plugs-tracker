@@ -23,8 +23,8 @@ END;
 DELETE FROM "Bom" b
 USING "Bom" b2
 WHERE b.id > b2.id
-  AND b.bomType = b2.bomType
-  AND b.bomType IN ('SCHWENKBOCK_3000', 'SCHWENKBOCK_2000');
+  AND b."bomType" = b2."bomType"
+  AND b."bomType" IN ('SCHWENKBOCK_3000', 'SCHWENKBOCK_2000');
 
 UPDATE "Bom"
 SET "modelName" = 'GLOBAL'
