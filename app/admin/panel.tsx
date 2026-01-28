@@ -12,6 +12,7 @@ type Part = {
   unit: string;
   shopUrl?: string | null;
   shopName?: string | null;
+  isArchived?: boolean;
 };
 
 type BomItem = {
@@ -90,11 +91,20 @@ export default function AdminPanel() {
   const [newPart, setNewPart] = useState({
     name: "",
     stock: 0,
+    unit: "szt",
     shopUrl: "",
     shopName: "",
   });
   const [editPart, setEditPart] = useState<Part | null>(null);
-  const [editPartForm, setEditPartForm] = useState({ shopUrl: "", shopName: "" });
+  const [editPartForm, setEditPartForm] = useState({
+    name: "",
+    unit: "",
+    shopUrl: "",
+    shopName: "",
+    stockAbsolute: "",
+  });
+  const [adjustTarget, setAdjustTarget] = useState<Part | null>(null);
+  const [adjustForm, setAdjustForm] = useState({ delta: 0, note: "" });
 
   const [movements, setMovements] = useState<Movement[]>([]);
   const [movementsPage, setMovementsPage] = useState(1);
@@ -334,6 +344,7 @@ export default function AdminPanel() {
       body: JSON.stringify({
         name: newPart.name,
         stock: newPart.stock,
+        unit: newPart.unit,
         shopUrl: newPart.shopUrl,
         shopName: newPart.shopName,
       }),
@@ -343,15 +354,18 @@ export default function AdminPanel() {
       return;
     }
     setNotice({ type: "success", message: t.saved });
-    setNewPart({ name: "", stock: 0, shopUrl: "", shopName: "" });
+    setNewPart({ name: "", stock: 0, unit: "szt", shopUrl: "", shopName: "" });
     await loadParts(partsPage, partsQuery);
   };
 
   const handleEditPart = (part: Part) => {
     setEditPart(part);
     setEditPartForm({
+      name: part.name ?? "",
+      unit: part.unit ?? "",
       shopUrl: part.shopUrl ?? "",
       shopName: part.shopName ?? "",
+      stockAbsolute: "",
     });
   };
 
@@ -365,13 +379,16 @@ export default function AdminPanel() {
     if (!editPart) {
       return;
     }
+    const payload = {
+      name: editPartForm.name,
+      unit: editPartForm.unit,
+      shopUrl: editPartForm.shopUrl,
+      shopName: editPartForm.shopName,
+    };
     const response = await fetch(`/api/parts/${editPart.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        shopUrl: editPartForm.shopUrl,
-        shopName: editPartForm.shopName,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       setNotice({ type: "error", message: t.error });
@@ -380,6 +397,87 @@ export default function AdminPanel() {
     const updated: Part = await response.json();
     setParts((prev) => prev.map((part) => (part.id === updated.id ? updated : part)));
     setEditPart(null);
+    setNotice({ type: "success", message: t.saved });
+  };
+
+  const handleSetAbsoluteStock = async () => {
+    if (!editPart) {
+      return;
+    }
+    if (String(editPartForm.stockAbsolute).trim() === "") {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    const nextStock = Number(editPartForm.stockAbsolute);
+    if (!Number.isInteger(nextStock)) {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    const response = await fetch(`/api/parts/${editPart.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stockAbsolute: nextStock }),
+    });
+    if (!response.ok) {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    const updated: Part = await response.json();
+    setParts((prev) => prev.map((part) => (part.id === updated.id ? updated : part)));
+    setEditPart(updated);
+    setEditPartForm((prev) => ({ ...prev, stockAbsolute: "" }));
+    setNotice({ type: "success", message: t.saved });
+  };
+
+  const handleAdjustChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.target;
+    setAdjustForm((prev) => ({
+      ...prev,
+      [name]: name === "delta" ? Number(value) : value,
+    }));
+  };
+
+  const handleAdjustSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!adjustTarget) {
+      return;
+    }
+    if (!Number.isInteger(adjustForm.delta) || adjustForm.delta === 0) {
+      setNotice({ type: "error", message: t.error + t.partsAdjustQty });
+      return;
+    }
+    const response = await fetch("/api/parts/adjust", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        partId: adjustTarget.id,
+        delta: adjustForm.delta,
+        note: adjustForm.note,
+      }),
+    });
+    if (!response.ok) {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    const updated: Part = await response.json();
+    setParts((prev) => prev.map((part) => (part.id === updated.id ? updated : part)));
+    setAdjustTarget(null);
+    setAdjustForm({ delta: 0, note: "" });
+    setNotice({ type: "success", message: t.saved });
+  };
+
+  const handleArchivePart = async (part: Part) => {
+    const confirmMessage = t.partsDeleteConfirm ?? "Usunac czesc?";
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    const response = await fetch(`/api/parts/${part.id}`, { method: "DELETE" });
+    if (!response.ok) {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    setParts((prev) => prev.filter((item) => item.id !== part.id));
+    setPartsTotalCount((prev) => Math.max(0, prev - 1));
     setNotice({ type: "success", message: t.saved });
   };
 
@@ -893,6 +991,15 @@ export default function AdminPanel() {
                     step="1"
                   />
                 </label>
+                <label>
+                  {t.partsUnit}
+                  <input
+                    name="unit"
+                    value={newPart.unit}
+                    onChange={handleNewPartChange}
+                    placeholder="szt"
+                  />
+                </label>
                 <label className="form-grow">
                   {t.shopUrlLabel}
                   <input
@@ -932,18 +1039,22 @@ export default function AdminPanel() {
             <PartsTable
               parts={parts}
               labels={{
-              partsTitle: t.partsTitle,
-              partsStock: t.partsStock,
-              partsUnit: t.partsUnit,
-              shopNameLabel: t.shopNameLabel,
-              shopUrlLabel: t.shopUrlLabel,
-              partsEmpty: t.partsEmpty,
-              partsAdjust: t.partsAdjust,
-              actionsLabel: t.actionsLabel,
-              copyName: t.copyName,
-            }}
+                partsTitle: t.partsTitle,
+                partsStock: t.partsStock,
+                partsUnit: t.partsUnit,
+                shopNameLabel: t.shopNameLabel,
+                shopUrlLabel: t.shopUrlLabel,
+                partsEmpty: t.partsEmpty,
+                partsAdjust: t.partsAdjust,
+                partsEdit: t.partsEdit,
+                partsDelete: t.partsDelete,
+                actionsLabel: t.actionsLabel,
+                copyName: t.copyName,
+              }}
               mode="admin"
+              onAdjust={(part) => setAdjustTarget(part)}
               onEdit={handleEditPart}
+              onDelete={handleArchivePart}
             />
 
             <div className="pagination">
@@ -1069,10 +1180,26 @@ export default function AdminPanel() {
             <div className="card-header">
               <div>
                 <h3 className="title title-with-icon">{editPart.name}</h3>
-                <p className="subtitle">{t.partsAdjust}</p>
+                <p className="subtitle">{t.partsEdit}</p>
               </div>
             </div>
             <form className="form" onSubmit={handleSavePart}>
+              <label>
+                {t.bomPartLabel}
+                <input
+                  name="name"
+                  value={editPartForm.name}
+                  onChange={handleEditPartChange}
+                />
+              </label>
+              <label>
+                {t.partsUnit}
+                <input
+                  name="unit"
+                  value={editPartForm.unit}
+                  onChange={handleEditPartChange}
+                />
+              </label>
               <label>
                 {t.shopUrlLabel}
                 <input
@@ -1089,6 +1216,16 @@ export default function AdminPanel() {
                   onChange={handleEditPartChange}
                 />
               </label>
+              <label>
+                {t.partsSetStock}
+                <input
+                  name="stockAbsolute"
+                  type="number"
+                  value={editPartForm.stockAbsolute}
+                  onChange={handleEditPartChange}
+                  placeholder={String(editPart.stock)}
+                />
+              </label>
               <div className="form-actions">
                 <button type="submit" className="button">
                   {t.saved}
@@ -1096,9 +1233,61 @@ export default function AdminPanel() {
                 <button
                   type="button"
                   className="button button-ghost"
+                  onClick={handleSetAbsoluteStock}
+                >
+                  {t.partsSetStock}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
                   onClick={() => setEditPart(null)}
                 >
                   {t.cancel}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {adjustTarget && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="card modal-card">
+            <div className="card-header">
+              <div>
+                <h3 className="title title-with-icon">{t.partsAdjust}</h3>
+                <p className="subtitle">{adjustTarget.name}</p>
+              </div>
+            </div>
+            <form className="form" onSubmit={handleAdjustSubmit}>
+              <label>
+                {t.partsAdjustQty}
+                <input
+                  type="number"
+                  name="delta"
+                  value={adjustForm.delta}
+                  onChange={handleAdjustChange}
+                  step="1"
+                />
+              </label>
+              <label>
+                {t.partsAdjustNote}
+                <textarea
+                  name="note"
+                  value={adjustForm.note}
+                  onChange={handleAdjustChange}
+                />
+              </label>
+              <div className="form-actions">
+                <button type="submit" className="button">
+                  {t.partsAdjustSave}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setAdjustTarget(null)}
+                >
+                  {t.partsAdjustCancel}
                 </button>
               </div>
             </form>

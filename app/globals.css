@@ -1421,6 +1421,11 @@ textarea {
   box-shadow: none;
 }
 
+.button-danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #b91c1c;
+}
+
 .button-icon {
   width: 18px;
   height: 18px;

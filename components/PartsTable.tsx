@@ -19,6 +19,8 @@ type PartsLabels = {
   shopUrlLabel: string;
   partsEmpty: string;
   partsAdjust: string;
+  partsEdit: string;
+  partsDelete: string;
   actionsLabel: string;
   copyName: string;
 };
@@ -27,7 +29,9 @@ type PartsTableProps = {
   parts: Part[];
   labels: PartsLabels;
   mode: "public" | "admin";
+  onAdjust?: (part: Part) => void;
   onEdit?: (part: Part) => void;
+  onDelete?: (part: Part) => void;
 };
 
 const getStockTone = (stock: number) => {
@@ -40,7 +44,14 @@ const getStockTone = (stock: number) => {
   return "stock-badge stock-badge-good";
 };
 
-export default function PartsTable({ parts, labels, mode, onEdit }: PartsTableProps) {
+export default function PartsTable({
+  parts,
+  labels,
+  mode,
+  onAdjust,
+  onEdit,
+  onDelete,
+}: PartsTableProps) {
   const rows = useMemo(() => parts, [parts]);
 
   const handleCopy = async (name: string) => {
@@ -110,13 +121,35 @@ export default function PartsTable({ parts, labels, mode, onEdit }: PartsTablePr
               </div>
               {mode === "admin" && (
                 <div>
-                  <button
-                    type="button"
-                    className="button button-ghost button-small"
-                    onClick={() => onEdit?.(part)}
-                  >
-                    {labels.partsAdjust}
-                  </button>
+                  <div className="parts-actions">
+                    {onAdjust && (
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => onAdjust(part)}
+                      >
+                        {labels.partsAdjust}
+                      </button>
+                    )}
+                    {onEdit && (
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => onEdit(part)}
+                      >
+                        {labels.partsEdit}
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        type="button"
+                        className="button button-ghost button-small button-danger"
+                        onClick={() => onDelete(part)}
+                      >
+                        {labels.partsDelete}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -193,13 +226,35 @@ export default function PartsTable({ parts, labels, mode, onEdit }: PartsTablePr
             </div>
             {mode === "admin" && (
               <div className="parts-card-actions">
-                <button
-                  type="button"
-                  className="button button-ghost button-small"
-                  onClick={() => onEdit?.(part)}
-                >
-                  {labels.partsAdjust}
-                </button>
+                <div className="parts-actions">
+                  {onAdjust && (
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => onAdjust(part)}
+                    >
+                      {labels.partsAdjust}
+                    </button>
+                  )}
+                  {onEdit && (
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => onEdit(part)}
+                    >
+                      {labels.partsEdit}
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="button button-ghost button-small button-danger"
+                      onClick={() => onDelete(part)}
+                    >
+                      {labels.partsDelete}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </section>

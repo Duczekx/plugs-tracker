@@ -125,6 +125,7 @@ model Part {
   stock             Int     @default(0)
   shopUrl           String?
   shopName          String?
+  isArchived        Boolean @default(false)
   warningThreshold  Int?
   criticalThreshold Int?
 

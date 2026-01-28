@@ -284,6 +284,8 @@ export default function PartsPage() {
               shopUrlLabel: t.shopUrlLabel,
               partsEmpty: t.partsEmpty,
               partsAdjust: t.partsAdjust,
+              partsEdit: t.partsEdit,
+              partsDelete: t.partsDelete,
               actionsLabel: t.actionsLabel,
               copyName: t.copyName,
             }}

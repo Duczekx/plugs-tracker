@@ -15,14 +15,17 @@ export async function GET(request: NextRequest) {
   const take = Math.min(200, Math.max(1, Number(searchParams.get("per") ?? PAGE_SIZE)));
   const skip = (page - 1) * take;
 
-  const where: Prisma.PartWhereInput | undefined = query
-    ? {
-        name: {
-          contains: query,
-          mode: Prisma.QueryMode.insensitive,
-        },
-      }
-    : undefined;
+  const where: Prisma.PartWhereInput = {
+    isArchived: false,
+    ...(query
+      ? {
+          name: {
+            contains: query,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {}),
+  };
 
   const [items, totalCount] = await prisma.$transaction([
     prisma.part.findMany({
@@ -56,10 +59,11 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const name = String(body?.name ?? "").trim();
   const stock = Number(body?.stock ?? 0);
+  const unit = body?.unit ? String(body.unit).trim() : null;
   const shopUrl = body?.shopUrl ? String(body.shopUrl).trim() : null;
   const shopName = body?.shopName ? String(body.shopName).trim() : null;
 
-  if (name.length < 2 || !Number.isInteger(stock)) {
+  if (name.length < 2 || !Number.isInteger(stock) || (unit && unit.length < 1)) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
@@ -68,6 +72,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         stock,
+        unit: unit || "szt",
         shopUrl: shopUrl || null,
         shopName: shopName || null,
       },

@@ -21,6 +21,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.part.findUnique({
+        where: { id: partId },
+        select: { id: true, isArchived: true },
+      });
+      if (!existing) {
+        throw new Error("NOT_FOUND");
+      }
+      if (existing.isArchived) {
+        throw new Error("ARCHIVED");
+      }
       const updated = await tx.part.update({
         where: { id: partId },
         data: { stock: { increment: delta } },
@@ -36,7 +46,13 @@ export async function POST(request: NextRequest) {
       return updated;
     });
     return NextResponse.json(result);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    if (error instanceof Error && error.message === "ARCHIVED") {
+      return NextResponse.json({ message: "Part archived" }, { status: 409 });
+    }
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }

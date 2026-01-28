@@ -171,6 +171,7 @@ export const buildPartsSummary = async (
     const parts = await tx.part.findMany({
       where: {
         OR: nameQueries,
+        isArchived: false,
       },
     });
     const partByName = new Map(
