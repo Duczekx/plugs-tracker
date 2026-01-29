@@ -10,7 +10,6 @@ const plLabels: CategoryLabels = {
   hydraulika: "Hydraulika",
   gumy: "Gumy",
   elektryka: "Elektryka",
-  typenschild: "Typenschild",
   inne: "Inne",
 };
 
@@ -22,7 +21,6 @@ const deLabels: CategoryLabels = {
   hydraulika: "Hydraulik",
   gumy: "Gummi",
   elektryka: "Elektrik",
-  typenschild: "Typenschild",
   inne: "Sonstiges",
 };
 
@@ -42,6 +40,8 @@ export const translateCategory = (category: string | null | undefined, lang: Lan
 
 export const buildCategoryOptions = (categories: string[], lang: Lang) => {
   const mapped = categories
+    .map((value) => value.trim().toLowerCase())
+    .filter((value, index, arr) => arr.indexOf(value) === index)
     .map((value) => ({
       value,
       label: translateCategory(value, lang) || value,

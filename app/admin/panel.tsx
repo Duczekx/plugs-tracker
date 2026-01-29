@@ -131,7 +131,7 @@ export default function AdminPanel() {
     name: "",
     stock: 0,
     unit: "szt",
-    category: "",
+    category: "inne",
     shopUrl: "",
     shopName: "",
   });
@@ -139,7 +139,7 @@ export default function AdminPanel() {
   const [editPartForm, setEditPartForm] = useState({
     name: "",
     unit: "",
-    category: "",
+    category: "inne",
     shopUrl: "",
     shopName: "",
     stockAbsolute: "",
@@ -477,7 +477,7 @@ export default function AdminPanel() {
     setEditPartForm({
       name: part.name ?? "",
       unit: part.unit ?? "",
-      category: part.category ?? "",
+      category: part.category ?? "inne",
       shopUrl: part.shopUrl ?? "",
       shopName: part.shopName ?? "",
       stockAbsolute: "",
@@ -1263,12 +1263,20 @@ export default function AdminPanel() {
                 </label>
                 <label>
                   {t.partsCategory}
-                  <input
+                  <select
                     name="category"
                     value={newPart.category}
                     onChange={handleNewPartChange}
-                    placeholder={t.partsCategoryUnknown}
-                  />
+                  >
+                    <option value="sruby">{t.categorySruby}</option>
+                    <option value="nakretki">{t.categoryNakretki}</option>
+                    <option value="podkladki">{t.categoryPodkladki}</option>
+                    <option value="bolce">{t.categoryBolce}</option>
+                    <option value="hydraulika">{t.categoryHydraulika}</option>
+                    <option value="gumy">{t.categoryGumy}</option>
+                    <option value="elektryka">{t.categoryElektryka}</option>
+                    <option value="inne">{t.categoryInne}</option>
+                  </select>
                 </label>
                 <label className="form-grow">
                   {t.shopUrlLabel}
@@ -1685,12 +1693,20 @@ export default function AdminPanel() {
               </label>
               <label>
                 {t.partsCategory}
-                <input
+                <select
                   name="category"
                   value={editPartForm.category}
                   onChange={handleEditPartChange}
-                  placeholder={t.partsCategoryUnknown}
-                />
+                >
+                  <option value="sruby">{t.categorySruby}</option>
+                  <option value="nakretki">{t.categoryNakretki}</option>
+                  <option value="podkladki">{t.categoryPodkladki}</option>
+                  <option value="bolce">{t.categoryBolce}</option>
+                  <option value="hydraulika">{t.categoryHydraulika}</option>
+                  <option value="gumy">{t.categoryGumy}</option>
+                  <option value="elektryka">{t.categoryElektryka}</option>
+                  <option value="inne">{t.categoryInne}</option>
+                </select>
               </label>
               <label>
                 {t.shopUrlLabel}

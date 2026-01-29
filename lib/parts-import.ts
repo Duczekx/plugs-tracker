@@ -188,24 +188,42 @@ export const getSkipReason = (rawName: string): ImportSkipReason | null => {
 
 export const guessCategory = (rawName: string) => {
   const folded = foldForMatch(rawName);
-  if (folded.includes("typenschild")) {
-    return "typenschild";
+  const compact = normalizeSpaces(rawName);
+
+  if (/\bM(?:[3-9]|[12]\d|30)\b/i.test(compact) || /\bM(?:[3-9]|[12]\d|30)\s*x/i.test(compact)) {
+    return "sruby";
   }
-  if (folded.includes("bolzen")) {
+  if (folded.includes("mutter") || folded.includes("nakret")) {
+    return "nakretki";
+  }
+  if (folded.includes("scheibe") || folded.includes("unterleg") || folded.includes("podklad")) {
+    return "podkladki";
+  }
+  if (
+    folded.includes("bolzen") ||
+    folded.includes("splint") ||
+    folded.includes("sicherungsblech")
+  ) {
     return "bolce";
   }
-  if (folded.includes("gummi") || folded.includes("o-ring") || folded.includes("oring") || folded.includes("dichtung")) {
+  if (
+    folded.includes("gummi") ||
+    folded.includes("gumm") ||
+    folded.includes("dichtung") ||
+    folded.includes("o-ring") ||
+    folded.includes("oring")
+  ) {
     return "gumy";
   }
   if (
     folded.includes("kabel") ||
-    folded.includes("kabelbinder") ||
     folded.includes("stecker") ||
     folded.includes("schalter") ||
+    folded.includes("relais") ||
     folded.includes("sicherung") ||
-    folded.includes("led") ||
-    folded.includes("lampe") ||
-    folded.includes("stossverbinder")
+    folded.includes("klemme") ||
+    folded.includes("kabelbinder") ||
+    folded.includes("isolier")
   ) {
     return "elektryka";
   }
@@ -213,26 +231,13 @@ export const guessCategory = (rawName: string) => {
     folded.includes("hydraul") ||
     folded.includes("schlauch") ||
     folded.includes("ventil") ||
-    folded.includes("kuppl") ||
-    folded.includes("verschraub") ||
-    folded.includes("winkel") ||
-    folded.includes("adapter") ||
-    folded.includes("nippel")
+    folded.includes("zylinder") ||
+    folded.includes("kupplung") ||
+    folded.includes("drossel") ||
+    folded.includes("manometer") ||
+    folded.includes("fitting")
   ) {
     return "hydraulika";
-  }
-  if (folded.includes("mutter")) {
-    return "nakretki";
-  }
-  if (folded.includes("scheibe") || folded.includes("unterleg")) {
-    return "podkladki";
-  }
-  if (
-    /\bM\d{1,2}\b/i.test(rawName) ||
-    /M\d{1,2}x/i.test(rawName) ||
-    folded.includes("schraub")
-  ) {
-    return "sruby";
   }
   return "inne";
 };
