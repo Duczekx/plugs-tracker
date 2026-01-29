@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
 import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
+import CategoryFilter from "@/components/CategoryFilter";
 import {
   buildImportPreview,
   ImportItem,
@@ -1294,6 +1295,14 @@ export default function AdminPanel() {
               </div>
             </form>
 
+            <CategoryFilter
+              options={buildCategoryOptions(partsCategories, lang)}
+              activeValue={activePartsCategory}
+              allLabel={t.partsCategoryAll}
+              label={t.partsCategoryLabel}
+              onChange={setActivePartsCategory}
+            />
+
             <div className="parts-search-bar">
               <input
                 value={partsQueryInput}
@@ -1303,26 +1312,6 @@ export default function AdminPanel() {
             <span className="pill">
               {t.resultsLabel}: {partsTotalCount}
             </span>
-            </div>
-
-            <div className="category-chips">
-              <button
-                type="button"
-                className={`chip ${activePartsCategory === "all" ? "active" : ""}`}
-                onClick={() => setActivePartsCategory("all")}
-              >
-                {t.partsCategoryAll}
-              </button>
-              {buildCategoryOptions(partsCategories, lang).map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`chip ${activePartsCategory === option.value ? "active" : ""}`}
-                  onClick={() => setActivePartsCategory(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
             </div>
 
             <PartsTable
