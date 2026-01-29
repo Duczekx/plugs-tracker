@@ -318,7 +318,9 @@ export default function AdminPanel() {
       }
       const data = await response.json();
       if (Array.isArray(data.categories)) {
-        setPartsCategories(data.categories.filter((value) => typeof value === "string"));
+        setPartsCategories(
+          data.categories.filter((value: unknown): value is string => typeof value === "string")
+        );
       }
     };
     fetchCategories().catch(() => null);
