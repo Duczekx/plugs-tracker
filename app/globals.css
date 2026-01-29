@@ -2747,6 +2747,35 @@ textarea {
   min-width: 220px;
 }
 
+.category-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink-soft);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(12, 18, 32, 0.2);
+}
+
 .parts-table {
   display: grid;
   gap: 8px;
@@ -2970,6 +2999,17 @@ textarea {
 
   .parts-table-head {
     position: static;
+  }
+
+  .category-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .category-chips .chip {
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
 }
 

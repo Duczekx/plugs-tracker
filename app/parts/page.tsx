@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
 import MobileNav from "@/app/mobile-nav";
+import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
 
 type Part = {
   id: number;
@@ -37,6 +38,8 @@ export default function PartsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
     null
   );
@@ -69,12 +72,15 @@ export default function PartsPage() {
 
   const t = labels[lang];
 
-  const loadParts = async (nextPage: number, nextQuery: string) => {
+  const loadParts = async (nextPage: number, nextQuery: string, nextCategory: string) => {
     const params = new URLSearchParams();
     params.set("page", String(nextPage));
     params.set("per", String(PAGE_SIZE));
     if (nextQuery) {
       params.set("q", nextQuery);
+    }
+    if (nextCategory && nextCategory !== "all") {
+      params.set("category", nextCategory);
     }
     const response = await fetch(`/api/parts?${params.toString()}`, {
       cache: "no-store",
@@ -90,10 +96,24 @@ export default function PartsPage() {
   };
 
   useEffect(() => {
-    loadParts(1, query).catch(() => {
+    loadParts(1, query, activeCategory).catch(() => {
       setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
     });
-  }, [query]);
+  }, [query, activeCategory]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const response = await fetch("/api/parts/categories", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      if (Array.isArray(data.categories)) {
+        setCategories(data.categories.filter((value) => typeof value === "string"));
+      }
+    };
+    fetchCategories().catch(() => null);
+  }, []);
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
     setQueryInput(event.target.value);
@@ -142,8 +162,14 @@ export default function PartsPage() {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
       return;
     }
-    await loadParts(nextPage, query);
+    await loadParts(nextPage, query, activeCategory);
   };
+
+  const categoryOptions = buildCategoryOptions(categories, lang);
+  const displayParts = parts.map((part) => ({
+    ...part,
+    category: translateCategory(part.category, lang) || part.category,
+  }));
 
   return (
     <div className="app-shell">
@@ -264,6 +290,26 @@ export default function PartsPage() {
             </div>
           </div>
 
+          <div className="category-chips">
+            <button
+              type="button"
+              className={`chip ${activeCategory === "all" ? "active" : ""}`}
+              onClick={() => setActiveCategory("all")}
+            >
+              {t.partsCategoryAll}
+            </button>
+            {categoryOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`chip ${activeCategory === option.value ? "active" : ""}`}
+                onClick={() => setActiveCategory(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
           <div className="parts-search-bar">
             <input
               value={queryInput}
@@ -276,7 +322,7 @@ export default function PartsPage() {
           </div>
 
           <PartsTable
-            parts={parts}
+            parts={displayParts}
             labels={{
               partsTitle: t.partsTitle,
               partsStock: t.partsStock,

@@ -178,9 +178,68 @@ export const guessCategory = (rawName: string) => {
     folded.includes("sruby") ||
     folded.includes("bolt") ||
     folded.includes("imbus") ||
-    folded.includes("torx")
+    folded.includes("torx") ||
+    /^m\d+/i.test(normalizeSpaces(rawName))
   ) {
-    return "Sruby";
+    return "Sruby i laczniki";
+  }
+  if (
+    folded.includes("bolzen") ||
+    folded.includes("sworzen") ||
+    folded.includes("pin")
+  ) {
+    return "Sworznie";
+  }
+  if (
+    folded.includes("schelle") ||
+    folded.includes("klemme") ||
+    folded.includes("obejma") ||
+    folded.includes("uchwyt")
+  ) {
+    return "Obejmy";
+  }
+  if (
+    folded.includes("dichtung") ||
+    folded.includes("uszczelka") ||
+    folded.includes("oring") ||
+    folded.includes("o-ring") ||
+    folded.includes("simmering")
+  ) {
+    return "Uszczelnienia";
+  }
+  if (
+    folded.includes("schweiss") ||
+    folded.includes("spaw") ||
+    folded.includes("weld")
+  ) {
+    return "Spawanie";
+  }
+  if (
+    folded.includes("karton") ||
+    folded.includes("carton") ||
+    folded.includes("box") ||
+    folded.includes("verpack") ||
+    folded.includes("pack")
+  ) {
+    return "Pakowanie";
+  }
+  if (folded.includes("typenschild")) {
+    return "Typenschild";
+  }
+  if (folded.includes("zylinder")) {
+    return "Zylinder";
+  }
+  if (
+    folded.includes("kabel") ||
+    folded.includes("leitung") ||
+    folded.includes("stecker") ||
+    folded.includes("schalter") ||
+    folded.includes("wippschalter") ||
+    folded.includes("stossverbinder") ||
+    folded.includes("lampe") ||
+    folded.includes("leuchte")
+  ) {
+    return "Elektryka";
   }
   if (
     folded.includes("mutter") ||
@@ -198,12 +257,10 @@ export const guessCategory = (rawName: string) => {
   }
   if (
     folded.includes("hydraul") ||
-    folded.includes("zylinder") ||
     folded.includes("ventil") ||
     folded.includes("pumpe") ||
     folded.includes("kupplung") ||
-    folded.includes("schlauch") ||
-    folded.includes("leitung")
+    folded.includes("schlauch")
   ) {
     return "Hydraulika";
   }

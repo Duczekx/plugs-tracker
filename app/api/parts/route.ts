@@ -10,13 +10,24 @@ const PAGE_SIZE = 50;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const query = String(searchParams.get("q") ?? "").trim();
+  const query = String(searchParams.get("q") ?? searchParams.get("search") ?? "").trim();
+  const categoryParam = String(searchParams.get("category") ?? "").trim();
+  const category =
+    categoryParam && categoryParam.toLowerCase() !== "all" ? categoryParam : "";
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const take = Math.min(200, Math.max(1, Number(searchParams.get("per") ?? PAGE_SIZE)));
   const skip = (page - 1) * take;
 
   const where: Prisma.PartWhereInput = {
     isArchived: false,
+    ...(category
+      ? {
+          category: {
+            equals: category,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {}),
     ...(query
       ? {
           OR: [

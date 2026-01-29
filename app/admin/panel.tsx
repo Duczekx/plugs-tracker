@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import * as XLSX from "xlsx";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
+import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
 import {
   buildImportPreview,
   ImportItem,
@@ -114,6 +115,8 @@ export default function AdminPanel() {
   const [partsTotalCount, setPartsTotalCount] = useState(0);
   const [partsQuery, setPartsQuery] = useState("");
   const [partsQueryInput, setPartsQueryInput] = useState("");
+  const [partsCategories, setPartsCategories] = useState<string[]>([]);
+  const [activePartsCategory, setActivePartsCategory] = useState("all");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -274,12 +277,15 @@ export default function AdminPanel() {
     return () => clearTimeout(handle);
   }, [partsQueryInput]);
 
-  const loadParts = async (page: number, query: string) => {
+  const loadParts = async (page: number, query: string, category: string) => {
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("per", String(PAGE_SIZE));
     if (query) {
       params.set("q", query);
+    }
+    if (category && category !== "all") {
+      params.set("category", category);
     }
     const response = await fetch(`/api/parts?${params.toString()}`, { cache: "no-store" });
     if (!response.ok) {
@@ -296,10 +302,27 @@ export default function AdminPanel() {
     if (tab !== "parts") {
       return;
     }
-    loadParts(1, partsQuery).catch(() => {
+    loadParts(1, partsQuery, activePartsCategory).catch(() => {
       setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
     });
-  }, [tab, partsQuery]);
+  }, [tab, partsQuery, activePartsCategory]);
+
+  useEffect(() => {
+    if (tab !== "parts") {
+      return;
+    }
+    const fetchCategories = async () => {
+      const response = await fetch("/api/parts/categories", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      if (Array.isArray(data.categories)) {
+        setPartsCategories(data.categories.filter((value) => typeof value === "string"));
+      }
+    };
+    fetchCategories().catch(() => null);
+  }, [tab]);
 
   const loadPartOptions = async (query: string) => {
     const params = new URLSearchParams();
@@ -443,7 +466,7 @@ export default function AdminPanel() {
     }
     setNotice({ type: "success", message: t.saved });
     setNewPart({ name: "", stock: 0, unit: "szt", category: "", shopUrl: "", shopName: "" });
-    await loadParts(partsPage, partsQuery);
+    await loadParts(partsPage, partsQuery, activePartsCategory);
   };
 
   const handleEditPart = (part: Part) => {
@@ -648,7 +671,7 @@ export default function AdminPanel() {
     setImportResult(data);
     setIsImporting(false);
     try {
-      await loadParts(partsPage, partsQuery);
+      await loadParts(partsPage, partsQuery, activePartsCategory);
     } catch {
       setNotice({ type: "error", message: t.error });
     }
@@ -1280,8 +1303,31 @@ export default function AdminPanel() {
             </span>
             </div>
 
+            <div className="category-chips">
+              <button
+                type="button"
+                className={`chip ${activePartsCategory === "all" ? "active" : ""}`}
+                onClick={() => setActivePartsCategory("all")}
+              >
+                {t.partsCategoryAll}
+              </button>
+              {buildCategoryOptions(partsCategories, lang).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`chip ${activePartsCategory === option.value ? "active" : ""}`}
+                  onClick={() => setActivePartsCategory(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
             <PartsTable
-              parts={parts}
+              parts={parts.map((part) => ({
+                ...part,
+                category: translateCategory(part.category, lang) || part.category,
+              }))}
               labels={{
                 partsTitle: t.partsTitle,
                 partsStock: t.partsStock,
@@ -1307,7 +1353,7 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage - 1, partsQuery)}
+                onClick={() => loadParts(partsPage - 1, partsQuery, activePartsCategory)}
                 disabled={partsPage <= 1}
               >
                 &lsaquo;
@@ -1318,7 +1364,7 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage + 1, partsQuery)}
+                onClick={() => loadParts(partsPage + 1, partsQuery, activePartsCategory)}
                 disabled={partsPage >= partsTotalPages}
               >
                 &rsaquo;
