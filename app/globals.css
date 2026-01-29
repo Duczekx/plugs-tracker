@@ -951,6 +951,21 @@ a {
   display: none;
   margin-left: auto;
   border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(18, 26, 44, 0.12);
+  border: 1px solid rgba(18, 26, 44, 0.2);
+  color: var(--accent);
+  box-shadow: 0 10px 24px rgba(12, 18, 32, 0.12);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-nav-trigger:hover {
+  background: rgba(18, 26, 44, 0.18);
+  box-shadow: 0 14px 30px rgba(12, 18, 32, 0.16);
+}
+
+.mobile-nav-trigger:active {
+  transform: translateY(1px);
 }
 
 .mobile-nav-icon {
