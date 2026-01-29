@@ -28,6 +28,7 @@ export async function PATCH(
   const updates: {
     name?: string;
     unit?: string;
+    category?: string | null;
     shopUrl?: string | null;
     shopName?: string | null;
   } = {};
@@ -53,6 +54,11 @@ export async function PATCH(
   if (body?.shopUrl !== undefined) {
     const value = String(body.shopUrl ?? "").trim();
     updates.shopUrl = value ? value : null;
+  }
+
+  if (body?.category !== undefined) {
+    const value = String(body.category ?? "").trim();
+    updates.category = value ? value : null;
   }
 
   if (body?.shopName !== undefined) {

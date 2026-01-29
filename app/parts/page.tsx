@@ -13,6 +13,7 @@ type Part = {
   name: string;
   stock: number;
   unit: string;
+  category?: string | null;
   shopUrl?: string | null;
   shopName?: string | null;
 };
@@ -280,6 +281,8 @@ export default function PartsPage() {
               partsTitle: t.partsTitle,
               partsStock: t.partsStock,
               partsUnit: t.partsUnit,
+              partsCategory: t.partsCategory,
+              partsCategoryUnknown: t.partsCategoryUnknown,
               shopNameLabel: t.shopNameLabel,
               shopUrlLabel: t.shopUrlLabel,
               partsEmpty: t.partsEmpty,

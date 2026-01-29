@@ -123,6 +123,7 @@ model Part {
   name              String  @unique
   unit              String  @default("szt")
   stock             Int     @default(0)
+  category          String?
   shopUrl           String?
   shopName          String?
   isArchived        Boolean @default(false)

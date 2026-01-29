@@ -19,10 +19,20 @@ export async function GET(request: NextRequest) {
     isArchived: false,
     ...(query
       ? {
-          name: {
-            contains: query,
-            mode: Prisma.QueryMode.insensitive,
-          },
+          OR: [
+            {
+              name: {
+                contains: query,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              category: {
+                contains: query,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
         }
       : {}),
   };
@@ -60,6 +70,7 @@ export async function POST(request: NextRequest) {
   const name = String(body?.name ?? "").trim();
   const stock = Number(body?.stock ?? 0);
   const unit = body?.unit ? String(body.unit).trim() : null;
+  const category = body?.category ? String(body.category).trim() : null;
   const shopUrl = body?.shopUrl ? String(body.shopUrl).trim() : null;
   const shopName = body?.shopName ? String(body.shopName).trim() : null;
 
@@ -73,6 +84,7 @@ export async function POST(request: NextRequest) {
         name,
         stock,
         unit: unit || "szt",
+        category: category || null,
         shopUrl: shopUrl || null,
         shopName: shopName || null,
       },

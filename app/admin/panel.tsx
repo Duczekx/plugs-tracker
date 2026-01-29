@@ -2,14 +2,22 @@
 
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import * as XLSX from "xlsx";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
+import {
+  buildImportPreview,
+  ImportItem,
+  ImportSkip,
+  ImportSkipReason,
+} from "@/lib/parts-import";
 
 type Part = {
   id: number;
   name: string;
   stock: number;
   unit: string;
+  category?: string | null;
   shopUrl?: string | null;
   shopName?: string | null;
   isArchived?: boolean;
@@ -45,6 +53,24 @@ type MovementsResponse = {
   page: number;
   totalPages: number;
   totalCount: number;
+};
+
+type ImportResult = {
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  createdExamples: string[];
+  updatedExamples: string[];
+  skippedExamples: string[];
+  skippedReasonCounts: Record<ImportSkipReason, number>;
+  skippedReasonExamples: Record<ImportSkipReason, string[]>;
+};
+
+type ImportPreviewItem = ImportItem & { id: string };
+
+type ImportSkipSummary = {
+  counts: Record<ImportSkipReason, number>;
+  examples: Record<ImportSkipReason, string[]>;
 };
 
 const models = ["FL 640", "FL 540", "FL 470", "FL 400", "FL 340", "FL 260"];
@@ -88,10 +114,20 @@ export default function AdminPanel() {
   const [partsTotalCount, setPartsTotalCount] = useState(0);
   const [partsQuery, setPartsQuery] = useState("");
   const [partsQueryInput, setPartsQueryInput] = useState("");
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreviewItem[]>([]);
+  const [importSkipped, setImportSkipped] = useState<ImportSkip[]>([]);
+  const [manualSkipped, setManualSkipped] = useState<ImportSkip[]>([]);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importPreviewError, setImportPreviewError] = useState<string | null>(null);
   const [newPart, setNewPart] = useState({
     name: "",
     stock: 0,
     unit: "szt",
+    category: "",
     shopUrl: "",
     shopName: "",
   });
@@ -99,6 +135,7 @@ export default function AdminPanel() {
   const [editPartForm, setEditPartForm] = useState({
     name: "",
     unit: "",
+    category: "",
     shopUrl: "",
     shopName: "",
     stockAbsolute: "",
@@ -133,6 +170,56 @@ export default function AdminPanel() {
   }, [lang]);
 
   const t = labels[lang];
+
+  const importReasonLabels: Record<ImportSkipReason, string> = {
+    missing_name: t.partsImportReasonMissingName,
+    missing_qty: t.partsImportReasonMissingQty,
+    model_fl: t.partsImportReasonModel,
+    orange: t.partsImportReasonOrange,
+    edge_protection: t.partsImportReasonEdge,
+    sticker: t.partsImportReasonSticker,
+    chemistry: t.partsImportReasonChem,
+    manual_remove: t.partsImportReasonManual,
+    invalid_row: t.partsImportReasonInvalid,
+  };
+
+  const summarizeSkips = (skipped: ImportSkip[]): ImportSkipSummary => {
+    const counts: Record<ImportSkipReason, number> = {
+      missing_name: 0,
+      missing_qty: 0,
+      model_fl: 0,
+      orange: 0,
+      edge_protection: 0,
+      sticker: 0,
+      chemistry: 0,
+      manual_remove: 0,
+      invalid_row: 0,
+    };
+    const examples: Record<ImportSkipReason, string[]> = {
+      missing_name: [],
+      missing_qty: [],
+      model_fl: [],
+      orange: [],
+      edge_protection: [],
+      sticker: [],
+      chemistry: [],
+      manual_remove: [],
+      invalid_row: [],
+    };
+
+    skipped.forEach((entry) => {
+      counts[entry.reason] += 1;
+      if (entry.name && examples[entry.reason].length < 5) {
+        if (!examples[entry.reason].includes(entry.name)) {
+          examples[entry.reason].push(entry.name);
+        }
+      }
+    });
+
+    return { counts, examples };
+  };
+
+  const previewSummary = summarizeSkips([...importSkipped, ...manualSkipped]);
 
 
   const loadBomByType = async (bomType: BomType, modelName: string) => {
@@ -345,6 +432,7 @@ export default function AdminPanel() {
         name: newPart.name,
         stock: newPart.stock,
         unit: newPart.unit,
+        category: newPart.category,
         shopUrl: newPart.shopUrl,
         shopName: newPart.shopName,
       }),
@@ -354,7 +442,7 @@ export default function AdminPanel() {
       return;
     }
     setNotice({ type: "success", message: t.saved });
-    setNewPart({ name: "", stock: 0, unit: "szt", shopUrl: "", shopName: "" });
+    setNewPart({ name: "", stock: 0, unit: "szt", category: "", shopUrl: "", shopName: "" });
     await loadParts(partsPage, partsQuery);
   };
 
@@ -363,6 +451,7 @@ export default function AdminPanel() {
     setEditPartForm({
       name: part.name ?? "",
       unit: part.unit ?? "",
+      category: part.category ?? "",
       shopUrl: part.shopUrl ?? "",
       shopName: part.shopName ?? "",
       stockAbsolute: "",
@@ -382,6 +471,7 @@ export default function AdminPanel() {
     const payload = {
       name: editPartForm.name,
       unit: editPartForm.unit,
+      category: editPartForm.category,
       shopUrl: editPartForm.shopUrl,
       shopName: editPartForm.shopName,
     };
@@ -484,6 +574,128 @@ export default function AdminPanel() {
     setParts((prev) => prev.filter((item) => item.id !== part.id));
     setPartsTotalCount((prev) => Math.max(0, prev - 1));
     setNotice({ type: "success", message: t.saved });
+  };
+
+  const handleImportFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setImportFile(file);
+    setImportResult(null);
+    setImportError(null);
+    setImportPreviewError(null);
+    setImportPreview([]);
+    setImportSkipped([]);
+    setManualSkipped([]);
+    if (!file) {
+      return;
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) {
+        setImportPreviewError(t.partsImportNoSheet);
+        return;
+      }
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" });
+      const preview = buildImportPreview(rows);
+      if (preview.nameIndex < 0 || preview.qtyIndex < 0) {
+        setImportPreviewError(t.partsImportHeaderMissing);
+        return;
+      }
+      const items = preview.items.map((item, index) => ({
+        ...item,
+        id: `${index}-${item.name}`,
+      }));
+      setImportPreview(items);
+      setImportSkipped(preview.skipped);
+    } catch {
+      setImportPreviewError(t.error);
+    }
+  };
+
+  const handleImportSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isImporting) {
+      return;
+    }
+    if (importPreview.length === 0) {
+      setImportError(t.partsImportHeaderMissing);
+      return;
+    }
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    const response = await fetch("/api/parts/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: importPreview.map((item) => ({
+          name: item.name,
+          stock: item.stock,
+          category: item.category,
+        })),
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const message = body?.message ? String(body.message) : await response.text();
+      setImportError(message || t.error);
+      setIsImporting(false);
+      return;
+    }
+    const data: ImportResult = await response.json();
+    setImportResult(data);
+    setIsImporting(false);
+    try {
+      await loadParts(partsPage, partsQuery);
+    } catch {
+      setNotice({ type: "error", message: t.error });
+    }
+  };
+
+  const handlePreviewChange = (
+    id: string,
+    field: "name" | "stock" | "category",
+    value: string
+  ) => {
+    setImportPreview((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+        if (field === "stock") {
+          const parsed = Number(value);
+          return { ...item, stock: Number.isFinite(parsed) ? Math.round(parsed) : item.stock };
+        }
+        return { ...item, [field]: value };
+      })
+    );
+  };
+
+  const handlePreviewRemove = (id: string) => {
+    setImportPreview((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        setManualSkipped((prevSkipped) => [
+          ...prevSkipped,
+          { reason: "manual_remove", name: target.name },
+        ]);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const closeImportModal = () => {
+    setIsImportOpen(false);
+    setImportFile(null);
+    setImportResult(null);
+    setImportError(null);
+    setImportPreviewError(null);
+    setImportPreview([]);
+    setImportSkipped([]);
+    setManualSkipped([]);
+    setIsImporting(false);
   };
 
   const loadMovements = async (page: number, filters: typeof movementFilters) => {
@@ -972,6 +1184,24 @@ export default function AdminPanel() {
                 <h2 className="title">{t.adminTabParts}</h2>
                 <p className="subtitle">{t.partsPageSubtitle}</p>
               </div>
+              <div className="card-actions">
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => {
+                    setIsImportOpen(true);
+                    setImportResult(null);
+                    setImportError(null);
+                    setImportFile(null);
+                    setImportPreviewError(null);
+                    setImportPreview([]);
+                    setImportSkipped([]);
+                    setManualSkipped([]);
+                  }}
+                >
+                  {t.partsImportButton}
+                </button>
+              </div>
             </div>
 
             <form className="form form-compact" onSubmit={handleCreatePart}>
@@ -1003,6 +1233,15 @@ export default function AdminPanel() {
                     value={newPart.unit}
                     onChange={handleNewPartChange}
                     placeholder="szt"
+                  />
+                </label>
+                <label>
+                  {t.partsCategory}
+                  <input
+                    name="category"
+                    value={newPart.category}
+                    onChange={handleNewPartChange}
+                    placeholder={t.partsCategoryUnknown}
                   />
                 </label>
                 <label className="form-grow">
@@ -1047,6 +1286,8 @@ export default function AdminPanel() {
                 partsTitle: t.partsTitle,
                 partsStock: t.partsStock,
                 partsUnit: t.partsUnit,
+                partsCategory: t.partsCategory,
+                partsCategoryUnknown: t.partsCategoryUnknown,
                 shopNameLabel: t.shopNameLabel,
                 shopUrlLabel: t.shopUrlLabel,
                 partsEmpty: t.partsEmpty,
@@ -1179,6 +1420,207 @@ export default function AdminPanel() {
         )}
       </div>
 
+      {isImportOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="card modal-card">
+            <div className="card-header">
+              <div>
+                <h3 className="title">{t.partsImportTitle}</h3>
+                <p className="subtitle">{t.partsImportSubtitle}</p>
+              </div>
+              <div className="card-actions">
+                <button type="button" className="button button-ghost" onClick={closeImportModal}>
+                  {t.partsImportClose}
+                </button>
+              </div>
+            </div>
+
+            <p className="muted">{t.partsImportHint}</p>
+
+            <form className="form" onSubmit={handleImportSubmit}>
+              <label>
+                {t.partsImportFileLabel}
+                <input type="file" accept=".xlsx,.xls" onChange={handleImportFileChange} />
+              </label>
+              {importFile && <div className="muted">{importFile.name}</div>}
+              {importPreview.length > 0 && (
+                <div className="badge-stack">
+                  <span className="pill">
+                    {t.partsImportReady}: {importPreview.length}
+                  </span>
+                  <span className="pill">
+                    {t.partsImportSkipped}: {previewSummary.counts.missing_name +
+                      previewSummary.counts.missing_qty +
+                      previewSummary.counts.model_fl +
+                      previewSummary.counts.orange +
+                      previewSummary.counts.edge_protection +
+                      previewSummary.counts.sticker +
+                      previewSummary.counts.chemistry +
+                      previewSummary.counts.manual_remove +
+                      previewSummary.counts.invalid_row}
+                  </span>
+                </div>
+              )}
+              {importPreview.length > 0 && (
+                <div className="table-wrap import-preview-table">
+                  <table className="inventory-table compact-table">
+                    <thead>
+                      <tr>
+                        <th>{t.partsTitle}</th>
+                        <th>{t.partsStock}</th>
+                        <th>{t.partsCategory}</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <input
+                              value={item.name}
+                              onChange={(event) =>
+                                handlePreviewChange(item.id, "name", event.target.value)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              value={item.stock}
+                              onChange={(event) =>
+                                handlePreviewChange(item.id, "stock", event.target.value)
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              value={item.category}
+                              onChange={(event) =>
+                                handlePreviewChange(item.id, "category", event.target.value)
+                              }
+                            />
+                          </td>
+                          <td className="parts-actions-cell">
+                            <button
+                              type="button"
+                              className="button button-ghost button-small"
+                              onClick={() => handlePreviewRemove(item.id)}
+                            >
+                              {t.delete}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {importPreview.length > 0 && (
+                <div className="import-reasons">
+                  <p className="muted">{t.partsImportReasonTitle}</p>
+                  <div className="badge-stack">
+                    {(
+                      Object.keys(previewSummary.counts) as ImportSkipReason[]
+                    ).filter((reason) => previewSummary.counts[reason] > 0).map((reason) => (
+                      <span key={reason} className="pill">
+                        {importReasonLabels[reason]}: {previewSummary.counts[reason]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="form-actions">
+                <button
+                  type="submit"
+                  className="button"
+                  disabled={importPreview.length === 0 || isImporting}
+                >
+                  {isImporting ? t.partsImportLoading : t.partsImportStart}
+                </button>
+                <button type="button" className="button button-ghost" onClick={closeImportModal}>
+                  {t.cancel}
+                </button>
+              </div>
+            </form>
+
+            {importPreviewError && <div className="alert">{importPreviewError}</div>}
+            {importError && <div className="alert">{importError}</div>}
+          </section>
+        </div>
+      )}
+
+      {importResult && (
+        <div className="success-overlay" role="dialog" aria-modal="true">
+          <section className="card reserve-success-card import-result-card">
+            <div className="card-header">
+              <div>
+                <h3 className="title">{t.partsImportSuccess}</h3>
+                <p className="subtitle">{t.partsImportSubtitle}</p>
+              </div>
+            </div>
+            <div className="badge-stack">
+              <span className="pill">
+                {t.partsImportCreated}: {importResult.createdCount}
+              </span>
+              <span className="pill">
+                {t.partsImportUpdated}: {importResult.updatedCount}
+              </span>
+              <span className="pill">
+                {t.partsImportSkipped}: {importResult.skippedCount}
+              </span>
+            </div>
+            <div className="import-reasons">
+              <p className="muted">{t.partsImportReasonTitle}</p>
+              <div className="badge-stack">
+                {(Object.keys(importResult.skippedReasonCounts) as ImportSkipReason[])
+                  .filter((reason) => importResult.skippedReasonCounts[reason] > 0)
+                  .map((reason) => (
+                    <span key={reason} className="pill">
+                      {importReasonLabels[reason]}: {importResult.skippedReasonCounts[reason]}
+                    </span>
+                  ))}
+              </div>
+            </div>
+            {importResult.createdExamples.length > 0 && (
+              <div>
+                <p className="muted">
+                  {t.partsImportCreated} {t.partsImportExamples}
+                </p>
+                <p>{importResult.createdExamples.join(", ")}</p>
+              </div>
+            )}
+            {importResult.updatedExamples.length > 0 && (
+              <div>
+                <p className="muted">
+                  {t.partsImportUpdated} {t.partsImportExamples}
+                </p>
+                <p>{importResult.updatedExamples.join(", ")}</p>
+              </div>
+            )}
+            {importResult.skippedExamples.length > 0 && (
+              <div>
+                <p className="muted">
+                  {t.partsImportSkipped} {t.partsImportExamples}
+                </p>
+                <p>{importResult.skippedExamples.join(", ")}</p>
+              </div>
+            )}
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setImportResult(null);
+                  closeImportModal();
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {editPart && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <section className="card modal-card">
@@ -1203,6 +1645,15 @@ export default function AdminPanel() {
                   name="unit"
                   value={editPartForm.unit}
                   onChange={handleEditPartChange}
+                />
+              </label>
+              <label>
+                {t.partsCategory}
+                <input
+                  name="category"
+                  value={editPartForm.category}
+                  onChange={handleEditPartChange}
+                  placeholder={t.partsCategoryUnknown}
                 />
               </label>
               <label>

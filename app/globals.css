@@ -2805,8 +2805,8 @@ textarea {
 
 .parts-table-name {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -2817,6 +2817,31 @@ textarea {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.parts-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.parts-meta-text {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.category-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12, 18, 32, 0.08);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .parts-copy-btn {
@@ -2834,14 +2859,20 @@ textarea {
   height: 16px;
 }
 
+.parts-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .parts-table-admin .parts-table-head,
 .parts-table-admin .parts-table-row {
-  grid-template-columns: minmax(220px, 2fr) minmax(80px, 0.6fr) minmax(80px, 0.6fr) minmax(140px, 1fr) minmax(120px, 0.8fr) 180px;
+  grid-template-columns: minmax(280px, 2fr) minmax(80px, 0.4fr) minmax(120px, 0.6fr) 160px;
 }
 
 .parts-table-public .parts-table-head,
 .parts-table-public .parts-table-row {
-  grid-template-columns: minmax(220px, 2fr) minmax(80px, 0.6fr) minmax(80px, 0.6fr) minmax(140px, 1fr) minmax(120px, 0.8fr);
+  grid-template-columns: minmax(280px, 2fr) minmax(80px, 0.4fr) minmax(120px, 0.6fr);
 }
 
 .parts-cards {
@@ -2883,6 +2914,7 @@ textarea {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .parts-actions-cell {
@@ -2905,6 +2937,25 @@ textarea {
   margin-top: 12px;
   display: grid;
   gap: 10px;
+}
+
+.import-preview-table input {
+  width: 100%;
+  min-width: 0;
+}
+
+.import-preview-table td {
+  vertical-align: top;
+}
+
+.import-reasons {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.import-result-card {
+  width: min(100%, 760px);
 }
 
 @media (max-width: 720px) {
