@@ -31,11 +31,7 @@ body {
 
 body {
   color: var(--ink);
-  background:
-    radial-gradient(circle at top left, #fff1e1 0%, #f6f8fb 45%, #dfe7f2 100%),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(0deg, var(--grid-line) 1px, transparent 1px);
-  background-size: auto, 48px 48px, 48px 48px;
+  background: url("/tlo.png") center center / cover no-repeat fixed;
   font-family: var(--font-sans), "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
