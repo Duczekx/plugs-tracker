@@ -117,7 +117,7 @@ export default function PartsTable({
                       title={labels.partsAdjust}
                       onClick={() => onAdjust(part)}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path
                           d="M12 5v14M5 12h14"
                           fill="none"
@@ -136,7 +136,7 @@ export default function PartsTable({
                       title={labels.partsEdit}
                       onClick={() => onEdit(part)}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path
                           d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
                           fill="none"
@@ -156,7 +156,7 @@ export default function PartsTable({
                       title={labels.partsDelete}
                       onClick={() => onDelete(part)}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path
                           d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"
                           fill="none"
@@ -226,7 +226,7 @@ export default function PartsTable({
                     title={labels.partsAdjust}
                     onClick={() => onAdjust(part)}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M12 5v14M5 12h14"
                         fill="none"
@@ -245,7 +245,7 @@ export default function PartsTable({
                     title={labels.partsEdit}
                     onClick={() => onEdit(part)}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M4 20h4l10-10-4-4L4 16v4zM13 6l4 4"
                         fill="none"
@@ -265,7 +265,7 @@ export default function PartsTable({
                     title={labels.partsDelete}
                     onClick={() => onDelete(part)}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
                         d="M6 7h12M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12"
                         fill="none"

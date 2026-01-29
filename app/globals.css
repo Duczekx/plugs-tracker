@@ -2834,6 +2834,11 @@ textarea {
   border-color: rgba(12, 18, 32, 0.2);
 }
 
+.category-filter {
+  display: grid;
+  gap: 10px;
+}
+
 .parts-table {
   display: grid;
   gap: 8px;
@@ -3069,37 +3074,7 @@ textarea {
   }
 
   .category-chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-
-  .category-chips .chip {
-    white-space: nowrap;
-    flex: 0 0 auto;
-  }
-
-  .category-chips::before,
-  .category-chips::after {
-    content: "";
-    position: sticky;
-    top: 0;
-    width: 18px;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .category-chips::before {
-    left: 0;
-    background: linear-gradient(90deg, rgba(244, 247, 251, 0.9), rgba(244, 247, 251, 0));
-  }
-
-  .category-chips::after {
-    right: 0;
-    background: linear-gradient(270deg, rgba(244, 247, 251, 0.9), rgba(244, 247, 251, 0));
+    display: none;
   }
 
   .parts-card-title {
@@ -3117,6 +3092,12 @@ textarea {
 
   .parts-card-grid .parts-link-btn {
     width: fit-content;
+  }
+}
+
+@media (min-width: 720px) {
+  .category-dropdown {
+    display: none;
   }
 }
 
@@ -3210,3 +3191,7 @@ textarea {
   }
 }
 
+  .parts-actions-cell {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
