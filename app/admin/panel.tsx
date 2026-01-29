@@ -118,6 +118,7 @@ export default function AdminPanel() {
   const [partsQueryInput, setPartsQueryInput] = useState("");
   const [partsCategories, setPartsCategories] = useState<string[]>([]);
   const [activePartsCategory, setActivePartsCategory] = useState("all");
+  const [partsSort, setPartsSort] = useState("name_asc");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -278,10 +279,11 @@ export default function AdminPanel() {
     return () => clearTimeout(handle);
   }, [partsQueryInput]);
 
-  const loadParts = async (page: number, query: string, category: string) => {
+  const loadParts = async (page: number, query: string, category: string, sort: string) => {
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("per", String(PAGE_SIZE));
+    params.set("sort", sort);
     if (query) {
       params.set("q", query);
     }
@@ -303,10 +305,10 @@ export default function AdminPanel() {
     if (tab !== "parts") {
       return;
     }
-    loadParts(1, partsQuery, activePartsCategory).catch(() => {
+    loadParts(1, partsQuery, activePartsCategory, partsSort).catch(() => {
       setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
     });
-  }, [tab, partsQuery, activePartsCategory]);
+  }, [tab, partsQuery, activePartsCategory, partsSort]);
 
   useEffect(() => {
     if (tab !== "parts") {
@@ -469,7 +471,7 @@ export default function AdminPanel() {
     }
     setNotice({ type: "success", message: t.saved });
     setNewPart({ name: "", stock: 0, unit: "szt", category: "", shopUrl: "", shopName: "" });
-    await loadParts(partsPage, partsQuery, activePartsCategory);
+    await loadParts(partsPage, partsQuery, activePartsCategory, partsSort);
   };
 
   const handleEditPart = (part: Part) => {
@@ -674,7 +676,7 @@ export default function AdminPanel() {
     setImportResult(data);
     setIsImporting(false);
     try {
-      await loadParts(partsPage, partsQuery, activePartsCategory);
+      await loadParts(partsPage, partsQuery, activePartsCategory, partsSort);
     } catch {
       setNotice({ type: "error", message: t.error });
     }
@@ -1273,6 +1275,8 @@ export default function AdminPanel() {
                     <option value="podkladki">{t.categoryPodkladki}</option>
                     <option value="bolce">{t.categoryBolce}</option>
                     <option value="hydraulika">{t.categoryHydraulika}</option>
+                    <option value="cylindry">{t.categoryCylindry}</option>
+                    <option value="weze">{t.categoryWeze}</option>
                     <option value="gumy">{t.categoryGumy}</option>
                     <option value="elektryka">{t.categoryElektryka}</option>
                     <option value="inne">{t.categoryInne}</option>
@@ -1317,9 +1321,18 @@ export default function AdminPanel() {
                 onChange={(event) => setPartsQueryInput(event.target.value)}
                 placeholder={t.partsSearch}
               />
-            <span className="pill">
-              {t.resultsLabel}: {partsTotalCount}
-            </span>
+              <label className="parts-sort parts-sort-right">
+                <span className="parts-sort-label">{t.partsSortLabel}</span>
+                <select
+                  value={partsSort}
+                  onChange={(event) => setPartsSort(event.target.value)}
+                  className="parts-sort-select"
+                >
+                  <option value="name_asc">{t.partsSortName}</option>
+                  <option value="stock_asc">{t.partsSortStockAsc}</option>
+                  <option value="stock_desc">{t.partsSortStockDesc}</option>
+                </select>
+              </label>
             </div>
 
             <PartsTable
@@ -1340,8 +1353,10 @@ export default function AdminPanel() {
                 partsDelete: t.partsDelete,
                 actionsLabel: t.actionsLabel,
                 copyName: t.copyName,
+                resultsLabel: t.resultsLabel,
               }}
               mode="admin"
+              resultsCount={partsTotalCount}
               onAdjust={(part) => setAdjustTarget(part)}
               onEdit={handleEditPart}
               onDelete={handleArchivePart}
@@ -1351,7 +1366,7 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage - 1, partsQuery, activePartsCategory)}
+                onClick={() => loadParts(partsPage - 1, partsQuery, activePartsCategory, partsSort)}
                 disabled={partsPage <= 1}
               >
                 &lsaquo;
@@ -1362,7 +1377,7 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage + 1, partsQuery, activePartsCategory)}
+                onClick={() => loadParts(partsPage + 1, partsQuery, activePartsCategory, partsSort)}
                 disabled={partsPage >= partsTotalPages}
               >
                 &rsaquo;
@@ -1703,6 +1718,8 @@ export default function AdminPanel() {
                   <option value="podkladki">{t.categoryPodkladki}</option>
                   <option value="bolce">{t.categoryBolce}</option>
                   <option value="hydraulika">{t.categoryHydraulika}</option>
+                  <option value="cylindry">{t.categoryCylindry}</option>
+                  <option value="weze">{t.categoryWeze}</option>
                   <option value="gumy">{t.categoryGumy}</option>
                   <option value="elektryka">{t.categoryElektryka}</option>
                   <option value="inne">{t.categoryInne}</option>

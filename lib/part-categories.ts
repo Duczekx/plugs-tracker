@@ -10,6 +10,8 @@ const plLabels: CategoryLabels = {
   hydraulika: "Hydraulika",
   gumy: "Gumy",
   elektryka: "Elektryka",
+  cylindry: "Cylindry",
+  weze: "Weze",
   inne: "Inne",
 };
 
@@ -21,6 +23,8 @@ const deLabels: CategoryLabels = {
   hydraulika: "Hydraulik",
   gumy: "Gummi",
   elektryka: "Elektrik",
+  cylindry: "Zylinder",
+  weze: "Schlaeuche",
   inne: "Sonstiges",
 };
 

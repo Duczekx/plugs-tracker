@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const categoryParam = String(searchParams.get("category") ?? "").trim();
   const category =
     categoryParam && categoryParam.toLowerCase() !== "all" ? categoryParam : "";
+  const sort = String(searchParams.get("sort") ?? "name_asc").trim().toLowerCase();
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const take = Math.min(200, Math.max(1, Number(searchParams.get("per") ?? PAGE_SIZE)));
   const skip = (page - 1) * take;
@@ -49,10 +50,17 @@ export async function GET(request: NextRequest) {
       : {}),
   };
 
+  const orderBy: Prisma.PartOrderByWithRelationInput[] =
+    sort === "stock_asc"
+      ? [{ stock: "asc" }, { name: "asc" }]
+      : sort === "stock_desc"
+        ? [{ stock: "desc" }, { name: "asc" }]
+        : [{ name: "asc" }];
+
   const [items, totalCount] = await prisma.$transaction([
     prisma.part.findMany({
       where,
-      orderBy: { name: "asc" },
+      orderBy,
       skip,
       take,
     }),

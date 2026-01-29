@@ -189,31 +189,42 @@ export const getSkipReason = (rawName: string): ImportSkipReason | null => {
 export const guessCategory = (rawName: string) => {
   const folded = foldForMatch(rawName);
   const compact = normalizeSpaces(rawName);
+  const isMutter = folded.includes("mutter") || folded.includes("nakret");
+  const isScheibe = folded.includes("scheibe") || folded.includes("unterleg") || folded.includes("podklad");
+  const isZylinder =
+    folded.includes("zylinder") ||
+    folded.includes("zyl.") ||
+    folded.includes("cylinder") ||
+    folded.includes("buchse");
+  const isSchlauch =
+    folded.includes("schlauch") ||
+    folded.includes("schlauchleitung") ||
+    folded.includes("schlauchschelle") ||
+    folded.includes("schlauchschellen") ||
+    folded.includes("schlauche") ||
+    folded.includes("schlaeuch") ||
+    folded.includes("schluch") ||
+    folded.includes("schluchleitung") ||
+    folded.includes("sclauch") ||
+    folded.includes("sclauche");
+  const hasScrewSize =
+    /\bM(?:[3-9]|[12]\d|30)\b/i.test(compact) || /\bM(?:[3-9]|[12]\d|30)\s*x/i.test(compact);
 
-  if (/\bM(?:[3-9]|[12]\d|30)\b/i.test(compact) || /\bM(?:[3-9]|[12]\d|30)\s*x/i.test(compact)) {
-    return "sruby";
+  if (isZylinder) {
+    return "cylindry";
   }
-  if (folded.includes("mutter") || folded.includes("nakret")) {
-    return "nakretki";
-  }
-  if (folded.includes("scheibe") || folded.includes("unterleg") || folded.includes("podklad")) {
-    return "podkladki";
+  if (isSchlauch) {
+    return "weze";
   }
   if (
-    folded.includes("bolzen") ||
-    folded.includes("splint") ||
-    folded.includes("sicherungsblech")
+    folded.includes("hydraul") ||
+    folded.includes("ventil") ||
+    folded.includes("kupplung") ||
+    folded.includes("drossel") ||
+    folded.includes("manometer") ||
+    folded.includes("fitting")
   ) {
-    return "bolce";
-  }
-  if (
-    folded.includes("gummi") ||
-    folded.includes("gumm") ||
-    folded.includes("dichtung") ||
-    folded.includes("o-ring") ||
-    folded.includes("oring")
-  ) {
-    return "gumy";
+    return "hydraulika";
   }
   if (
     folded.includes("kabel") ||
@@ -227,17 +238,26 @@ export const guessCategory = (rawName: string) => {
   ) {
     return "elektryka";
   }
+  if (folded.includes("bolzen") || folded.includes("splint") || folded.includes("sicherungsblech")) {
+    return "bolce";
+  }
+  if (isMutter) {
+    return "nakretki";
+  }
+  if (isScheibe) {
+    return "podkladki";
+  }
+  if (!isMutter && !isScheibe && (folded.includes("schraub") || hasScrewSize)) {
+    return "sruby";
+  }
   if (
-    folded.includes("hydraul") ||
-    folded.includes("schlauch") ||
-    folded.includes("ventil") ||
-    folded.includes("zylinder") ||
-    folded.includes("kupplung") ||
-    folded.includes("drossel") ||
-    folded.includes("manometer") ||
-    folded.includes("fitting")
+    folded.includes("gummi") ||
+    folded.includes("gumm") ||
+    folded.includes("dichtung") ||
+    folded.includes("o-ring") ||
+    folded.includes("oring")
   ) {
-    return "hydraulika";
+    return "gumy";
   }
   return "inne";
 };

@@ -25,12 +25,14 @@ type PartsLabels = {
   partsDelete: string;
   actionsLabel: string;
   copyName: string;
+  resultsLabel: string;
 };
 
 type PartsTableProps = {
   parts: Part[];
   labels: PartsLabels;
   mode: "public" | "admin";
+  resultsCount?: number;
   onAdjust?: (part: Part) => void;
   onEdit?: (part: Part) => void;
   onDelete?: (part: Part) => void;
@@ -50,6 +52,7 @@ export default function PartsTable({
   parts,
   labels,
   mode,
+  resultsCount,
   onAdjust,
   onEdit,
   onDelete,
@@ -63,7 +66,14 @@ export default function PartsTable({
         <div className="parts-table-head">
           <div>{labels.partsTitle}</div>
           <div>{labels.partsStock}</div>
-          <div>{labels.shopUrlLabel}</div>
+          <div className="parts-table-head-right">
+            <span>{labels.shopUrlLabel}</span>
+            {typeof resultsCount === "number" && (
+              <span className="pill parts-results-pill">
+                {labels.resultsLabel}: {resultsCount}
+              </span>
+            )}
+          </div>
           {mode === "admin" && <div>{labels.actionsLabel}</div>}
         </div>
         <div className="parts-table-body">

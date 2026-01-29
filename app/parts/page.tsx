@@ -41,6 +41,7 @@ export default function PartsPage() {
   const [query, setQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [sort, setSort] = useState("name_asc");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
     null
   );
@@ -73,10 +74,16 @@ export default function PartsPage() {
 
   const t = labels[lang];
 
-  const loadParts = async (nextPage: number, nextQuery: string, nextCategory: string) => {
+  const loadParts = async (
+    nextPage: number,
+    nextQuery: string,
+    nextCategory: string,
+    nextSort: string
+  ) => {
     const params = new URLSearchParams();
     params.set("page", String(nextPage));
     params.set("per", String(PAGE_SIZE));
+    params.set("sort", nextSort);
     if (nextQuery) {
       params.set("q", nextQuery);
     }
@@ -97,10 +104,10 @@ export default function PartsPage() {
   };
 
   useEffect(() => {
-    loadParts(1, query, activeCategory).catch(() => {
+    loadParts(1, query, activeCategory, sort).catch(() => {
       setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
     });
-  }, [query, activeCategory]);
+  }, [query, activeCategory, sort]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -165,7 +172,7 @@ export default function PartsPage() {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
       return;
     }
-    await loadParts(nextPage, query, activeCategory);
+    await loadParts(nextPage, query, activeCategory, sort);
   };
 
   const categoryOptions = buildCategoryOptions(categories, lang);
@@ -307,9 +314,18 @@ export default function PartsPage() {
               onChange={handleQueryChange}
               placeholder={t.partsSearch}
             />
-            <span className="pill">
-              {t.resultsLabel}: {totalCount}
-            </span>
+            <label className="parts-sort parts-sort-right">
+              <span className="parts-sort-label">{t.partsSortLabel}</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+                className="parts-sort-select"
+              >
+                <option value="name_asc">{t.partsSortName}</option>
+                <option value="stock_asc">{t.partsSortStockAsc}</option>
+                <option value="stock_desc">{t.partsSortStockDesc}</option>
+              </select>
+            </label>
           </div>
 
           <PartsTable
@@ -327,8 +343,10 @@ export default function PartsPage() {
               partsDelete: t.partsDelete,
               actionsLabel: t.actionsLabel,
               copyName: t.copyName,
+              resultsLabel: t.resultsLabel,
             }}
             mode="public"
+            resultsCount={totalCount}
           />
 
           <div className="pagination">
