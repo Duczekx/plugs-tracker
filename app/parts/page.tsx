@@ -109,7 +109,9 @@ export default function PartsPage() {
       }
       const data = await response.json();
       if (Array.isArray(data.categories)) {
-        setCategories(data.categories.filter((value) => typeof value === "string"));
+        setCategories(
+          data.categories.filter((value: unknown): value is string => typeof value === "string")
+        );
       }
     };
     fetchCategories().catch(() => null);
