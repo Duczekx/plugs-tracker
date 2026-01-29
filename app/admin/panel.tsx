@@ -1,12 +1,17 @@
 "use client";
 
+// Admin parts UI uses shared filters (URL-synced) and a BOM part picker modal.
+
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import * as XLSX from "xlsx";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
 import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
-import CategoryFilter from "@/components/CategoryFilter";
+import PartsToolbar from "@/components/PartsToolbar";
+import PartPickerModal, { PartPickerPart } from "@/components/PartPickerModal";
+import { usePartsFilters } from "@/lib/use-parts-filters";
+import { serializeCategoryParam } from "@/lib/parts-search";
 import {
   buildImportPreview,
   ImportItem,
@@ -114,11 +119,10 @@ export default function AdminPanel() {
   const [partsPage, setPartsPage] = useState(1);
   const [partsTotalPages, setPartsTotalPages] = useState(1);
   const [partsTotalCount, setPartsTotalCount] = useState(0);
-  const [partsQuery, setPartsQuery] = useState("");
-  const [partsQueryInput, setPartsQueryInput] = useState("");
+  const [isPartsLoading, setIsPartsLoading] = useState(false);
   const [partsCategories, setPartsCategories] = useState<string[]>([]);
-  const [activePartsCategory, setActivePartsCategory] = useState("all");
-  const [partsSort, setPartsSort] = useState("name_asc");
+  const [isPartPickerOpen, setIsPartPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<BomType>("STANDARD");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -274,12 +278,15 @@ export default function AdminPanel() {
       });
   }, [tab, schwenkType]);
 
-  useEffect(() => {
-    const handle = setTimeout(() => setPartsQuery(partsQueryInput), 400);
-    return () => clearTimeout(handle);
-  }, [partsQueryInput]);
+  const partsFilters = usePartsFilters({ debounceMs: 300, enabled: tab === "parts" });
 
-  const loadParts = async (page: number, query: string, category: string, sort: string) => {
+  const loadParts = async (
+    page: number,
+    query: string,
+    categories: string[],
+    sort: string
+  ) => {
+    setIsPartsLoading(true);
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("per", String(PAGE_SIZE));
@@ -287,8 +294,8 @@ export default function AdminPanel() {
     if (query) {
       params.set("q", query);
     }
-    if (category && category !== "all") {
-      params.set("category", category);
+    if (categories.length) {
+      params.set("cat", serializeCategoryParam(categories));
     }
     const response = await fetch(`/api/parts?${params.toString()}`, { cache: "no-store" });
     if (!response.ok) {
@@ -299,16 +306,18 @@ export default function AdminPanel() {
     setPartsPage(data.page);
     setPartsTotalPages(data.totalPages);
     setPartsTotalCount(data.totalCount);
+    setIsPartsLoading(false);
   };
 
   useEffect(() => {
     if (tab !== "parts") {
       return;
     }
-    loadParts(1, partsQuery, activePartsCategory, partsSort).catch(() => {
+    loadParts(1, partsFilters.query, partsFilters.categories, partsFilters.sort).catch(() => {
       setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
+      setIsPartsLoading(false);
     });
-  }, [tab, partsQuery, activePartsCategory, partsSort]);
+  }, [tab, partsFilters.query, partsFilters.categories, partsFilters.sort]);
 
   useEffect(() => {
     if (tab !== "parts") {
@@ -430,6 +439,75 @@ export default function AdminPanel() {
     setQty(1);
   };
 
+  const addBomItemByPart = async (
+    part: PartPickerPart,
+    qty: number,
+    items: BomItem[],
+    setItems: (items: BomItem[]) => void,
+    bomType: BomType,
+    modelName: string,
+    setSaving: (value: boolean) => void,
+    isSaving: boolean
+  ) => {
+    if (isSaving) {
+      return;
+    }
+    if (!Number.isInteger(qty) || qty <= 0) {
+      setNotice({ type: "error", message: t.error });
+      return;
+    }
+    const nextItems = [
+      ...items.filter((item) => item.partId !== part.id),
+      { partId: part.id, qtyPerPlow: qty, part: { name: part.name } },
+    ];
+    await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
+  };
+
+  const handlePickerAdd = async (part: PartPickerPart, qty: number) => {
+    if (pickerTarget === "STANDARD") {
+      await addBomItemByPart(
+        part,
+        qty,
+        standardItems,
+        setStandardItems,
+        "STANDARD",
+        standardModel,
+        setIsSavingStandard,
+        isSavingStandard
+      );
+      setStandardPartQuery(part.name);
+      setStandardQty(qty);
+    } else if (pickerTarget === "ADDON_6_2") {
+      await addBomItemByPart(
+        part,
+        qty,
+        addonItems,
+        setAddonItems,
+        "ADDON_6_2",
+        addonModel,
+        setIsSavingAddon,
+        isSavingAddon
+      );
+      setAddonPartQuery(part.name);
+      setAddonQty(qty);
+    } else {
+      await addBomItemByPart(
+        part,
+        qty,
+        schwenkItems,
+        setSchwenkItems,
+        pickerTarget,
+        "",
+        setIsSavingSchwenk,
+        isSavingSchwenk
+      );
+      setSchwenkPartQuery(part.name);
+      setSchwenkQty(qty);
+    }
+    setNotice({ type: "success", message: t.saved });
+    setIsPartPickerOpen(false);
+  };
+
   const removeBomItem = async (
     partId: number,
     items: BomItem[],
@@ -471,7 +549,7 @@ export default function AdminPanel() {
     }
     setNotice({ type: "success", message: t.saved });
     setNewPart({ name: "", stock: 0, unit: "szt", category: "", shopUrl: "", shopName: "" });
-    await loadParts(partsPage, partsQuery, activePartsCategory, partsSort);
+    await loadParts(partsPage, partsFilters.query, partsFilters.categories, partsFilters.sort);
   };
 
   const handleEditPart = (part: Part) => {
@@ -676,7 +754,7 @@ export default function AdminPanel() {
     setImportResult(data);
     setIsImporting(false);
     try {
-      await loadParts(partsPage, partsQuery, activePartsCategory, partsSort);
+      await loadParts(partsPage, partsFilters.query, partsFilters.categories, partsFilters.sort);
     } catch {
       setNotice({ type: "error", message: t.error });
     }
@@ -906,6 +984,18 @@ export default function AdminPanel() {
                       ))}
                     </datalist>
                   </label>
+                  <div className="form-actions form-actions-tight">
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => {
+                        setPickerTarget("STANDARD");
+                        setIsPartPickerOpen(true);
+                      }}
+                    >
+                      {t.partsPick}
+                    </button>
+                  </div>
                   <label>
                     {t.bomQtyLabel}
                     <input
@@ -1022,6 +1112,18 @@ export default function AdminPanel() {
                       placeholder={t.partsSearch}
                     />
                   </label>
+                  <div className="form-actions form-actions-tight">
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => {
+                        setPickerTarget("ADDON_6_2");
+                        setIsPartPickerOpen(true);
+                      }}
+                    >
+                      {t.partsPick}
+                    </button>
+                  </div>
                   <label>
                     {t.bomQtyLabel}
                     <input
@@ -1138,6 +1240,18 @@ export default function AdminPanel() {
                       placeholder={t.partsSearch}
                     />
                   </label>
+                  <div className="form-actions form-actions-tight">
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => {
+                        setPickerTarget(schwenkType);
+                        setIsPartPickerOpen(true);
+                      }}
+                    >
+                      {t.partsPick}
+                    </button>
+                  </div>
                   <label>
                     {t.bomQtyLabel}
                     <input
@@ -1307,32 +1421,25 @@ export default function AdminPanel() {
               </div>
             </form>
 
-            <CategoryFilter
-              options={buildCategoryOptions(partsCategories, lang)}
-              activeValue={activePartsCategory}
-              allLabel={t.partsCategoryAll}
-              label={t.partsCategoryLabel}
-              onChange={setActivePartsCategory}
-            />
-
-            <div className="parts-search-bar">
-              <input
-                value={partsQueryInput}
-                onChange={(event) => setPartsQueryInput(event.target.value)}
-                placeholder={t.partsSearch}
+            <div className="admin-parts-toolbar">
+              <PartsToolbar
+                queryInput={partsFilters.queryInput}
+                onQueryChange={partsFilters.setQueryInput}
+                sort={partsFilters.sort}
+                onSortChange={partsFilters.setSort}
+                categoryOptions={buildCategoryOptions(partsCategories, lang)}
+                activeCategories={partsFilters.categories}
+                onCategoriesChange={partsFilters.setCategories}
+                labels={{
+                  partsSearch: t.partsSearch,
+                  partsSortLabel: t.partsSortLabel,
+                  partsSortName: t.partsSortName,
+                  partsSortStockAsc: t.partsSortStockAsc,
+                  partsSortStockDesc: t.partsSortStockDesc,
+                  partsCategoryAll: t.partsCategoryAll,
+                  partsCategoryLabel: t.partsCategoryLabel,
+                }}
               />
-              <label className="parts-sort parts-sort-right">
-                <span className="parts-sort-label">{t.partsSortLabel}</span>
-                <select
-                  value={partsSort}
-                  onChange={(event) => setPartsSort(event.target.value)}
-                  className="parts-sort-select"
-                >
-                  <option value="name_asc">{t.partsSortName}</option>
-                  <option value="stock_asc">{t.partsSortStockAsc}</option>
-                  <option value="stock_desc">{t.partsSortStockDesc}</option>
-                </select>
-              </label>
             </div>
 
             <PartsTable
@@ -1348,6 +1455,7 @@ export default function AdminPanel() {
                 shopNameLabel: t.shopNameLabel,
                 shopUrlLabel: t.shopUrlLabel,
                 partsEmpty: t.partsEmpty,
+                partsLoading: t.partsLoading,
                 partsAdjust: t.partsAdjust,
                 partsEdit: t.partsEdit,
                 partsDelete: t.partsDelete,
@@ -1357,6 +1465,7 @@ export default function AdminPanel() {
               }}
               mode="admin"
               resultsCount={partsTotalCount}
+              isLoading={isPartsLoading}
               onAdjust={(part) => setAdjustTarget(part)}
               onEdit={handleEditPart}
               onDelete={handleArchivePart}
@@ -1366,7 +1475,9 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage - 1, partsQuery, activePartsCategory, partsSort)}
+                onClick={() =>
+                  loadParts(partsPage - 1, partsFilters.query, partsFilters.categories, partsFilters.sort)
+                }
                 disabled={partsPage <= 1}
               >
                 &lsaquo;
@@ -1377,7 +1488,9 @@ export default function AdminPanel() {
               <button
                 type="button"
                 className="button button-ghost button-small"
-                onClick={() => loadParts(partsPage + 1, partsQuery, activePartsCategory, partsSort)}
+                onClick={() =>
+                  loadParts(partsPage + 1, partsFilters.query, partsFilters.categories, partsFilters.sort)
+                }
                 disabled={partsPage >= partsTotalPages}
               >
                 &rsaquo;
@@ -1678,6 +1791,28 @@ export default function AdminPanel() {
             </div>
           </section>
         </div>
+      )}
+
+      {isPartPickerOpen && (
+        <PartPickerModal
+          isOpen={isPartPickerOpen}
+          onClose={() => setIsPartPickerOpen(false)}
+          onAdd={handlePickerAdd}
+          lang={lang}
+          labels={{
+            title: t.partsPickerTitle,
+            search: t.partsSearch,
+            categoryAll: t.partsCategoryAll,
+            categoryLabel: t.partsCategoryLabel,
+            sortLabel: t.partsSortLabel,
+            sortName: t.partsSortName,
+            sortStockAsc: t.partsSortStockAsc,
+            sortStockDesc: t.partsSortStockDesc,
+            addLabel: t.partsPickerAdd,
+            closeLabel: t.partsPickerClose,
+            emptyLabel: t.partsEmpty,
+          }}
+        />
       )}
 
       {editPart && (

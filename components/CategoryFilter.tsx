@@ -6,15 +6,15 @@ export type CategoryOption = { value: string; label: string };
 
 type CategoryFilterProps = {
   options: CategoryOption[];
-  activeValue: string;
+  activeValues: string[];
   allLabel: string;
   label: string;
-  onChange: (value: string) => void;
+  onChange: (values: string[]) => void;
 };
 
 export default function CategoryFilter({
   options,
-  activeValue,
+  activeValues,
   allLabel,
   label,
   onChange,
@@ -48,17 +48,21 @@ export default function CategoryFilter({
   }, [isOpen]);
 
   const activeLabel =
-    activeValue === "all"
+    activeValues.length === 0
       ? allLabel
-      : options.find((option) => option.value === activeValue)?.label ?? allLabel;
+      : activeValues.length === 1
+        ? options.find((option) => option.value === activeValues[0])?.label ?? allLabel
+        : `${label} (${activeValues.length})`;
+
+  const isActive = (value: string) => activeValues.includes(value);
 
   return (
     <div className="category-filter">
       <div className="category-chips">
         <button
           type="button"
-          className={`chip ${activeValue === "all" ? "active" : ""}`}
-          onClick={() => onChange("all")}
+          className={`chip ${activeValues.length === 0 ? "active" : ""}`}
+          onClick={() => onChange([])}
         >
           {allLabel}
         </button>
@@ -66,8 +70,15 @@ export default function CategoryFilter({
           <button
             key={option.value}
             type="button"
-            className={`chip ${activeValue === option.value ? "active" : ""}`}
-            onClick={() => onChange(option.value)}
+            className={`chip ${isActive(option.value) ? "active" : ""}`}
+            aria-pressed={isActive(option.value)}
+            onClick={() => {
+              if (isActive(option.value)) {
+                onChange(activeValues.filter((value) => value !== option.value));
+              } else {
+                onChange([...activeValues, option.value]);
+              }
+            }}
           >
             {option.label}
           </button>
@@ -88,9 +99,9 @@ export default function CategoryFilter({
           <div className="category-menu">
             <button
               type="button"
-              className={`category-option ${activeValue === "all" ? "active" : ""}`}
+              className={`category-option ${activeValues.length === 0 ? "active" : ""}`}
               onClick={() => {
-                onChange("all");
+                onChange([]);
                 setIsOpen(false);
               }}
             >
@@ -100,12 +111,13 @@ export default function CategoryFilter({
               <button
                 key={option.value}
                 type="button"
-                className={`category-option ${
-                  activeValue === option.value ? "active" : ""
-                }`}
+                className={`category-option ${isActive(option.value) ? "active" : ""}`}
                 onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
+                  if (isActive(option.value)) {
+                    onChange(activeValues.filter((value) => value !== option.value));
+                  } else {
+                    onChange([...activeValues, option.value]);
+                  }
                 }}
               >
                 {option.label}

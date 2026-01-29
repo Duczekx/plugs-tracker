@@ -20,6 +20,7 @@ type PartsLabels = {
   shopNameLabel: string;
   shopUrlLabel: string;
   partsEmpty: string;
+  partsLoading: string;
   partsAdjust: string;
   partsEdit: string;
   partsDelete: string;
@@ -33,12 +34,16 @@ type PartsTableProps = {
   labels: PartsLabels;
   mode: "public" | "admin";
   resultsCount?: number;
+  isLoading?: boolean;
   onAdjust?: (part: Part) => void;
   onEdit?: (part: Part) => void;
   onDelete?: (part: Part) => void;
 };
 
 const getStockTone = (stock: number) => {
+  if (stock <= 2) {
+    return "stock-badge stock-badge-critical";
+  }
   if (stock < 10) {
     return "stock-badge stock-badge-low";
   }
@@ -53,6 +58,7 @@ export default function PartsTable({
   labels,
   mode,
   resultsCount,
+  isLoading,
   onAdjust,
   onEdit,
   onDelete,
@@ -77,10 +83,12 @@ export default function PartsTable({
           {mode === "admin" && <div>{labels.actionsLabel}</div>}
         </div>
         <div className="parts-table-body">
-          {rows.length === 0 && (
+          {isLoading && <div className="parts-table-empty muted">{labels.partsLoading}</div>}
+          {!isLoading && rows.length === 0 && (
             <div className="parts-table-empty muted">{labels.partsEmpty}</div>
           )}
-          {rows.map((part) => (
+          {!isLoading &&
+            rows.map((part) => (
             <div key={part.id} className="parts-table-row">
               <div className="parts-table-name">
                 <div className="parts-name-text">{part.name}</div>
@@ -246,8 +254,10 @@ export default function PartsTable({
       </div>
 
       <div className="parts-cards mobile-only">
-        {rows.length === 0 && <div className="muted">{labels.partsEmpty}</div>}
-        {rows.map((part) => (
+        {isLoading && <div className="muted">{labels.partsLoading}</div>}
+        {!isLoading && rows.length === 0 && <div className="muted">{labels.partsEmpty}</div>}
+        {!isLoading &&
+          rows.map((part) => (
           <section key={part.id} className="card parts-card-item">
             <div className="parts-card-title">
               <div className="parts-name-text">{part.name}</div>

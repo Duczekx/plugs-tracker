@@ -2769,6 +2769,11 @@ textarea {
   gap: 8px;
 }
 
+.parts-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
 .parts-search-bar {
   display: flex;
   align-items: center;
@@ -3283,6 +3288,12 @@ textarea {
   color: #991b1b;
 }
 
+.stock-badge-critical {
+  background: rgba(185, 28, 28, 0.2);
+  border-color: rgba(185, 28, 28, 0.45);
+  color: #7f1d1d;
+}
+
 .stock-badge-warn {
   background: rgba(245, 158, 11, 0.16);
   border-color: rgba(245, 158, 11, 0.35);
@@ -3301,6 +3312,69 @@ textarea {
   justify-content: center;
   gap: 8px;
   margin-top: 18px;
+}
+
+.admin-parts-toolbar {
+  position: sticky;
+  top: 12px;
+  z-index: 10;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  padding: 14px 16px;
+  box-shadow: 0 16px 36px rgba(12, 18, 32, 0.12);
+  margin-bottom: 16px;
+}
+
+.part-picker-modal {
+  max-width: 980px;
+}
+
+.part-picker-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.part-picker-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(12, 18, 32, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.part-picker-stock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.part-picker-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.part-picker-actions input {
+  width: 70px;
+}
+
+@media (max-width: 720px) {
+  .part-picker-row {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .part-picker-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .admin-tabs {

@@ -4,6 +4,7 @@ import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
 import { Prisma } from "@prisma/client";
 import { normalizeCategory } from "@/lib/parts-import";
+import { expandSearchTerms, parseCategoryParam } from "@/lib/parts-search";
 
 export const runtime = "nodejs";
 
@@ -12,43 +13,34 @@ const PAGE_SIZE = 50;
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = String(searchParams.get("q") ?? searchParams.get("search") ?? "").trim();
-  const categoryParam = String(searchParams.get("category") ?? "").trim();
-  const category =
-    categoryParam && categoryParam.toLowerCase() !== "all" ? categoryParam : "";
+  const categoryParam = String(searchParams.get("category") ?? searchParams.get("cat") ?? "").trim();
+  const categories = parseCategoryParam(categoryParam).filter((value) => value !== "all");
   const sort = String(searchParams.get("sort") ?? "name_asc").trim().toLowerCase();
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const take = Math.min(200, Math.max(1, Number(searchParams.get("per") ?? PAGE_SIZE)));
   const skip = (page - 1) * take;
 
-  const where: Prisma.PartWhereInput = {
-    isArchived: false,
-    ...(category
-      ? {
-          category: {
-            equals: category,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        }
-      : {}),
-    ...(query
-      ? {
-          OR: [
-            {
-              name: {
-                contains: query,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-            {
-              category: {
-                contains: query,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          ],
-        }
-      : {}),
-  };
+  const andFilters: Prisma.PartWhereInput[] = [{ isArchived: false }];
+  if (categories.length) {
+    andFilters.push({
+      OR: categories.map((category) => ({
+        category: { equals: category, mode: Prisma.QueryMode.insensitive },
+      })),
+    });
+  }
+  if (query) {
+    const terms = expandSearchTerms(query);
+    if (terms.length) {
+      andFilters.push({
+        OR: terms.flatMap((term) => [
+          { name: { contains: term, mode: Prisma.QueryMode.insensitive } },
+          { category: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        ]),
+      });
+    }
+  }
+
+  const where: Prisma.PartWhereInput = { AND: andFilters };
 
   const orderBy: Prisma.PartOrderByWithRelationInput[] =
     sort === "stock_asc"
