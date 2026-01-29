@@ -50,7 +50,13 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     if (typeof window === "undefined") {
       return false;
     }
-    return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    const isMobile = window.matchMedia("(max-width: 900px)").matches;
+    return (
+      isMobile &&
+      "Notification" in window &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window
+    );
   }, []);
 
   useEffect(() => {
@@ -170,7 +176,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
+    <div className="modal-overlay push-modal-overlay" role="dialog" aria-modal="true">
       <section className="card modal-card push-modal">
         <div className="card-header">
           <div>

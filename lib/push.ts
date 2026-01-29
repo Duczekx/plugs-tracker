@@ -61,6 +61,7 @@ export const buildPushPayload = (
   lang: Lang,
   data?: {
     shipmentId?: number;
+    companyName?: string;
     partName?: string;
     stock?: number;
     status?: string;
@@ -74,7 +75,7 @@ export const buildPushPayload = (
     return {
       title: t.pushReadyTitle,
       body: t.pushReadyBody
-        .replace("{id}", String(data?.shipmentId ?? ""))
+        .replace("{company}", String(data?.companyName ?? ""))
         .replace("{status}", String(data?.status ?? "")),
       url: "/sent",
       tag: "shipment-ready",

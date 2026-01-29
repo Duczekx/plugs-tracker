@@ -247,6 +247,7 @@ export async function PATCH(
             getAppUser(),
             buildPushPayload("ready", lang, {
               shipmentId,
+              companyName: updated.companyName,
               status: statusLabel,
             }),
             "ready"
@@ -471,6 +472,7 @@ export async function PATCH(
           getAppUser(),
           buildPushPayload("ready", lang, {
             shipmentId,
+            companyName: updated.companyName,
             status: statusLabel,
           }),
           "ready"
