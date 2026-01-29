@@ -438,7 +438,11 @@ export default function Home() {
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
-            <div />
+            <div className="card-actions">
+              <Link className="button button-ghost" href="/admin">
+                {t.adminButton}
+              </Link>
+            </div>
           </div>
         </header>
         <div className="sticky-nav">
