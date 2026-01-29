@@ -10,6 +10,7 @@ import PartsTable from "@/components/PartsTable";
 import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
 import PartsToolbar from "@/components/PartsToolbar";
 import PartPickerModal, { PartPickerPart } from "@/components/PartPickerModal";
+import { buildAutoRelations } from "@/lib/part-relations";
 import { usePartsFilters } from "@/lib/use-parts-filters";
 import { serializeCategoryParam } from "@/lib/parts-search";
 import {
@@ -430,11 +431,16 @@ export default function AdminPanel() {
       setNotice({ type: "error", message: t.error });
       return;
     }
-    const nextItems = [
-      ...items.filter((item) => item.partId !== part.id),
-      { partId: part.id, qtyPerPlow: qty, part: { name: part.name } },
-    ];
-    await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
+    await addBomItemByPart(
+      part,
+      qty,
+      items,
+      setItems,
+      bomType,
+      modelName,
+      setSaving,
+      isSaving
+    );
     setQuery("");
     setQty(1);
   };
@@ -456,10 +462,34 @@ export default function AdminPanel() {
       setNotice({ type: "error", message: t.error });
       return;
     }
-    const nextItems = [
+    const baseItems = [
       ...items.filter((item) => item.partId !== part.id),
       { partId: part.id, qtyPerPlow: qty, part: { name: part.name } },
     ];
+
+    const relations = buildAutoRelations(bomPartOptions, part.name);
+    let nextItems = baseItems;
+    if (relations.length > 0) {
+      const list = relations
+        .map((relation) => `${relation.part.name} x${relation.qty * qty}`)
+        .join(", ");
+      const confirmed = window.confirm(`${t.partsAutoAddConfirm}\n${t.partsAutoAddListLabel}: ${list}`);
+      if (confirmed) {
+        nextItems = baseItems.map((item) => ({ ...item }));
+        relations.forEach((relation) => {
+          const existing = nextItems.find((item) => item.partId === relation.part.id);
+          if (existing) {
+            existing.qtyPerPlow += relation.qty * qty;
+          } else {
+            nextItems.push({
+              partId: relation.part.id,
+              qtyPerPlow: relation.qty * qty,
+              part: { name: relation.part.name },
+            });
+          }
+        });
+      }
+    }
     await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
   };
 

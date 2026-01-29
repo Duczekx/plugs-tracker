@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
 import { getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
+import { buildAutoRelations, extractMetricSize } from "@/lib/part-relations";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -51,6 +52,7 @@ type Product = {
 type PartOption = {
   id: number;
   name: string;
+  category?: string | null;
 };
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
@@ -153,7 +155,7 @@ export default function ShipmentsPage() {
   useEffect(() => {
     const loadPartOptions = async () => {
       const params = new URLSearchParams();
-      params.set("per", "50");
+      params.set("per", "200");
       if (partQuery) {
         params.set("q", partQuery);
       }
@@ -342,7 +344,7 @@ export default function ShipmentsPage() {
     }));
   };
 
-  const handleAddExtra = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddExtra = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setExtraNotice(null);
     if (isReadOnly) {
@@ -360,10 +362,58 @@ export default function ShipmentsPage() {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
     }
-    setExtras((prev) => [
-      ...prev,
-      { name, quantity, note, partId: extraForm.partId },
-    ]);
+    const baseItem = { name, quantity, note, partId: extraForm.partId };
+    const nextExtras = [...extras];
+    const mergeExtra = (item: typeof baseItem) => {
+      const existing = nextExtras.find(
+        (entry) =>
+          (item.partId && entry.partId === item.partId) ||
+          entry.name.toLowerCase() === item.name.toLowerCase()
+      );
+      if (existing) {
+        existing.quantity += item.quantity;
+        return;
+      }
+      nextExtras.push(item);
+    };
+    mergeExtra(baseItem);
+
+    const metricSize = extractMetricSize(name);
+    let relations =
+      metricSize && partOptions.length
+        ? buildAutoRelations(partOptions, name)
+        : [];
+    if (metricSize && relations.length === 0) {
+      const params = new URLSearchParams();
+      params.set("per", "200");
+      params.set("q", `M${metricSize}`);
+      const response = await fetch(`/api/parts?${params.toString()}`, { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        relations = buildAutoRelations(items, name);
+      }
+    }
+    if (relations.length > 0) {
+      const list = relations
+        .map((relation) => `${relation.part.name} x${relation.qty * quantity}`)
+        .join(", ");
+      const confirmed = window.confirm(
+        `${t.partsAutoAddExtrasConfirm}\n${t.partsAutoAddListLabel}: ${list}`
+      );
+      if (confirmed) {
+        relations.forEach((relation) => {
+          mergeExtra({
+            name: relation.part.name,
+            quantity: relation.qty * quantity,
+            note: "",
+            partId: relation.part.id,
+          });
+        });
+      }
+    }
+
+    setExtras(nextExtras);
     setExtraForm(emptyExtraForm);
     setExtraNotice({ type: "success", message: t.extraItemAdded });
     setTimeout(() => {
