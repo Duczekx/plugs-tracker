@@ -1450,6 +1450,13 @@ textarea {
   box-shadow: none;
 }
 
+.button-ghost.mobile-nav-trigger {
+  background: #ffffff;
+  box-shadow:
+    0 16px 34px rgba(12, 18, 32, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .button-danger {
   border-color: rgba(239, 68, 68, 0.4);
   color: #b91c1c;
