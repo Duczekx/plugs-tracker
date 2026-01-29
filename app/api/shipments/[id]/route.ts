@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { BomConfiguration, Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
+import {
+  BomConfiguration,
+  Model,
+  Prisma,
+  ShipmentStatus,
+  ValveType,
+  Variant,
+} from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
 import {
   applyShipmentPartDeltas,
@@ -8,6 +15,8 @@ import {
   calculateShipmentDelta,
   type StockWarning,
 } from "@/lib/parts-ledger";
+import { buildPushPayload, getAdminLang, sendPushToUser } from "@/lib/push";
+import { getAdminUser } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -136,6 +145,12 @@ const hasDuplicateBuildNumbers = (items: { buildNumber: string }[]) => {
   return false;
 };
 
+const getLowStockParts = async (tx: Prisma.TransactionClient, partIds: number[]) =>
+  tx.part.findMany({
+    where: { id: { in: partIds }, stock: { lte: 2 } },
+    select: { id: true, name: true, stock: true },
+  });
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -188,6 +203,26 @@ export async function PATCH(
             summary.requiredByPartId
           );
           stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+          if (existing.status !== ShipmentStatus.READY) {
+            const lang = await getAdminLang();
+            await sendPushToUser(getAdminUser(), buildPushPayload("ready", lang, { shipmentId }));
+            const lowParts = await getLowStockParts(
+              tx,
+              Array.from(deltaByPartId.keys())
+            );
+            await Promise.all(
+              lowParts.map((part) =>
+                sendPushToUser(
+                  getAdminUser(),
+                  buildPushPayload("lowStock", lang, {
+                    partName: part.name,
+                    stock: part.stock,
+                  }),
+                  "lowStock"
+                )
+              )
+            );
+          }
         }
 
         if (status === ShipmentStatus.RESERVED) {
@@ -384,6 +419,26 @@ export async function PATCH(
           summary.requiredByPartId
         );
         stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+        if (existing.status !== ShipmentStatus.READY) {
+          const lang = await getAdminLang();
+          await sendPushToUser(getAdminUser(), buildPushPayload("ready", lang, { shipmentId }));
+          const lowParts = await getLowStockParts(
+            tx,
+            Array.from(deltaByPartId.keys())
+          );
+          await Promise.all(
+            lowParts.map((part) =>
+              sendPushToUser(
+                getAdminUser(),
+                buildPushPayload("lowStock", lang, {
+                  partName: part.name,
+                  stock: part.stock,
+                }),
+                "lowStock"
+              )
+            )
+          );
+        }
       }
 
       if (nextStatus === ShipmentStatus.RESERVED) {

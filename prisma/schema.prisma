@@ -53,6 +53,13 @@ enum PartMovementReason {
   MANUAL_ADJUST
 }
 
+enum NotificationOptIn {
+  DEFAULT
+  ENABLED
+  DENIED
+  LATER
+}
+
 model InventoryItem {
   id            Int      @id @default(autoincrement())
   model         Model    @default(FL_540)
@@ -188,4 +195,29 @@ model ActivityLog {
 
   @@index([createdAt])
   @@index([type])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id                    Int               @id @default(autoincrement())
+  userId                String            @unique
+  notificationsOptIn    NotificationOptIn @default(DEFAULT)
+  notificationsAskAfter DateTime?
+  notificationTypes     Json?
+  locale                String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 }

@@ -1,0 +1,69 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { blockIfNotAdmin, getAdminUser } from "@/lib/admin-auth";
+
+export const runtime = "nodejs";
+
+type SubscriptionBody = {
+  subscription?: {
+    endpoint: string;
+    keys?: { p256dh?: string; auth?: string };
+  };
+  notificationTypes?: Record<string, boolean>;
+  userAgent?: string;
+  locale?: string;
+};
+
+export async function POST(request: NextRequest) {
+  const adminBlocked = await blockIfNotAdmin(request);
+  if (adminBlocked) {
+    return adminBlocked;
+  }
+  const body = (await request.json().catch(() => null)) as SubscriptionBody | null;
+  const endpoint = body?.subscription?.endpoint ?? "";
+  const p256dh = body?.subscription?.keys?.p256dh ?? "";
+  const auth = body?.subscription?.keys?.auth ?? "";
+
+  if (!endpoint || !p256dh || !auth) {
+    return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
+  }
+
+  const userId = getAdminUser();
+  await prisma.pushSubscription.upsert({
+    where: { endpoint },
+    update: {
+      userId,
+      p256dh,
+      auth,
+      isActive: true,
+      userAgent: body?.userAgent ? String(body.userAgent) : null,
+    },
+    create: {
+      userId,
+      endpoint,
+      p256dh,
+      auth,
+      isActive: true,
+      userAgent: body?.userAgent ? String(body.userAgent) : null,
+    },
+  });
+
+  await prisma.notificationPreference.upsert({
+    where: { userId },
+    update: {
+      notificationsOptIn: "ENABLED",
+      notificationsAskAfter: null,
+      notificationTypes: body?.notificationTypes ?? undefined,
+      locale: body?.locale ? String(body.locale) : null,
+    },
+    create: {
+      userId,
+      notificationsOptIn: "ENABLED",
+      notificationsAskAfter: null,
+      notificationTypes: body?.notificationTypes ?? undefined,
+      locale: body?.locale ? String(body.locale) : null,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
+}

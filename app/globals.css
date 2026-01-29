@@ -3377,6 +3377,23 @@ textarea {
   }
 }
 
+.push-modal {
+  max-width: 560px;
+}
+
+.push-types {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.push-type {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
 .admin-tabs {
   margin-top: 16px;
 }
