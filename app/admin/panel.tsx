@@ -441,7 +441,7 @@ export default function AdminPanel() {
     await saveBomItems(bomType, modelName, nextItems, setItems, setSaving, isSaving);
   };
 
-  const handleNewPartChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleNewPartChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
     setNewPart((prev) => ({
       ...prev,
@@ -484,7 +484,7 @@ export default function AdminPanel() {
     });
   };
 
-  const handleEditPartChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleEditPartChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
     setEditPartForm((prev) => ({ ...prev, [name]: value }));
   };
