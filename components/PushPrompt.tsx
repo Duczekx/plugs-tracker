@@ -46,7 +46,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const t = labels[activeLang];
 
-  const isSupported = useMemo(() => {
+  const supportsPush = useMemo(() => {
     if (typeof window === "undefined") {
       return false;
     }
@@ -57,6 +57,13 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
       "serviceWorker" in navigator &&
       "PushManager" in window
     );
+  }, []);
+  const showForIOS = useMemo(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    const isMobile = window.matchMedia("(max-width: 900px)").matches;
+    return isMobile && isIOS() && !isStandalone();
   }, []);
 
   useEffect(() => {
@@ -69,10 +76,10 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
   }, [lang]);
 
   useEffect(() => {
-    if (!isSupported) {
+    if (!supportsPush && !showForIOS) {
       return;
     }
-    if (Notification.permission === "denied") {
+    if (supportsPush && Notification.permission === "denied") {
       return;
     }
     const load = async () => {
@@ -95,7 +102,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
       setIsOpen(true);
     };
     load().catch(() => null);
-  }, [isSupported]);
+  }, [supportsPush, showForIOS]);
 
   const updateType = (key: keyof NotificationTypes) =>
     setTypes((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -124,7 +131,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
 
   const handleEnable = async () => {
     setError(null);
-    if (!isSupported) {
+    if (!supportsPush) {
       setError(t.pushPromptUnsupported);
       return;
     }
@@ -171,7 +178,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     setIsOpen(false);
   };
 
-  if (!isOpen || !isSupported) {
+  if (!isOpen || (!supportsPush && !showForIOS)) {
     return null;
   }
 
