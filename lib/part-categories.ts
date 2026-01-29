@@ -3,38 +3,34 @@ import type { Lang } from "@/lib/i18n";
 type CategoryLabels = Record<string, string>;
 
 const plLabels: CategoryLabels = {
-  Hydraulika: "Hydraulika",
-  Elektryka: "Elektryka",
-  "Sruby i laczniki": "Sruby i laczniki",
-  Sworznie: "Sworznie",
-  Obejmy: "Obejmy",
-  Uszczelnienia: "Uszczelnienia",
-  Spawanie: "Spawanie",
-  Pakowanie: "Pakowanie",
-  Zylinder: "Zylinder",
-  Typenschild: "Typenschild",
-  Inne: "Inne",
+  sruby: "Sruby",
+  nakretki: "Nakretki",
+  podkladki: "Podkladki",
+  bolce: "Bolce",
+  hydraulika: "Hydraulika",
+  gumy: "Gumy",
+  elektryka: "Elektryka",
+  typenschild: "Typenschild",
+  inne: "Inne",
 };
 
 const deLabels: CategoryLabels = {
-  Hydraulika: "Hydraulik",
-  Elektryka: "Elektrik",
-  "Sruby i laczniki": "Schrauben",
-  Sworznie: "Bolzen",
-  Obejmy: "Schellen",
-  Uszczelnienia: "Dichtungen",
-  Spawanie: "Schweissen",
-  Pakowanie: "Verpackung",
-  Zylinder: "Zylinder",
-  Typenschild: "Typenschild",
-  Inne: "Sonstiges",
+  sruby: "Schrauben",
+  nakretki: "Muttern",
+  podkladki: "Unterlegscheiben",
+  bolce: "Bolzen",
+  hydraulika: "Hydraulik",
+  gumy: "Gummi",
+  elektryka: "Elektrik",
+  typenschild: "Typenschild",
+  inne: "Sonstiges",
 };
 
 export const translateCategory = (category: string | null | undefined, lang: Lang) => {
   if (!category) {
     return "";
   }
-  const trimmed = category.trim();
+  const trimmed = category.trim().toLowerCase();
   if (!trimmed) {
     return "";
   }

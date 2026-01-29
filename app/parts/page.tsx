@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,6 +40,8 @@ export default function PartsPage() {
   const [query, setQuery] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryRef = useRef<HTMLDivElement | null>(null);
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
     null
   );
@@ -117,6 +119,31 @@ export default function PartsPage() {
     fetchCategories().catch(() => null);
   }, []);
 
+  useEffect(() => {
+    if (!isCategoryOpen) {
+      return;
+    }
+    const handleClick = (event: MouseEvent) => {
+      if (!categoryRef.current) {
+        return;
+      }
+      if (!categoryRef.current.contains(event.target as Node)) {
+        setIsCategoryOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCategoryOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isCategoryOpen]);
+
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
     setQueryInput(event.target.value);
   };
@@ -168,6 +195,11 @@ export default function PartsPage() {
   };
 
   const categoryOptions = buildCategoryOptions(categories, lang);
+  const activeCategoryLabel =
+    activeCategory === "all"
+      ? t.partsCategoryAll
+      : categoryOptions.find((option) => option.value === activeCategory)?.label ??
+        t.partsCategoryAll;
   const displayParts = parts.map((part) => ({
     ...part,
     category: translateCategory(part.category, lang) || part.category,
@@ -292,32 +324,52 @@ export default function PartsPage() {
             </div>
           </div>
 
-          <div className="category-chips">
-            <button
-              type="button"
-              className={`chip ${activeCategory === "all" ? "active" : ""}`}
-              onClick={() => setActiveCategory("all")}
-            >
-              {t.partsCategoryAll}
-            </button>
-            {categoryOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`chip ${activeCategory === option.value ? "active" : ""}`}
-                onClick={() => setActiveCategory(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
           <div className="parts-search-bar">
             <input
               value={queryInput}
               onChange={handleQueryChange}
               placeholder={t.partsSearch}
             />
+            <div className="category-dropdown" ref={categoryRef}>
+              <button
+                type="button"
+                className="button button-ghost category-trigger"
+                aria-expanded={isCategoryOpen}
+                onClick={() => setIsCategoryOpen((prev) => !prev)}
+              >
+                <span className="category-trigger-label">{t.partsCategoryLabel}</span>
+                <span className="category-trigger-value">{activeCategoryLabel}</span>
+              </button>
+              {isCategoryOpen && (
+                <div className="category-menu">
+                  <button
+                    type="button"
+                    className={`category-option ${activeCategory === "all" ? "active" : ""}`}
+                    onClick={() => {
+                      setActiveCategory("all");
+                      setIsCategoryOpen(false);
+                    }}
+                  >
+                    {t.partsCategoryAll}
+                  </button>
+                  {categoryOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`category-option ${
+                        activeCategory === option.value ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        setActiveCategory(option.value);
+                        setIsCategoryOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <span className="pill">
               {t.resultsLabel}: {totalCount}
             </span>

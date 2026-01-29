@@ -7,6 +7,7 @@ import {
   buildImportPreview,
   getSkipReason,
   guessCategory,
+  normalizeCategory,
   normalizeKey,
   normalizeSpaces,
   parseStock,
@@ -95,10 +96,11 @@ const collectItemsFromJson = (payload: unknown) => {
       return;
     }
     const categoryInput = (entry as { category?: unknown }).category;
-    const category =
+    const category = normalizeCategory(
       typeof categoryInput === "string" && categoryInput.trim()
         ? normalizeSpaces(categoryInput)
-        : guessCategory(cleanedName);
+        : guessCategory(cleanedName)
+    );
     items.push({ name: cleanedName, stock: stockValue, category });
   });
 

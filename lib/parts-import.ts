@@ -56,6 +56,22 @@ export const normalizeSpaces = (value: string) => value.trim().replace(/\s+/g, "
 
 export const normalizeKey = (value: string) => normalizeSpaces(value).toLowerCase();
 
+export const normalizeCategory = (value: string) => {
+  const cleaned = normalizeSpaces(value).toLowerCase();
+  if (!cleaned) {
+    return "inne";
+  }
+  const tokens = cleaned.split(" ").filter(Boolean);
+  const unique = new Set(tokens);
+  if (unique.size === 1) {
+    return tokens[0];
+  }
+  if (cleaned === "inne inne") {
+    return "inne";
+  }
+  return cleaned;
+};
+
 const foldForMatch = (value: string) =>
   value
     .toLowerCase()
@@ -172,99 +188,53 @@ export const getSkipReason = (rawName: string): ImportSkipReason | null => {
 
 export const guessCategory = (rawName: string) => {
   const folded = foldForMatch(rawName);
-  if (
-    folded.includes("schraub") ||
-    folded.includes("sruba") ||
-    folded.includes("sruby") ||
-    folded.includes("bolt") ||
-    folded.includes("imbus") ||
-    folded.includes("torx") ||
-    /^m\d+/i.test(normalizeSpaces(rawName))
-  ) {
-    return "Sruby i laczniki";
-  }
-  if (
-    folded.includes("bolzen") ||
-    folded.includes("sworzen") ||
-    folded.includes("pin")
-  ) {
-    return "Sworznie";
-  }
-  if (
-    folded.includes("schelle") ||
-    folded.includes("klemme") ||
-    folded.includes("obejma") ||
-    folded.includes("uchwyt")
-  ) {
-    return "Obejmy";
-  }
-  if (
-    folded.includes("dichtung") ||
-    folded.includes("uszczelka") ||
-    folded.includes("oring") ||
-    folded.includes("o-ring") ||
-    folded.includes("simmering")
-  ) {
-    return "Uszczelnienia";
-  }
-  if (
-    folded.includes("schweiss") ||
-    folded.includes("spaw") ||
-    folded.includes("weld")
-  ) {
-    return "Spawanie";
-  }
-  if (
-    folded.includes("karton") ||
-    folded.includes("carton") ||
-    folded.includes("box") ||
-    folded.includes("verpack") ||
-    folded.includes("pack")
-  ) {
-    return "Pakowanie";
-  }
   if (folded.includes("typenschild")) {
-    return "Typenschild";
+    return "typenschild";
   }
-  if (folded.includes("zylinder")) {
-    return "Zylinder";
+  if (folded.includes("bolzen")) {
+    return "bolce";
+  }
+  if (folded.includes("gummi") || folded.includes("o-ring") || folded.includes("oring") || folded.includes("dichtung")) {
+    return "gumy";
   }
   if (
     folded.includes("kabel") ||
-    folded.includes("leitung") ||
+    folded.includes("kabelbinder") ||
     folded.includes("stecker") ||
     folded.includes("schalter") ||
-    folded.includes("wippschalter") ||
-    folded.includes("stossverbinder") ||
+    folded.includes("sicherung") ||
+    folded.includes("led") ||
     folded.includes("lampe") ||
-    folded.includes("leuchte")
+    folded.includes("stossverbinder")
   ) {
-    return "Elektryka";
-  }
-  if (
-    folded.includes("mutter") ||
-    folded.includes("nakretk") ||
-    folded.includes("nut")
-  ) {
-    return "Nakretki";
-  }
-  if (
-    folded.includes("scheibe") ||
-    folded.includes("podkladk") ||
-    folded.includes("washer")
-  ) {
-    return "Podkladki";
+    return "elektryka";
   }
   if (
     folded.includes("hydraul") ||
+    folded.includes("schlauch") ||
     folded.includes("ventil") ||
-    folded.includes("pumpe") ||
-    folded.includes("kupplung") ||
-    folded.includes("schlauch")
+    folded.includes("kuppl") ||
+    folded.includes("verschraub") ||
+    folded.includes("winkel") ||
+    folded.includes("adapter") ||
+    folded.includes("nippel")
   ) {
-    return "Hydraulika";
+    return "hydraulika";
   }
-  return "Inne";
+  if (folded.includes("mutter")) {
+    return "nakretki";
+  }
+  if (folded.includes("scheibe") || folded.includes("unterleg")) {
+    return "podkladki";
+  }
+  if (
+    /\bM\d{1,2}\b/i.test(rawName) ||
+    /M\d{1,2}x/i.test(rawName) ||
+    folded.includes("schraub")
+  ) {
+    return "sruby";
+  }
+  return "inne";
 };
 
 export const buildImportPreview = (rows: unknown[][]): ImportPreview => {
@@ -319,7 +289,7 @@ export const buildImportPreview = (rows: unknown[][]): ImportPreview => {
     }
 
     const key = normalizeKey(cleanedName);
-    const category = guessCategory(cleanedName);
+    const category = normalizeCategory(guessCategory(cleanedName));
     if (!itemsByKey.has(key)) {
       order.push(key);
     }

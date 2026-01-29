@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
 import { Prisma } from "@prisma/client";
+import { normalizeCategory } from "@/lib/parts-import";
 
 export const runtime = "nodejs";
 
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
         name,
         stock,
         unit: unit || "szt",
-        category: category || null,
+        category: category ? normalizeCategory(category) : null,
         shopUrl: shopUrl || null,
         shopName: shopName || null,
       },

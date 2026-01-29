@@ -2747,6 +2747,64 @@ textarea {
   min-width: 220px;
 }
 
+.category-dropdown {
+  position: relative;
+  min-width: 200px;
+}
+
+.category-trigger {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  min-width: 200px;
+  align-items: start;
+}
+
+.category-trigger-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.category-trigger-value {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.category-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  box-shadow: 0 14px 30px rgba(12, 18, 32, 0.12);
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  z-index: 40;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.category-option {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.category-option.active {
+  background: rgba(12, 18, 32, 0.08);
+  color: var(--accent);
+}
+
 .category-chips {
   display: flex;
   align-items: center;
@@ -2995,6 +3053,15 @@ textarea {
 
   .parts-search-bar input {
     width: 100%;
+  }
+
+  .category-dropdown {
+    width: 100%;
+  }
+
+  .category-trigger {
+    width: 100%;
+    min-width: 0;
   }
 
   .parts-table-head {

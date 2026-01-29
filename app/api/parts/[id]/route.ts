@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
+import { normalizeCategory } from "@/lib/parts-import";
 
 export const runtime = "nodejs";
 
@@ -58,7 +59,7 @@ export async function PATCH(
 
   if (body?.category !== undefined) {
     const value = String(body.category ?? "").trim();
-    updates.category = value ? value : null;
+    updates.category = value ? normalizeCategory(value) : null;
   }
 
   if (body?.shopName !== undefined) {
