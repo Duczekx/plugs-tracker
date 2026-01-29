@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
-import { blockIfNotAdmin, getAdminUser } from "@/lib/admin-auth";
-import { buildPushPayload, getAdminLang, sendPushToUser } from "@/lib/push";
+import { blockIfNotAdmin } from "@/lib/admin-auth";
+import { getAppUser } from "@/lib/app-auth";
+import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
 import {
   buildImportPreview,
   getSkipReason,
@@ -220,9 +221,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     try {
-      const lang = await getAdminLang();
+      const lang = await getAppLang();
       await sendPushToUser(
-        getAdminUser(),
+        getAppUser(),
         buildPushPayload("importErrors", lang),
         "importErrors"
       );

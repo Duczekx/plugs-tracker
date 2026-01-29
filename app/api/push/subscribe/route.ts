@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { blockIfNotAdmin, getAdminUser } from "@/lib/admin-auth";
+import { blockIfNotApp, getAppUser } from "@/lib/app-auth";
 
 export const runtime = "nodejs";
 
@@ -15,9 +15,9 @@ type SubscriptionBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const adminBlocked = await blockIfNotAdmin(request);
-  if (adminBlocked) {
-    return adminBlocked;
+  const appBlocked = await blockIfNotApp(request);
+  if (appBlocked) {
+    return appBlocked;
   }
   const body = (await request.json().catch(() => null)) as SubscriptionBody | null;
   const endpoint = body?.subscription?.endpoint ?? "";
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
-  const userId = getAdminUser();
+  const userId = getAppUser();
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     update: {

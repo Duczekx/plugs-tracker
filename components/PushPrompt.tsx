@@ -8,12 +8,14 @@ type NotificationTypes = {
   lowStock: boolean;
   ready: boolean;
   importErrors: boolean;
+  stockChange: boolean;
 };
 
 const defaultTypes: NotificationTypes = {
   lowStock: true,
   ready: true,
   importErrors: true,
+  stockChange: true,
 };
 
 const isIOS = () =>
@@ -36,12 +38,13 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return outputArray;
 };
 
-export default function PushPrompt({ lang }: { lang: Lang }) {
+export default function PushPrompt({ lang }: { lang?: Lang }) {
+  const [activeLang, setActiveLang] = useState<Lang>(lang ?? "pl");
   const [isOpen, setIsOpen] = useState(false);
   const [types, setTypes] = useState<NotificationTypes>(defaultTypes);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const t = labels[lang];
+  const t = labels[activeLang];
 
   const isSupported = useMemo(() => {
     if (typeof window === "undefined") {
@@ -49,6 +52,15 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
     }
     return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
   }, []);
+
+  useEffect(() => {
+    if (!lang && typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("plugs-tracker-lang");
+      if (stored === "pl" || stored === "de") {
+        setActiveLang(stored);
+      }
+    }
+  }, [lang]);
 
   useEffect(() => {
     if (!isSupported) {
@@ -87,7 +99,7 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
     await fetch("/api/push/preferences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "later", askAfterDays: 7, locale: lang }),
+      body: JSON.stringify({ action: "later", askAfterDays: 7, locale: activeLang }),
     }).catch(() => null);
     setIsSubmitting(false);
     setIsOpen(false);
@@ -98,7 +110,7 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
     await fetch("/api/push/preferences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deny", locale: lang }),
+      body: JSON.stringify({ action: "deny", locale: activeLang }),
     }).catch(() => null);
     setIsSubmitting(false);
     setIsOpen(false);
@@ -116,7 +128,7 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
       await fetch("/api/push/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deny", locale: lang }),
+        body: JSON.stringify({ action: "deny", locale: activeLang }),
       }).catch(() => null);
       setIsSubmitting(false);
       setIsOpen(false);
@@ -141,7 +153,7 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
         subscription,
         notificationTypes: types,
         userAgent: navigator.userAgent,
-        locale: lang,
+        locale: activeLang,
       }),
     });
     if (!response.ok) {
@@ -196,6 +208,14 @@ export default function PushPrompt({ lang }: { lang: Lang }) {
               onChange={() => updateType("importErrors")}
             />
             {t.pushPromptTypeImportErrors}
+          </label>
+          <label className="push-type">
+            <input
+              type="checkbox"
+              checked={types.stockChange}
+              onChange={() => updateType("stockChange")}
+            />
+            {t.pushPromptTypeStockChange}
           </label>
         </div>
 

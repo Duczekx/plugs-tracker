@@ -10,7 +10,6 @@ import PartsTable from "@/components/PartsTable";
 import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
 import PartsToolbar from "@/components/PartsToolbar";
 import PartPickerModal, { PartPickerPart } from "@/components/PartPickerModal";
-import PushPrompt from "@/components/PushPrompt";
 import { buildAutoRelations } from "@/lib/part-relations";
 import { usePartsFilters } from "@/lib/use-parts-filters";
 import { serializeCategoryParam } from "@/lib/parts-search";
@@ -891,7 +890,6 @@ export default function AdminPanel() {
   return (
     <div className="app-shell">
       <div className="app-content">
-        <PushPrompt lang={lang} />
         <header className="card">
           <div className="card-header">
             <div>

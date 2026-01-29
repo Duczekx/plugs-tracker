@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Model, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
+import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
+import { getAppUser } from "@/lib/app-auth";
 
 export const runtime = "nodejs";
 
@@ -98,6 +100,19 @@ export async function POST(request: NextRequest) {
       return result;
     });
 
+    const lang = await getAppLang();
+    const itemName = `${model} ${serialNumber} ${variant} ${
+      isSchwenkbock ? "Schwenkbock" : "Standard"
+    }`;
+    await sendPushToUser(
+      getAppUser(),
+      buildPushPayload("stockChange", lang, {
+        itemName,
+        delta,
+        nextQuantity: updated.quantity,
+      }),
+      "stockChange"
+    );
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") {

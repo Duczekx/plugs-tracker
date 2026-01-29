@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { blockIfNotAdmin, getAdminUser } from "@/lib/admin-auth";
+import { blockIfNotApp, getAppUser } from "@/lib/app-auth";
 
 export const runtime = "nodejs";
 
@@ -10,12 +10,12 @@ type UnsubscribeBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const adminBlocked = await blockIfNotAdmin(request);
-  if (adminBlocked) {
-    return adminBlocked;
+  const appBlocked = await blockIfNotApp(request);
+  if (appBlocked) {
+    return appBlocked;
   }
   const body = (await request.json().catch(() => null)) as UnsubscribeBody | null;
-  const userId = getAdminUser();
+  const userId = getAppUser();
 
   if (body?.endpoint) {
     await prisma.pushSubscription.updateMany({

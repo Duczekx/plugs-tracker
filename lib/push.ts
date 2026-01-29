@@ -1,12 +1,13 @@
 import webPush from "web-push";
 import { prisma } from "@/lib/db";
-import { getAdminUser } from "@/lib/admin-auth";
+import { getAppUser } from "@/lib/app-auth";
 import { labels, Lang } from "@/lib/i18n";
 
 type NotificationTypes = {
   lowStock?: boolean;
   ready?: boolean;
   importErrors?: boolean;
+  stockChange?: boolean;
 };
 
 export type PushPayload = {
@@ -22,6 +23,7 @@ const defaultTypes: NotificationTypes = {
   lowStock: true,
   ready: true,
   importErrors: true,
+  stockChange: true,
 };
 
 const getVapidDetails = () => {
@@ -39,8 +41,8 @@ const ensureWebPush = () => {
   webPush.setVapidDetails(subject, publicKey, privateKey);
 };
 
-export const getAdminNotificationPreference = async () => {
-  const userId = getAdminUser();
+export const getAppNotificationPreference = async () => {
+  const userId = getAppUser();
   const pref = await prisma.notificationPreference.findUnique({
     where: { userId },
   });
@@ -55,15 +57,25 @@ const resolveLang = (value?: string | null): Lang => {
 };
 
 export const buildPushPayload = (
-  key: "ready" | "lowStock" | "importErrors" | "test",
+  key: "ready" | "lowStock" | "importErrors" | "test" | "stockChange",
   lang: Lang,
-  data?: { shipmentId?: number; partName?: string; stock?: number }
+  data?: {
+    shipmentId?: number;
+    partName?: string;
+    stock?: number;
+    status?: string;
+    itemName?: string;
+    delta?: number;
+    nextQuantity?: number;
+  }
 ): PushPayload => {
   const t = labels[lang];
   if (key === "ready") {
     return {
       title: t.pushReadyTitle,
-      body: t.pushReadyBody.replace("{id}", String(data?.shipmentId ?? "")),
+      body: t.pushReadyBody
+        .replace("{id}", String(data?.shipmentId ?? ""))
+        .replace("{status}", String(data?.status ?? "")),
       url: "/sent",
       tag: "shipment-ready",
       icon: "/icons/icon-192.png",
@@ -78,6 +90,19 @@ export const buildPushPayload = (
         .replace("{stock}", String(data?.stock ?? "")),
       url: "/parts",
       tag: "low-stock",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+    };
+  }
+  if (key === "stockChange") {
+    return {
+      title: t.pushStockChangeTitle,
+      body: t.pushStockChangeBody
+        .replace("{name}", String(data?.itemName ?? ""))
+        .replace("{delta}", String(data?.delta ?? ""))
+        .replace("{stock}", String(data?.nextQuantity ?? "")),
+      url: "/",
+      tag: "stock-change",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
     };
@@ -149,7 +174,7 @@ export const sendPushToUser = async (
   );
 };
 
-export const getAdminLang = async () => {
-  const pref = await getAdminNotificationPreference();
+export const getAppLang = async () => {
+  const pref = await getAppNotificationPreference();
   return resolveLang(pref?.locale);
 };

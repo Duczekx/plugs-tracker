@@ -15,8 +15,9 @@ import {
   calculateShipmentDelta,
   type StockWarning,
 } from "@/lib/parts-ledger";
-import { buildPushPayload, getAdminLang, sendPushToUser } from "@/lib/push";
-import { getAdminUser } from "@/lib/admin-auth";
+import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
+import { labels } from "@/lib/i18n";
+import { getAppUser } from "@/lib/app-auth";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,17 @@ const isShipmentStatus = (value: string): value is ShipmentStatus =>
   value === ShipmentStatus.RESERVED ||
   value === ShipmentStatus.READY ||
   value === ShipmentStatus.SENT;
+
+const getStatusLabel = (lang: "pl" | "de", status: ShipmentStatus) => {
+  const t = labels[lang];
+  if (status === ShipmentStatus.RESERVED) {
+    return t.statusReserved;
+  }
+  if (status === ShipmentStatus.SENT) {
+    return t.statusSent;
+  }
+  return t.statusReady;
+};
 
 const deriveConfiguration = (item: Pick<IncomingItem, "isSchwenkbock" | "valveType">) => {
   const hasValve = item.valveType !== ValveType.NONE;
@@ -203,26 +215,20 @@ export async function PATCH(
             summary.requiredByPartId
           );
           stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-          if (existing.status !== ShipmentStatus.READY) {
-            const lang = await getAdminLang();
-            await sendPushToUser(getAdminUser(), buildPushPayload("ready", lang, { shipmentId }));
-            const lowParts = await getLowStockParts(
-              tx,
-              Array.from(deltaByPartId.keys())
-            );
-            await Promise.all(
-              lowParts.map((part) =>
-                sendPushToUser(
-                  getAdminUser(),
-                  buildPushPayload("lowStock", lang, {
-                    partName: part.name,
-                    stock: part.stock,
-                  }),
-                  "lowStock"
-                )
+          const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
+          const lang = await getAppLang();
+          await Promise.all(
+            lowParts.map((part) =>
+              sendPushToUser(
+                getAppUser(),
+                buildPushPayload("lowStock", lang, {
+                  partName: part.name,
+                  stock: part.stock,
+                }),
+                "lowStock"
               )
-            );
-          }
+            )
+          );
         }
 
         if (status === ShipmentStatus.RESERVED) {
@@ -232,6 +238,19 @@ export async function PATCH(
             new Map()
           );
           stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+        }
+
+        if (existing.status !== status) {
+          const lang = await getAppLang();
+          const statusLabel = getStatusLabel(lang, status);
+          await sendPushToUser(
+            getAppUser(),
+            buildPushPayload("ready", lang, {
+              shipmentId,
+              status: statusLabel,
+            }),
+            "ready"
+          );
         }
 
         await tx.activityLog.create({
@@ -410,6 +429,7 @@ export async function PATCH(
       });
 
       const nextStatus = status ?? existing.status;
+      const statusChanged = status ? existing.status !== status : false;
       let stockWarnings: StockWarning[] = [];
       if (nextStatus === ShipmentStatus.READY) {
         const summary = await buildPartsSummary(tx, updated.items, updated.extras);
@@ -419,26 +439,20 @@ export async function PATCH(
           summary.requiredByPartId
         );
         stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-        if (existing.status !== ShipmentStatus.READY) {
-          const lang = await getAdminLang();
-          await sendPushToUser(getAdminUser(), buildPushPayload("ready", lang, { shipmentId }));
-          const lowParts = await getLowStockParts(
-            tx,
-            Array.from(deltaByPartId.keys())
-          );
-          await Promise.all(
-            lowParts.map((part) =>
-              sendPushToUser(
-                getAdminUser(),
-                buildPushPayload("lowStock", lang, {
-                  partName: part.name,
-                  stock: part.stock,
-                }),
-                "lowStock"
-              )
+        const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
+        const lang = await getAppLang();
+        await Promise.all(
+          lowParts.map((part) =>
+            sendPushToUser(
+              getAppUser(),
+              buildPushPayload("lowStock", lang, {
+                partName: part.name,
+                stock: part.stock,
+              }),
+              "lowStock"
             )
-          );
-        }
+          )
+        );
       }
 
       if (nextStatus === ShipmentStatus.RESERVED) {
@@ -450,7 +464,17 @@ export async function PATCH(
         stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
       }
 
-      if (status && existing.status !== status) {
+      if (statusChanged) {
+        const lang = await getAppLang();
+        const statusLabel = getStatusLabel(lang, status as ShipmentStatus);
+        await sendPushToUser(
+          getAppUser(),
+          buildPushPayload("ready", lang, {
+            shipmentId,
+            status: statusLabel,
+          }),
+          "ready"
+        );
         await tx.activityLog.create({
           data: {
             type: "shipment.status",
