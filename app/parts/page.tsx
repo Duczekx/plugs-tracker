@@ -328,7 +328,6 @@ export default function PartsPage() {
             labels={{
               partsTitle: t.partsTitle,
               partsStock: t.partsStock,
-              partsUnit: t.partsUnit,
               partsCategory: t.partsCategory,
               partsCategoryUnknown: t.partsCategoryUnknown,
               shopNameLabel: t.shopNameLabel,

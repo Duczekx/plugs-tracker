@@ -15,7 +15,6 @@ type Part = {
 type PartsLabels = {
   partsTitle: string;
   partsStock: string;
-  partsUnit: string;
   partsCategory: string;
   partsCategoryUnknown: string;
   shopNameLabel: string;
@@ -78,7 +77,6 @@ export default function PartsTable({
                   <span className="category-badge">
                     {part.category?.trim() ? part.category : labels.partsCategoryUnknown}
                   </span>
-                  <span className="parts-meta-text">{part.unit}</span>
                   {part.shopName && <span className="parts-meta-text">{part.shopName}</span>}
                 </div>
               </div>
@@ -106,7 +104,7 @@ export default function PartsTable({
                     {labels.shopUrlLabel}
                   </a>
                 ) : (
-                  <span className="muted">--</span>
+                  <span className="muted">.</span>
                 )}
               </div>
               {mode === "admin" && (
@@ -183,19 +181,15 @@ export default function PartsTable({
           <section key={part.id} className="card parts-card-item">
             <div className="parts-card-title">
               <div className="parts-name-text">{part.name}</div>
+              <span className={getStockTone(part.stock)}>{part.stock}</span>
             </div>
             <div className="parts-meta">
               <span className="category-badge">
                 {part.category?.trim() ? part.category : labels.partsCategoryUnknown}
               </span>
-              <span className="parts-meta-text">{part.unit}</span>
               {part.shopName && <span className="parts-meta-text">{part.shopName}</span>}
             </div>
             <div className="parts-card-grid">
-              <div>
-                <div className="parts-card-label">{labels.partsStock}</div>
-                <span className={getStockTone(part.stock)}>{part.stock}</span>
-              </div>
               <div>
                 <div className="parts-card-label">{labels.shopUrlLabel}</div>
                 {part.shopUrl ? (
@@ -218,7 +212,7 @@ export default function PartsTable({
                     {labels.shopUrlLabel}
                   </a>
                 ) : (
-                  <span className="muted">--</span>
+                  <span className="muted">.</span>
                 )}
               </div>
             </div>
