@@ -45,6 +45,10 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
   const [types, setTypes] = useState<NotificationTypes>(defaultTypes);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<"unknown" | "none" | "active">(
+    "unknown"
+  );
   const t = labels[activeLang];
 
   const supportsPush = useMemo(() => {
@@ -79,6 +83,9 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
   useEffect(() => {
     if (!supportsPush && !showForIOS) {
       return;
+    }
+    if (supportsPush) {
+      setPermission(Notification.permission);
     }
     const load = async () => {
       if (supportsPush) {
@@ -120,6 +127,22 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     };
     load().catch(() => null);
   }, [supportsPush, showForIOS]);
+
+  useEffect(() => {
+    if (!supportsPush) {
+      return;
+    }
+    const loadSubscription = async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        setSubscriptionStatus(sub ? "active" : "none");
+      } catch {
+        setSubscriptionStatus("unknown");
+      }
+    };
+    loadSubscription().catch(() => null);
+  }, [supportsPush, permission]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -167,6 +190,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     }
     setIsSubmitting(true);
     const permission = await Notification.requestPermission();
+    setPermission(permission);
     if (permission !== "granted") {
       await fetch("/api/push/preferences", {
         method: "POST",
@@ -212,11 +236,141 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     }
     setIsSubmitting(false);
     setIsOpen(false);
+    setSubscriptionStatus("active");
   };
 
-  if (!isOpen || (!supportsPush && !showForIOS)) {
-    return null;
-  }
+  const handleSubscribeOnly = async () => {
+    if (!supportsPush) {
+      setError(t.pushPromptUnsupported);
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      const publicKeyRes = await fetch("/api/push/public-key", { cache: "no-store" });
+      if (!publicKeyRes.ok) {
+        setError(t.pushPromptError);
+        return;
+      }
+      const keyResponse = await publicKeyRes.json();
+      const key = keyResponse.publicKey ?? keyResponse.key ?? "";
+      if (!key) {
+        setError(t.pushPromptError);
+        return;
+      }
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      });
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscription,
+          notificationTypes: types,
+          userAgent: navigator.userAgent,
+          locale: activeLang,
+        }),
+      });
+      if (!response.ok) {
+        setError(t.pushPromptError);
+        return;
+      }
+      setSubscriptionStatus("active");
+    } catch {
+      setError(t.pushPromptError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!supportsPush) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      const response = await fetch("/api/push/unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: sub?.endpoint,
+          locale: activeLang,
+        }),
+      });
+      if (response.ok) {
+        await sub?.unsubscribe();
+      }
+      setSubscriptionStatus("none");
+    } catch {
+      setError(t.pushPromptError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const manualLabels = {
+    subscribe: activeLang === "pl" ? "Aktywuj subskrypcje" : "Abo aktivieren",
+    unsubscribe: activeLang === "pl" ? "Wylacz" : "Deaktivieren",
+  };
+
+  const renderManualPanel = () => (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="card-header">
+        <div>
+          <h3 className="title">{t.pushPromptTitle}</h3>
+          <p className="subtitle">{t.pushPromptDescription}</p>
+        </div>
+      </div>
+      {permission === "denied" && (
+        <div className="alert">
+          {t.pushPromptDeniedHint}{" "}
+          {isIOS()
+            ? "Ustawienia -> Powiadomienia -> Safari -> Witryny -> zezwol."
+            : ""}
+        </div>
+      )}
+      {permission === "granted" && (
+        <div className="alert">{t.pushPromptEnabled ?? "Wlaczone"}</div>
+      )}
+      {error && <div className="alert">{error}</div>}
+      <div className="form-actions">
+        {permission === "default" && (
+          <button
+            type="button"
+            className="button"
+            onClick={handleEnable}
+            disabled={isSubmitting}
+          >
+            {t.pushPromptEnable}
+          </button>
+        )}
+        {permission === "granted" && subscriptionStatus !== "active" && (
+          <button
+            type="button"
+            className="button"
+            onClick={handleSubscribeOnly}
+            disabled={isSubmitting}
+          >
+            {manualLabels.subscribe}
+          </button>
+        )}
+        {permission === "granted" && subscriptionStatus === "active" && (
+          <button
+            type="button"
+            className="button button-ghost"
+            onClick={handleUnsubscribe}
+            disabled={isSubmitting}
+          >
+            {manualLabels.unsubscribe}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   const handleOverlayClick = () => {
     if (!isSubmitting) {
@@ -224,17 +378,23 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     }
   };
 
+  if (!isOpen) {
+    return renderManualPanel();
+  }
+
   return (
-    <div
-      className="modal-overlay push-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      onClick={handleOverlayClick}
-    >
-      <section
-        className="card modal-card push-modal"
-        onClick={(event) => event.stopPropagation()}
+    <>
+      {renderManualPanel()}
+      <div
+        className="modal-overlay push-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        onClick={handleOverlayClick}
       >
+        <section
+          className="card modal-card push-modal"
+          onClick={(event) => event.stopPropagation()}
+        >
         <button
           type="button"
           className="push-modal-close"
@@ -329,6 +489,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
           </button>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }
