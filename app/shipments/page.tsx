@@ -9,6 +9,7 @@ import { getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
 import { buildAutoRelations, extractMetricSize } from "@/lib/part-relations";
 import { fetchRole } from "@/lib/role-client";
+import NotificationBell from "@/components/NotificationBell";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -534,7 +535,12 @@ export default function ShipmentsPage() {
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
-            <div />
+            <div className="card-actions">
+              <NotificationBell lang={lang} />
+              <Link className="button button-ghost" href="/admin">
+                {t.adminButton}
+              </Link>
+            </div>
           </div>
         </header>
         <div className="sticky-nav">

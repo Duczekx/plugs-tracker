@@ -8,6 +8,7 @@ import { labels, Lang } from "@/lib/i18n";
 import { clearCached, getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
 import { fetchRole } from "@/lib/role-client";
+import NotificationBell from "@/components/NotificationBell";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -442,6 +443,7 @@ export default function Home() {
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
             <div className="card-actions">
+              <NotificationBell lang={lang} />
               <Link className="button button-ghost" href="/admin">
                 {t.adminButton}
               </Link>

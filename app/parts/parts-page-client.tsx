@@ -12,6 +12,7 @@ import PartsToolbar from "@/components/PartsToolbar";
 import { usePartsFilters } from "@/lib/use-parts-filters";
 import { serializeCategoryParam } from "@/lib/parts-search";
 import { fetchRole } from "@/lib/role-client";
+import NotificationBell from "@/components/NotificationBell";
 
 type Part = {
   id: number;
@@ -212,7 +213,12 @@ export default function PartsPage() {
               </h1>
               <p className="subtitle">{t.partsPageSubtitle}</p>
             </div>
-            <div />
+            <div className="card-actions">
+              <NotificationBell lang={lang} />
+              <Link className="button button-ghost" href="/admin">
+                {t.adminButton}
+              </Link>
+            </div>
           </div>
         </header>
         <div className="sticky-nav">

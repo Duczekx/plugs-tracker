@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
 import MobileNav from "@/app/mobile-nav";
+import NotificationBell from "@/components/NotificationBell";
 
 type ActivityLog = {
   id: number;
@@ -170,7 +171,12 @@ export default function ActivityPage() {
               </h1>
               <p className="subtitle">Dziennik aktywnosci systemu</p>
             </div>
-            <div />
+            <div className="card-actions">
+              <NotificationBell lang={lang} />
+              <Link className="button button-ghost" href="/admin">
+                {t.adminButton}
+              </Link>
+            </div>
           </div>
         </header>
         <div className="sticky-nav">
