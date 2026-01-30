@@ -2692,13 +2692,13 @@ textarea {
 @media (max-width: 720px) {
   .push-modal-overlay {
     align-items: flex-end;
-    padding: 12px 12px 24px;
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
   }
 
   .push-modal {
     width: 100%;
     max-width: 100%;
-    max-height: 86vh;
+    max-height: 80vh;
     border-radius: 22px;
     border: 1px solid rgba(12, 18, 32, 0.12);
     box-shadow: 0 24px 60px rgba(12, 18, 32, 0.22);
@@ -3414,7 +3414,11 @@ textarea {
 }
 
 .push-modal {
-  max-width: 560px;
+  width: min(100%, 420px);
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
 }
 
 .push-types {
@@ -3450,6 +3454,34 @@ textarea {
 
 .push-modal .form-actions .button:first-child {
   grid-column: 1 / -1;
+}
+
+.push-modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top)) 5vw
+    calc(16px + env(safe-area-inset-bottom));
+}
+
+.push-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: #fff;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.push-modal-close svg {
+  width: 18px;
+  height: 18px;
 }
 
 .admin-tabs {

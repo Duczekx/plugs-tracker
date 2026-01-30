@@ -41,6 +41,7 @@ const urlBase64ToUint8Array = (base64String: string) => {
 export default function PushPrompt({ lang }: { lang?: Lang }) {
   const [activeLang, setActiveLang] = useState<Lang>(lang ?? "pl");
   const [isOpen, setIsOpen] = useState(false);
+  const [isDenied, setIsDenied] = useState(false);
   const [types, setTypes] = useState<NotificationTypes>(defaultTypes);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,10 +80,26 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     if (!supportsPush && !showForIOS) {
       return;
     }
-    if (supportsPush && Notification.permission === "denied") {
-      return;
-    }
     const load = async () => {
+      if (supportsPush) {
+        if (Notification.permission === "granted") {
+          return;
+        }
+        if (Notification.permission === "denied") {
+          setIsDenied(true);
+        }
+        if (Notification.permission !== "denied") {
+          try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+              return;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
       const response = await fetch("/api/push/preferences", { cache: "no-store" });
       if (!response.ok) {
         return;
@@ -103,6 +120,19 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     };
     load().catch(() => null);
   }, [supportsPush, showForIOS]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
 
   const updateType = (key: keyof NotificationTypes) =>
     setTypes((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -182,9 +212,40 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
     return null;
   }
 
+  const handleOverlayClick = () => {
+    if (!isSubmitting) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay push-modal-overlay" role="dialog" aria-modal="true">
-      <section className="card modal-card push-modal">
+    <div
+      className="modal-overlay push-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      onClick={handleOverlayClick}
+    >
+      <section
+        className="card modal-card push-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="push-modal-close"
+          aria-label={t.pushPromptClose}
+          onClick={() => setIsOpen(false)}
+          disabled={isSubmitting}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6l-12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
         <div className="card-header">
           <div>
             <h3 className="title">{t.pushPromptTitle}</h3>
@@ -195,6 +256,7 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
         {isIOS() && !isStandalone() && (
           <div className="alert">{t.pushPromptIosHint}</div>
         )}
+        {isDenied && <div className="alert">{t.pushPromptDeniedHint}</div>}
 
         <div className="push-types">
           <p className="muted">{t.pushPromptTypes}</p>
