@@ -3,8 +3,7 @@ import * as XLSX from "xlsx";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
-import { getAppUser } from "@/lib/app-auth";
-import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
+import { sendPushToRolesByKey } from "@/lib/push";
 import {
   buildImportPreview,
   getSkipReason,
@@ -221,10 +220,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     try {
-      const lang = await getAppLang();
-      await sendPushToUser(
-        getAppUser(),
-        buildPushPayload("importErrors", lang),
+      await sendPushToRolesByKey(
+        ["VIEWER", "EDITOR"],
+        "importErrors",
         "importErrors"
       );
     } catch {

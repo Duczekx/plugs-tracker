@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { blockIfNotApp, getAppUser } from "@/lib/app-auth";
+import { getRoleFromRequest, requireRole } from "@/lib/role-auth";
+import { getRoleUserId } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -10,12 +11,16 @@ type UnsubscribeBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const appBlocked = await blockIfNotApp(request);
-  if (appBlocked) {
-    return appBlocked;
+  const blocked = await requireRole(request, ["VIEWER", "EDITOR"]);
+  if (blocked) {
+    return blocked;
+  }
+  const role = await getRoleFromRequest(request);
+  if (!role) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
   const body = (await request.json().catch(() => null)) as UnsubscribeBody | null;
-  const userId = getAppUser();
+  const userId = getRoleUserId(role);
 
   if (body?.endpoint) {
     await prisma.pushSubscription.updateMany({

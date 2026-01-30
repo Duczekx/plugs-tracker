@@ -1,6 +1,5 @@
 import webPush from "web-push";
 import { prisma } from "@/lib/db";
-import { getAppUser } from "@/lib/app-auth";
 import { labels, Lang } from "@/lib/i18n";
 
 type NotificationTypes = {
@@ -17,6 +16,13 @@ export type PushPayload = {
   tag: string;
   icon?: string;
   badge?: string;
+};
+
+export type RoleTarget = "VIEWER" | "EDITOR";
+
+const roleUserIds: Record<RoleTarget, string> = {
+  VIEWER: "ROLE_VIEWER",
+  EDITOR: "ROLE_EDITOR",
 };
 
 const defaultTypes: NotificationTypes = {
@@ -41,8 +47,10 @@ const ensureWebPush = () => {
   webPush.setVapidDetails(subject, publicKey, privateKey);
 };
 
-export const getAppNotificationPreference = async () => {
-  const userId = getAppUser();
+export const getRoleUserId = (role: RoleTarget) => roleUserIds[role];
+
+export const getRoleNotificationPreference = async (role: RoleTarget) => {
+  const userId = getRoleUserId(role);
   const pref = await prisma.notificationPreference.findUnique({
     where: { userId },
   });
@@ -175,7 +183,49 @@ export const sendPushToUser = async (
   );
 };
 
-export const getAppLang = async () => {
-  const pref = await getAppNotificationPreference();
+export const getRoleLang = async (role: RoleTarget) => {
+  const pref = await getRoleNotificationPreference(role);
   return resolveLang(pref?.locale);
+};
+
+export const sendPushToRole = async (
+  role: RoleTarget,
+  payload: PushPayload,
+  typeKey?: keyof NotificationTypes
+) => sendPushToUser(getRoleUserId(role), payload, typeKey);
+
+export const sendPushToRolesByKey = async (
+  roles: RoleTarget[],
+  key: "ready" | "lowStock" | "importErrors" | "test" | "stockChange",
+  typeKey?: keyof NotificationTypes,
+  data?:
+    | {
+        shipmentId?: number;
+        companyName?: string;
+        partName?: string;
+        stock?: number;
+        status?: string;
+        itemName?: string;
+        delta?: number;
+        nextQuantity?: number;
+      }
+    | ((lang: Lang) => {
+        shipmentId?: number;
+        companyName?: string;
+        partName?: string;
+        stock?: number;
+        status?: string;
+        itemName?: string;
+        delta?: number;
+        nextQuantity?: number;
+      })
+) => {
+  await Promise.all(
+    roles.map(async (role) => {
+      const lang = await getRoleLang(role);
+      const payloadData = typeof data === "function" ? data(lang) : data;
+      const payload = buildPushPayload(key, lang, payloadData);
+      await sendPushToRole(role, payload, typeKey);
+    })
+  );
 };

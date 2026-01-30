@@ -8,6 +8,7 @@ import { labels, Lang } from "@/lib/i18n";
 import { getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
 import { buildAutoRelations, extractMetricSize } from "@/lib/part-relations";
+import { fetchRole } from "@/lib/role-client";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -131,7 +132,9 @@ export default function ShipmentsPage() {
   }, [lang]);
 
   useEffect(() => {
-    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+    fetchRole()
+      .then((role) => setIsReadOnly(role === "VIEWER"))
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -587,7 +590,7 @@ export default function ShipmentsPage() {
           </div>
         </div>
 
-        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
+        {isReadOnly && <div className="alert">{t.viewOnlyBadge}</div>}
         {notice && notice.type === "error" && (
           <div className="alert">
             {notice.message}

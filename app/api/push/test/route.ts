@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { blockIfNotApp, getAppUser } from "@/lib/app-auth";
-import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
+import { getRoleFromRequest, requireRole } from "@/lib/role-auth";
+import { buildPushPayload, getRoleLang, sendPushToRole } from "@/lib/push";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const appBlocked = await blockIfNotApp(request);
-  if (appBlocked) {
-    return appBlocked;
+  const blocked = await requireRole(request, ["VIEWER", "EDITOR"]);
+  if (blocked) {
+    return blocked;
   }
-  const userId = getAppUser();
-  const lang = await getAppLang();
+  const role = await getRoleFromRequest(request);
+  if (!role) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const lang = await getRoleLang(role);
   const payload = buildPushPayload("test", lang);
-  await sendPushToUser(userId, payload);
+  await sendPushToRole(role, payload);
   return NextResponse.json({ ok: true });
 }

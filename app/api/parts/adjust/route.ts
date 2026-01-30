@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
-import { buildPushPayload, getAppLang, sendPushToUser } from "@/lib/push";
-import { getAppUser } from "@/lib/app-auth";
+import { sendPushToRolesByKey } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -47,15 +46,15 @@ export async function POST(request: NextRequest) {
       });
       return updated;
     });
-    const lang = await getAppLang();
-    await sendPushToUser(
-      getAppUser(),
-      buildPushPayload("stockChange", lang, {
+    await sendPushToRolesByKey(
+      ["VIEWER", "EDITOR"],
+      "stockChange",
+      "stockChange",
+      {
         itemName: result.name,
         delta,
         nextQuantity: result.stock,
-      }),
-      "stockChange"
+      }
     );
     return NextResponse.json(result);
   } catch (error) {

@@ -11,6 +11,7 @@ import { buildCategoryOptions, translateCategory } from "@/lib/part-categories";
 import PartsToolbar from "@/components/PartsToolbar";
 import { usePartsFilters } from "@/lib/use-parts-filters";
 import { serializeCategoryParam } from "@/lib/parts-search";
+import { fetchRole } from "@/lib/role-client";
 
 type Part = {
   id: number;
@@ -65,7 +66,9 @@ export default function PartsPage() {
   }, [lang]);
 
   useEffect(() => {
-    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+    fetchRole()
+      .then((role) => setIsReadOnly(role === "VIEWER"))
+      .catch(() => null);
   }, []);
 
   const t = labels[lang];
@@ -265,7 +268,7 @@ export default function PartsPage() {
           </div>
         </div>
 
-        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
+        {isReadOnly && <div className="alert">{t.viewOnlyBadge}</div>}
         {notice && <div className={`alert ${notice.type === "success" ? "success" : ""}`}>{notice.message}</div>}
 
         <section className="card parts-card">

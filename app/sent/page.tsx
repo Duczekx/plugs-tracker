@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { labels, Lang } from "@/lib/i18n";
 import { getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
+import { fetchRole } from "@/lib/role-client";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -177,7 +178,9 @@ export default function SentPage() {
   }, [lang]);
 
   useEffect(() => {
-    setIsReadOnly(document.cookie.includes("pt_mode=review"));
+    fetchRole()
+      .then((role) => setIsReadOnly(role === "VIEWER"))
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -755,7 +758,7 @@ export default function SentPage() {
           </div>
         </div>
 
-        {isReadOnly && <div className="alert">{t.readOnlyNotice}</div>}
+        {isReadOnly && <div className="alert">{t.viewOnlyBadge}</div>}
         {notice && (
           <div className={`alert ${notice.type === "success" ? "success" : ""}`}>
             {notice.message}
