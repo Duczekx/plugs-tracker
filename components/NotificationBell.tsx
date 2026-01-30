@@ -331,8 +331,13 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
             className="modal-overlay notification-sheet-overlay"
             role="dialog"
             aria-modal="true"
-            onClick={() => setIsOpen(false)}
           >
+            <button
+              type="button"
+              className="notification-sheet-backdrop"
+              aria-label={t.pushPromptClose}
+              onClick={() => setIsOpen(false)}
+            />
             <section
               className="card notification-sheet"
               onClick={(event) => event.stopPropagation()}
