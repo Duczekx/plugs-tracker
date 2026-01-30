@@ -12,5 +12,5 @@ export async function GET(request: NextRequest) {
   if (!key) {
     return NextResponse.json({ message: "Missing VAPID key" }, { status: 500 });
   }
-  return NextResponse.json({ key });
+  return NextResponse.json({ publicKey: key });
 }

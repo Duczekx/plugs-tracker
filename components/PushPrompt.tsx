@@ -184,7 +184,13 @@ export default function PushPrompt({ lang }: { lang?: Lang }) {
       setIsSubmitting(false);
       return;
     }
-    const { key } = await publicKeyRes.json();
+    const keyResponse = await publicKeyRes.json();
+    const key = keyResponse.publicKey ?? keyResponse.key ?? "";
+    if (!key) {
+      setError(t.pushPromptError);
+      setIsSubmitting(false);
+      return;
+    }
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(key),
