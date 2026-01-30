@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Model, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
 import { sendPushToRolesByKey } from "@/lib/push";
+import { requireRole } from "@/lib/role-auth";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,10 @@ const isModel = (value: string): value is Model =>
   value === Model.FL_260;
 
 export async function POST(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { BomConfiguration, Model, ShipmentStatus, ValveType, Variant } from "@prisma/client";
 import { blockIfReadOnly } from "@/lib/access";
+import { requireRole } from "@/lib/role-auth";
 import {
   applyShipmentPartDeltas,
   buildPartsSummary,
@@ -96,7 +97,11 @@ const hasDuplicateBuildNumbers = (items: { buildNumber: string }[]) => {
   return false;
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["VIEWER", "EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const shipments = await prisma.shipment.findMany({
     orderBy: { createdAt: "desc" },
     include: {
@@ -108,6 +113,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;

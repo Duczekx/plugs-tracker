@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { blockIfNotAdmin } from "@/lib/admin-auth";
 import { normalizeCategory } from "@/lib/parts-import";
+import { requireRole } from "@/lib/role-auth";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;
@@ -136,6 +141,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;

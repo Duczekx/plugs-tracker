@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireRole } from "@/lib/role-auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["VIEWER", "EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const categories = await prisma.part.findMany({
     where: {
       isArchived: false,

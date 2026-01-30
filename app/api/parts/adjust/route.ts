@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { blockIfReadOnly } from "@/lib/access";
 import { sendPushToRolesByKey } from "@/lib/push";
+import { requireRole } from "@/lib/role-auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;

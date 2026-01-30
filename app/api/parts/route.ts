@@ -5,12 +5,17 @@ import { blockIfNotAdmin } from "@/lib/admin-auth";
 import { Prisma } from "@prisma/client";
 import { normalizeCategory } from "@/lib/parts-import";
 import { expandSearchTerms, parseCategoryParam } from "@/lib/parts-search";
+import { requireRole } from "@/lib/role-auth";
 
 export const runtime = "nodejs";
 
 const PAGE_SIZE = 50;
 
 export async function GET(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["VIEWER", "EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const { searchParams } = new URL(request.url);
   const query = String(searchParams.get("q") ?? searchParams.get("search") ?? "").trim();
   const categoryParam = String(searchParams.get("category") ?? searchParams.get("cat") ?? "").trim();
@@ -69,6 +74,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const roleBlocked = await requireRole(request, ["EDITOR"]);
+  if (roleBlocked) {
+    return roleBlocked;
+  }
   const blocked = blockIfReadOnly(request);
   if (blocked) {
     return blocked;
