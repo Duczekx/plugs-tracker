@@ -86,6 +86,11 @@ const schwenkOptions: { value: BomType; label: string }[] = [
   { value: "SCHWENKBOCK_3000", label: "Schwenkbock 3000" },
   { value: "SCHWENKBOCK_2000", label: "Schwenkbock 2000" },
 ];
+const bomTypeOptions: { value: BomType; label: string }[] = [
+  { value: "STANDARD", label: "Standard" },
+  { value: "ADDON_6_2", label: "6/2" },
+  ...schwenkOptions,
+];
 
 const PAGE_SIZE = 50;
 
@@ -115,6 +120,23 @@ export default function AdminPanel() {
   const [isSavingStandard, setIsSavingStandard] = useState(false);
   const [isSavingAddon, setIsSavingAddon] = useState(false);
   const [isSavingSchwenk, setIsSavingSchwenk] = useState(false);
+  const [standardJson, setStandardJson] = useState("");
+  const [addonJson, setAddonJson] = useState("");
+  const [schwenkJson, setSchwenkJson] = useState("");
+  const [standardJsonError, setStandardJsonError] = useState<string | null>(null);
+  const [addonJsonError, setAddonJsonError] = useState<string | null>(null);
+  const [schwenkJsonError, setSchwenkJsonError] = useState<string | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<{
+    bomType: BomType;
+    modelName: string;
+    items: BomItem[];
+  } | null>(null);
+  const [duplicateModelName, setDuplicateModelName] = useState("");
+  const [duplicateBomType, setDuplicateBomType] = useState<BomType>("STANDARD");
+  const [duplicateKeepType, setDuplicateKeepType] = useState(true);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [duplicateNeedsOverwrite, setDuplicateNeedsOverwrite] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   const [parts, setParts] = useState<Part[]>([]);
   const [partsPage, setPartsPage] = useState(1);
@@ -180,6 +202,42 @@ export default function AdminPanel() {
   }, [lang]);
 
   const t = labels[lang];
+  const bomUi = {
+    copy: lang === "pl" ? "Kopiuj BOM" : "BOM kopieren",
+    paste: lang === "pl" ? "Wklej i zaladuj" : "Einfugen & laden",
+    duplicate: lang === "pl" ? "Duplikuj BOM" : "BOM duplizieren",
+    jsonLabel: lang === "pl" ? "JSON BOM" : "BOM JSON",
+    jsonPlaceholder:
+      lang === "pl"
+        ? '{ "modelName": "FL 540", "bomType": "STANDARD", "items": [{"partId":1,"qtyPerPlow":2}] }'
+        : '{ "modelName": "FL 540", "bomType": "STANDARD", "items": [{"partId":1,"qtyPerPlow":2}] }',
+    jsonInvalid: lang === "pl" ? "Nieprawidlowy JSON BOM." : "Ungultiges BOM-JSON.",
+    jsonCopied: lang === "pl" ? "Skopiowano BOM." : "BOM kopiert.",
+    jsonLoaded: lang === "pl" ? "Wczytano pozycje BOM." : "BOM-Positionen geladen.",
+    duplicateTitle: lang === "pl" ? "Duplikuj BOM" : "BOM duplizieren",
+    duplicateModelLabel: lang === "pl" ? "Nowy modelName" : "Neuer modelName",
+    duplicateTypeLabel: lang === "pl" ? "Nowy bomType" : "Neuer bomType",
+    duplicateKeepType: lang === "pl" ? "Zachowaj ten sam bomType" : "BomType beibehalten",
+    duplicateCreate: lang === "pl" ? "Utworz kopie" : "Kopie erstellen",
+    duplicateOverwrite: lang === "pl" ? "Nadpisz" : "Uberschreiben",
+    duplicateExists:
+      lang === "pl"
+        ? "Docelowy BOM juz istnieje. Czy chcesz go nadpisac?"
+        : "Ziel-BOM existiert bereits. Uberschreiben?",
+    duplicateMissing:
+      lang === "pl" ? "Podaj docelowy modelName." : "Bitte Ziel-modelName angeben.",
+  };
+
+  const isGlobalBomType = (bomType: BomType) =>
+    bomType === "SCHWENKBOCK_3000" || bomType === "SCHWENKBOCK_2000";
+
+  const getNormalizedModelName = (bomType: BomType, modelName: string) =>
+    isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+
+  const getBomTypeLabel = (bomType: BomType) => {
+    const match = bomTypeOptions.find((option) => option.value === bomType);
+    return match ? match.label : bomType;
+  };
 
   const importReasonLabels: Record<ImportSkipReason, string> = {
     missing_name: t.partsImportReasonMissingName,
@@ -407,6 +465,161 @@ export default function AdminPanel() {
     setItems(data.bom?.items ?? []);
     setNotice({ type: "success", message: t.saved });
     setSaving(false);
+  };
+
+  const buildBomPayload = (bomType: BomType, modelName: string, items: BomItem[]) =>
+    JSON.stringify(
+      {
+        modelName: getNormalizedModelName(bomType, modelName),
+        bomType,
+        items: items.map((item) => ({
+          partId: item.partId,
+          qtyPerPlow: item.qtyPerPlow,
+        })),
+      },
+      null,
+      2
+    );
+
+  const copyBomToClipboard = async (bomType: BomType, modelName: string, items: BomItem[]) => {
+    try {
+      await navigator.clipboard.writeText(buildBomPayload(bomType, modelName, items));
+      setNotice({ type: "success", message: bomUi.jsonCopied });
+    } catch {
+      setNotice({ type: "error", message: t.error });
+    }
+  };
+
+  const parseBomJson = (value: string) => {
+    const parsed = JSON.parse(value) as {
+      items?: Array<{ partId: number; qtyPerPlow: number }>;
+    };
+    if (!parsed?.items || !Array.isArray(parsed.items)) {
+      return null;
+    }
+    const normalized = parsed.items.map((item) => ({
+      partId: Number(item.partId),
+      qtyPerPlow: Number(item.qtyPerPlow),
+    }));
+    if (
+      normalized.some(
+        (item) =>
+          !Number.isInteger(item.partId) ||
+          item.partId <= 0 ||
+          !Number.isFinite(item.qtyPerPlow) ||
+          item.qtyPerPlow <= 0
+      )
+    ) {
+      return null;
+    }
+    return normalized;
+  };
+
+  const applyBomJson = (
+    value: string,
+    setItems: (items: BomItem[]) => void,
+    setError: (value: string | null) => void
+  ) => {
+    try {
+      const parsedItems = parseBomJson(value);
+      if (!parsedItems) {
+        setError(bomUi.jsonInvalid);
+        return;
+      }
+      const nextItems: BomItem[] = parsedItems.map((item) => {
+        const match = bomPartOptions.find((part) => part.id === item.partId);
+        return {
+          partId: item.partId,
+          qtyPerPlow: item.qtyPerPlow,
+          part: match ? { name: match.name } : undefined,
+        };
+      });
+      setItems(nextItems);
+      setError(null);
+      setNotice({ type: "success", message: bomUi.jsonLoaded });
+    } catch {
+      setError(bomUi.jsonInvalid);
+    }
+  };
+
+  const openDuplicateModal = (bomType: BomType, modelName: string, items: BomItem[]) => {
+    setDuplicateSource({ bomType, modelName, items });
+    setDuplicateKeepType(true);
+    setDuplicateBomType(bomType);
+    setDuplicateModelName(modelName);
+    setDuplicateWarning(null);
+    setDuplicateNeedsOverwrite(false);
+  };
+
+  const confirmDuplicate = async () => {
+    if (!duplicateSource || isDuplicating) {
+      return;
+    }
+    const targetType = duplicateKeepType ? duplicateSource.bomType : duplicateBomType;
+    const targetModel = duplicateModelName.trim();
+    if (!isGlobalBomType(targetType) && !targetModel) {
+      setDuplicateWarning(bomUi.duplicateMissing);
+      return;
+    }
+    setIsDuplicating(true);
+    setDuplicateWarning(null);
+    const params = new URLSearchParams();
+    params.set("bomType", targetType);
+    if (!isGlobalBomType(targetType)) {
+      params.set("modelName", targetModel);
+    }
+    try {
+      const check = await fetch(`/api/bom?${params.toString()}`, { cache: "no-store" });
+      if (check.ok) {
+        const existing = await check.json();
+        if (existing?.bom?.items?.length && !duplicateNeedsOverwrite) {
+          setDuplicateWarning(bomUi.duplicateExists);
+          setDuplicateNeedsOverwrite(true);
+          setIsDuplicating(false);
+          return;
+        }
+      }
+      const response = await fetch("/api/bom", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelName: isGlobalBomType(targetType) ? "" : targetModel,
+          bomType: targetType,
+          items: duplicateSource.items.map((item) => ({
+            partId: item.partId,
+            qtyPerPlow: item.qtyPerPlow,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        setDuplicateWarning(t.error);
+        setIsDuplicating(false);
+        return;
+      }
+
+      if (targetType === "STANDARD") {
+        setStandardModel(targetModel || standardModel);
+        loadBomByType(targetType, targetModel || standardModel)
+          .then(setStandardItems)
+          .catch(() => null);
+      } else if (targetType === "ADDON_6_2") {
+        setAddonModel(targetModel || addonModel);
+        loadBomByType(targetType, targetModel || addonModel)
+          .then(setAddonItems)
+          .catch(() => null);
+      } else {
+        setSchwenkType(targetType);
+        loadBomByType(targetType, "")
+          .then(setSchwenkItems)
+          .catch(() => null);
+      }
+      setNotice({ type: "success", message: t.saved });
+      setDuplicateSource(null);
+    } catch {
+      setDuplicateWarning(t.error);
+    } finally {
+      setIsDuplicating(false);
+    }
   };
 
   const addBomItem = async (
@@ -964,6 +1177,26 @@ export default function AdminPanel() {
                   <h3 className="title">{t.standard}</h3>
                   <p className="subtitle">{t.bomModelLabel}</p>
                 </div>
+                <div className="card-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      copyBomToClipboard("STANDARD", standardModel, standardItems)
+                    }
+                  >
+                    {bomUi.copy}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      openDuplicateModal("STANDARD", standardModel, standardItems)
+                    }
+                  >
+                    {bomUi.duplicate}
+                  </button>
+                </div>
               </div>
               <div className="form-row">
                 <label>
@@ -1089,6 +1322,33 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="form" style={{ marginTop: 16 }}>
+                <label>
+                  {bomUi.jsonLabel}
+                  <textarea
+                    value={standardJson}
+                    onChange={(event) => {
+                      setStandardJson(event.target.value);
+                      setStandardJsonError(null);
+                    }}
+                    placeholder={bomUi.jsonPlaceholder}
+                    rows={5}
+                  />
+                </label>
+                {standardJsonError && <div className="alert">{standardJsonError}</div>}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() =>
+                      applyBomJson(standardJson, setStandardItems, setStandardJsonError)
+                    }
+                  >
+                    {bomUi.paste}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="bom-section">
@@ -1096,6 +1356,26 @@ export default function AdminPanel() {
                 <div>
                   <h3 className="title">6/2</h3>
                   <p className="subtitle">{t.bomModelLabel}</p>
+                </div>
+                <div className="card-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      copyBomToClipboard("ADDON_6_2", addonModel, addonItems)
+                    }
+                  >
+                    {bomUi.copy}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      openDuplicateModal("ADDON_6_2", addonModel, addonItems)
+                    }
+                  >
+                    {bomUi.duplicate}
+                  </button>
                 </div>
               </div>
               <div className="form-row">
@@ -1217,6 +1497,33 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="form" style={{ marginTop: 16 }}>
+                <label>
+                  {bomUi.jsonLabel}
+                  <textarea
+                    value={addonJson}
+                    onChange={(event) => {
+                      setAddonJson(event.target.value);
+                      setAddonJsonError(null);
+                    }}
+                    placeholder={bomUi.jsonPlaceholder}
+                    rows={5}
+                  />
+                </label>
+                {addonJsonError && <div className="alert">{addonJsonError}</div>}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() =>
+                      applyBomJson(addonJson, setAddonItems, setAddonJsonError)
+                    }
+                  >
+                    {bomUi.paste}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="bom-section">
@@ -1224,6 +1531,22 @@ export default function AdminPanel() {
                 <div>
                   <h3 className="title">{t.schwenkbock}</h3>
                   <p className="subtitle">{t.bomConfigLabel}</p>
+                </div>
+                <div className="card-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() => copyBomToClipboard(schwenkType, "", schwenkItems)}
+                  >
+                    {bomUi.copy}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() => openDuplicateModal(schwenkType, "", schwenkItems)}
+                  >
+                    {bomUi.duplicate}
+                  </button>
                 </div>
               </div>
               <div className="form-row">
@@ -1344,6 +1667,33 @@ export default function AdminPanel() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="form" style={{ marginTop: 16 }}>
+                <label>
+                  {bomUi.jsonLabel}
+                  <textarea
+                    value={schwenkJson}
+                    onChange={(event) => {
+                      setSchwenkJson(event.target.value);
+                      setSchwenkJsonError(null);
+                    }}
+                    placeholder={bomUi.jsonPlaceholder}
+                    rows={5}
+                  />
+                </label>
+                {schwenkJsonError && <div className="alert">{schwenkJsonError}</div>}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() =>
+                      applyBomJson(schwenkJson, setSchwenkItems, setSchwenkJsonError)
+                    }
+                  >
+                    {bomUi.paste}
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -1936,6 +2286,93 @@ export default function AdminPanel() {
                 </button>
               </div>
             </form>
+          </section>
+        </div>
+      )}
+
+      {duplicateSource && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="card modal-card">
+            <div className="card-header">
+              <div>
+                <h3 className="title">{bomUi.duplicateTitle}</h3>
+                <p className="subtitle">
+                  {getNormalizedModelName(duplicateSource.bomType, duplicateSource.modelName)} ·{" "}
+                  {getBomTypeLabel(duplicateSource.bomType)}
+                </p>
+              </div>
+            </div>
+            <div className="form">
+              <label>
+                {bomUi.duplicateModelLabel}
+                <input
+                  value={duplicateModelName}
+                  onChange={(event) => {
+                    setDuplicateModelName(event.target.value);
+                    setDuplicateWarning(null);
+                    setDuplicateNeedsOverwrite(false);
+                  }}
+                  placeholder="FL 540"
+                  disabled={isGlobalBomType(
+                    duplicateKeepType ? duplicateSource.bomType : duplicateBomType
+                  )}
+                />
+              </label>
+              <label>
+                {bomUi.duplicateTypeLabel}
+                <select
+                  value={duplicateKeepType ? duplicateSource.bomType : duplicateBomType}
+                  onChange={(event) => {
+                    setDuplicateBomType(event.target.value as BomType);
+                    setDuplicateKeepType(false);
+                    setDuplicateWarning(null);
+                    setDuplicateNeedsOverwrite(false);
+                  }}
+                  disabled={duplicateKeepType}
+                >
+                  {bomTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={duplicateKeepType}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setDuplicateKeepType(checked);
+                    if (checked) {
+                      setDuplicateBomType(duplicateSource.bomType);
+                    }
+                    setDuplicateWarning(null);
+                    setDuplicateNeedsOverwrite(false);
+                  }}
+                />
+                {bomUi.duplicateKeepType}
+              </label>
+              {duplicateWarning && <div className="alert">{duplicateWarning}</div>}
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={confirmDuplicate}
+                  disabled={isDuplicating}
+                >
+                  {duplicateNeedsOverwrite ? bomUi.duplicateOverwrite : bomUi.duplicateCreate}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setDuplicateSource(null)}
+                  disabled={isDuplicating}
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </div>
           </section>
         </div>
       )}
