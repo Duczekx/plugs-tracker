@@ -44,6 +44,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   const [isMobile, setIsMobile] = useState(false);
   const [notificationLocale, setNotificationLocale] = useState<Lang>(lang ?? "pl");
   const [isMounted, setIsMounted] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = labels[activeLang];
 
@@ -147,23 +148,26 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
     if (!isOpen) {
       return;
     }
-    const onClick = (event: MouseEvent) => {
-      if (!panelRef.current) {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const insideBell = bellRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (insideBell || insidePanel) {
+        
         return;
       }
-      if (!panelRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      
+      setIsOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", onClick);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [isOpen]);
@@ -296,7 +300,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   const labelText = activeLang === "pl" ? "Powiadomienia" : "Benachrichtigungen";
 
   return (
-    <div className="notification-bell" ref={panelRef}>
+    <div className="notification-bell" ref={bellRef}>
       <button
         type="button"
         className={`button button-ghost button-icon-only notification-bell-button ${
@@ -336,11 +340,18 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
               type="button"
               className="notification-sheet-backdrop"
               aria-label={t.pushPromptClose}
-              onClick={() => setIsOpen(false)}
+              onPointerDown={() => {
+                
+                setIsOpen(false);
+              }}
             />
             <section
               className="card notification-sheet"
-              onClick={(event) => event.stopPropagation()}
+              ref={panelRef}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                
+              }}
             >
             <button
               type="button"
@@ -447,7 +458,14 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
         : null}
 
       {isOpen && !isMobile && (
-        <div className="notification-panel card">
+        <div
+          className="notification-panel card"
+          ref={panelRef}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            
+          }}
+        >
           <div className="card-header">
             <div>
               <h3 className="title notification-panel-title">{panelLabels.title}</h3>
