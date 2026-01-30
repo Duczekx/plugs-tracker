@@ -88,5 +88,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body?.locale) {
+    await prisma.notificationPreference.upsert({
+      where: { userId },
+      update: {
+        locale: String(body.locale),
+      },
+      create: {
+        userId,
+        locale: String(body.locale),
+      },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
 }

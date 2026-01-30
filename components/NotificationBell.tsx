@@ -41,6 +41,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [notificationLocale, setNotificationLocale] = useState<Lang>(lang ?? "pl");
   const panelRef = useRef<HTMLDivElement>(null);
   const t = labels[activeLang];
 
@@ -70,6 +71,29 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
     }
   }, [lang]);
 
+  useEffect(() => {
+    if (lang) {
+      setNotificationLocale(lang);
+    }
+  }, [lang]);
+
+  const loadPreferences = async () => {
+    try {
+      const response = await fetch("/api/push/preferences", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      if (data?.locale === "pl" || data?.locale === "de") {
+        setNotificationLocale(data.locale);
+      } else if (activeLang) {
+        setNotificationLocale(activeLang);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const refreshStatus = async () => {
     if (!supportsPush) {
       return;
@@ -93,6 +117,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       return;
     }
     refreshStatus().catch(() => null);
+    loadPreferences().catch(() => null);
   }, [isOpen]);
 
   useEffect(() => {
@@ -152,7 +177,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(key),
     });
-    const locale = activeLang;
+    const locale = notificationLocale;
     const response = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -167,6 +192,14 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       throw new Error("subscribe");
     }
     setHasSubscription(true);
+  };
+
+  const saveLocale = async (locale: Lang) => {
+    await fetch("/api/push/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale }),
+    }).catch(() => null);
   };
 
   const handleEnable = async () => {
@@ -247,6 +280,10 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       activeLang === "pl"
         ? "Ustawienia -> Powiadomienia -> Safari -> Witryny -> zezwol dla domeny."
         : "Einstellungen -> Mitteilungen -> Safari -> Websites -> fuer die Domain erlauben.",
+    localeLabel:
+      activeLang === "pl"
+        ? "Jezyk powiadomien"
+        : "Sprache der Benachrichtigungen",
   };
 
   const isActive = permission === "granted" && hasSubscription;
@@ -325,6 +362,32 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
 
             {error && <div className="alert">{error}</div>}
 
+            <div className="notification-locale">
+              <span className="notification-locale-label">{panelLabels.localeLabel}</span>
+              <div className="lang-buttons notification-locale-buttons">
+                <button
+                  type="button"
+                  className={`lang-btn ${notificationLocale === "pl" ? "active" : ""}`}
+                  onClick={() => {
+                    setNotificationLocale("pl");
+                    saveLocale("pl");
+                  }}
+                >
+                  PL
+                </button>
+                <button
+                  type="button"
+                  className={`lang-btn ${notificationLocale === "de" ? "active" : ""}`}
+                  onClick={() => {
+                    setNotificationLocale("de");
+                    saveLocale("de");
+                  }}
+                >
+                  DE
+                </button>
+              </div>
+            </div>
+
             <div className="form-actions notification-panel-actions">
               {permission === "default" && (
                 <button
@@ -385,6 +448,32 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
           )}
 
           {error && <div className="alert">{error}</div>}
+
+          <div className="notification-locale">
+            <span className="notification-locale-label">{panelLabels.localeLabel}</span>
+            <div className="lang-buttons notification-locale-buttons">
+              <button
+                type="button"
+                className={`lang-btn ${notificationLocale === "pl" ? "active" : ""}`}
+                onClick={() => {
+                  setNotificationLocale("pl");
+                  saveLocale("pl");
+                }}
+              >
+                PL
+              </button>
+              <button
+                type="button"
+                className={`lang-btn ${notificationLocale === "de" ? "active" : ""}`}
+                onClick={() => {
+                  setNotificationLocale("de");
+                  saveLocale("de");
+                }}
+              >
+                DE
+              </button>
+            </div>
+          </div>
 
           <div className="form-actions notification-panel-actions">
             {permission === "default" && (

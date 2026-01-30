@@ -3513,6 +3513,24 @@ textarea {
   gap: 10px;
 }
 
+.notification-locale {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.notification-locale-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.notification-locale-buttons {
+  width: fit-content;
+}
+
 @keyframes bellPulse {
   0% {
     transform: scale(1);
