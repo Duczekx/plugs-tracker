@@ -51,5 +51,14 @@ export async function POST(request: Request) {
 
   const response = NextResponse.redirect(new URL(next, request.url), 303);
   await setRoleCookies(response, roleValue);
+  if (roleValue === "EDITOR") {
+    response.cookies.set("pt_mode", "", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
+  }
   return response;
 }

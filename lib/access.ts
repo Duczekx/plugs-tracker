@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const READ_ONLY_COOKIE = "pt_mode";
+const ROLE_COOKIE = "pt_role";
 const ADMIN_HEADER = "x-admin-key";
 const ADMIN_KEY = process.env.ADMIN_KEY ?? "";
 
-export const isReadOnly = (request: NextRequest) =>
-  request.cookies.get(READ_ONLY_COOKIE)?.value === "review";
+export const isReadOnly = (request: NextRequest) => {
+  const role = request.cookies.get(ROLE_COOKIE)?.value ?? "";
+  if (role === "EDITOR") {
+    return false;
+  }
+  return request.cookies.get(READ_ONLY_COOKIE)?.value === "review";
+};
 
 export const blockIfReadOnly = (request: NextRequest) => {
   if (!isReadOnly(request)) {
