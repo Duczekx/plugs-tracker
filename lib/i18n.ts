@@ -248,6 +248,7 @@ export const labels = {
     pushPromptDeniedHint:
       "Powiadomienia sa zablokowane w ustawieniach przegladarki. Wlacz je w ustawieniach strony.",
     pushPromptClose: "Zamknij",
+    pushPromptEnabled: "Powiadomienia wlaczone.",
     pushReadyTitle: "Zmiana statusu zamowienia",
     pushReadyBody: "{company}: status {status}.",
     pushLowStockTitle: "Niski stan magazynu",
@@ -518,6 +519,7 @@ export const labels = {
     pushPromptDeniedHint:
       "Benachrichtigungen sind in den Browsereinstellungen blockiert. Bitte in den Website-Einstellungen aktivieren.",
     pushPromptClose: "Schliessen",
+    pushPromptEnabled: "Benachrichtigungen sind aktiviert.",
     pushReadyTitle: "Statusanderung",
     pushReadyBody: "{company}: Status {status}.",
     pushLowStockTitle: "Niedriger Lagerbestand",
