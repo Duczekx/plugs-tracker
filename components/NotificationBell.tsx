@@ -40,6 +40,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = labels[activeLang];
 
@@ -93,6 +94,17 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
     }
     refreshStatus().catch(() => null);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const onVisibility = () => refreshStatus().catch(() => null);
@@ -238,6 +250,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   };
 
   const isActive = permission === "granted" && hasSubscription;
+  const labelText = activeLang === "pl" ? "Powiadomienia" : "Benachrichtigungen";
 
   return (
     <div className="notification-bell" ref={panelRef}>
@@ -267,8 +280,88 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
         </svg>
         {!isActive && <span className="notification-bell-dot" aria-hidden="true" />}
       </button>
+      <span className="notification-bell-label">{labelText}</span>
 
-      {isOpen && (
+      {isOpen && isMobile && (
+        <div className="modal-overlay notification-sheet-overlay" role="dialog" aria-modal="true">
+          <section className="card notification-sheet">
+            <button
+              type="button"
+              className="push-modal-close"
+              aria-label={t.pushPromptClose}
+              onClick={() => setIsOpen(false)}
+              disabled={isBusy}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6 6l12 12M18 6l-12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <div className="card-header">
+              <div>
+                <h3 className="title notification-sheet-title">{panelLabels.title}</h3>
+                <p className="subtitle">{t.pushPromptDescription}</p>
+              </div>
+            </div>
+
+            {!supportsPush && (
+              <div className="alert">{t.pushPromptUnsupported}</div>
+            )}
+
+            {permission === "denied" && (
+              <div className="alert">
+                {t.pushPromptDeniedHint} {isIOS() ? panelLabels.deniedHint : ""}
+              </div>
+            )}
+
+            {permission === "granted" && isActive && (
+              <div className="alert">{panelLabels.enabled}</div>
+            )}
+
+            {error && <div className="alert">{error}</div>}
+
+            <div className="form-actions notification-panel-actions">
+              {permission === "default" && (
+                <button
+                  type="button"
+                  className="button"
+                  onClick={handleEnable}
+                  disabled={isBusy}
+                >
+                  {panelLabels.enable}
+                </button>
+              )}
+              {permission === "granted" && !hasSubscription && (
+                <button
+                  type="button"
+                  className="button"
+                  onClick={handleSubscribe}
+                  disabled={isBusy}
+                >
+                  {panelLabels.activate}
+                </button>
+              )}
+              {permission === "granted" && hasSubscription && (
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={handleUnsubscribe}
+                  disabled={isBusy}
+                >
+                  {panelLabels.disable}
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isOpen && !isMobile && (
         <div className="notification-panel card">
           <div className="card-header">
             <div>

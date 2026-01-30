@@ -3425,11 +3425,13 @@ textarea {
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
 }
 
 .notification-bell-button {
   position: relative;
   color: var(--accent);
+  animation: bellBounce 6s ease-in-out infinite;
 }
 
 .notification-bell-button svg {
@@ -3449,7 +3451,14 @@ textarea {
 }
 
 .notification-bell-attn {
-  animation: bellPulse 1.6s ease-in-out infinite;
+  animation: bellPulse 1.4s ease-in-out infinite, bellBounce 6s ease-in-out infinite;
+}
+
+.notification-bell-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.2;
 }
 
 .notification-panel {
@@ -3482,6 +3491,60 @@ textarea {
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(244, 124, 47, 0);
+  }
+}
+
+@keyframes bellBounce {
+  0% {
+    transform: translateY(0);
+  }
+  86% {
+    transform: translateY(0);
+  }
+  90% {
+    transform: translateY(-4px);
+  }
+  94% {
+    transform: translateY(0);
+  }
+  98% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.notification-sheet-overlay {
+  padding: calc(16px + env(safe-area-inset-top)) 5vw
+    calc(16px + env(safe-area-inset-bottom));
+  align-items: stretch;
+}
+
+.notification-sheet {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  border-radius: 24px;
+}
+
+.notification-sheet-title {
+  font-size: clamp(24px, 6vw, 30px);
+}
+
+@media (min-width: 768px) {
+  .notification-bell {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .notification-bell {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
 }
 
