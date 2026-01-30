@@ -159,7 +159,7 @@ const hasDuplicateBuildNumbers = (items: { buildNumber: string }[]) => {
 
 const getLowStockParts = async (tx: Prisma.TransactionClient, partIds: number[]) =>
   tx.part.findMany({
-    where: { id: { in: partIds }, stock: { lte: 2 } },
+    where: { id: { in: partIds }, stock: { lte: 10 } },
     select: { id: true, name: true, stock: true },
   });
 

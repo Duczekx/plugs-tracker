@@ -132,7 +132,7 @@ export default function PartsTable({
                     <button
                       type="button"
                       className="button button-ghost button-icon-only parts-action-btn parts-actions-inline"
-                      aria-label={labels.partsAdjust}
+                      aria-label={labels.actionsLabel}
                       title={labels.partsAdjust}
                       onClick={() => onAdjust(part)}
                     >
@@ -189,23 +189,41 @@ export default function PartsTable({
                   )}
                   {(onAdjust || onEdit || onDelete) && (
                     <div className="parts-actions-mobile">
-                      <button
-                        type="button"
-                        className="button button-ghost button-icon-only parts-action-btn"
-                        aria-label={labels.actionsLabel}
-                        title={labels.actionsLabel}
-                        onClick={() =>
-                          setActiveActionId((current) => (current === part.id ? null : part.id))
-                        }
+                  <button
+                      type="button"
+                      className="button button-ghost button-icon-only parts-action-btn"
+                      aria-label={labels.actionsLabel}
+                      title={labels.actionsLabel}
+                      onClick={() =>
+                        setActiveActionId((current) => (current === part.id ? null : part.id))
+                      }
+                    >
+                      <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="6" cy="12" r="1.6" fill="currentColor" />
+                        <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                        <circle cx="18" cy="12" r="1.6" fill="currentColor" />
+                      </svg>
+                    </button>
+                    {activeActionId === part.id && (
+                      <div
+                        className="parts-actions-menu-overlay"
+                        onClick={() => setActiveActionId(null)}
                       >
-                        <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                          <circle cx="6" cy="12" r="1.6" fill="currentColor" />
-                          <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-                          <circle cx="18" cy="12" r="1.6" fill="currentColor" />
-                        </svg>
-                      </button>
-                      {activeActionId === part.id && (
-                        <div className="parts-actions-menu">
+                        <div
+                          className="parts-actions-menu-sheet"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="parts-actions-menu-header">
+                            <span>{labels.actionsLabel}</span>
+                            <button
+                              type="button"
+                              className="button button-ghost button-icon-only"
+                              aria-label={labels.actionsLabel}
+                              onClick={() => setActiveActionId(null)}
+                            >
+                              X
+                            </button>
+                          </div>
                           {onAdjust && (
                             <button
                               type="button"
@@ -243,11 +261,12 @@ export default function PartsTable({
                             </button>
                           )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           ))}
         </div>
@@ -365,3 +384,4 @@ export default function PartsTable({
     </div>
   );
 }
+
