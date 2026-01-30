@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Lang } from "@/lib/i18n";
 import { labels } from "@/lib/i18n";
 
@@ -42,6 +43,7 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [notificationLocale, setNotificationLocale] = useState<Lang>(lang ?? "pl");
+  const [isMounted, setIsMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = labels[activeLang];
 
@@ -76,6 +78,10 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       setNotificationLocale(lang);
     }
   }, [lang]);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const loadPreferences = async () => {
     try {
@@ -319,9 +325,18 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
       </button>
       <span className="notification-bell-label">{labelText}</span>
 
-      {isOpen && isMobile && (
-        <div className="modal-overlay notification-sheet-overlay" role="dialog" aria-modal="true">
-          <section className="card notification-sheet">
+      {isOpen && isMobile && isMounted
+        ? createPortal(
+          <div
+            className="modal-overlay notification-sheet-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setIsOpen(false)}
+          >
+            <section
+              className="card notification-sheet"
+              onClick={(event) => event.stopPropagation()}
+            >
             <button
               type="button"
               className="push-modal-close"
@@ -421,8 +436,10 @@ export default function NotificationBell({ lang }: { lang?: Lang }) {
               )}
             </div>
           </section>
-        </div>
-      )}
+          </div>,
+          document.body
+        )
+        : null}
 
       {isOpen && !isMobile && (
         <div className="notification-panel card">
