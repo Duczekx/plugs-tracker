@@ -56,6 +56,20 @@ https://TWOJA-DOMENA/review?token=REVIEW_TOKEN
 
 Uzytkownik musi sie zalogowac przez `/login`, ale nie ma mozliwosci edycji.
 
+## Role aplikacji (poza /admin)
+Ustaw nowe zmienne srodowiskowe:
+- `VIEWER_PASSWORD` (tylko podglad + push)
+- `EDITOR_PASSWORD` (edycja + push)
+
+Logowanie:
+- `/viewer` (VIEWER)
+- `/editor` (EDITOR)
+
+API ról:
+- `POST /api/role-login`
+- `POST/GET /api/role-logout`
+- `GET /api/role/me`
+
 ## Rozwoj
 - Plik schematu bazy: `prisma/schema.prisma`
 - API:

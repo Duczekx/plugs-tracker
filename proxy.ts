@@ -1,46 +1,83 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getRoleFromRequest } from "@/lib/role-auth";
 
-const AUTH_COOKIE = "pt_auth";
 const PUBLIC_FILE = /\.(.*)$/;
+const PUBLIC_PATHS = new Set([
+  "/login",
+  "/viewer",
+  "/editor",
+  "/review",
+  "/api/login",
+  "/api/role-login",
+  "/api/role-logout",
+  "/api/role/me",
+]);
+const STATIC_PREFIXES = ["/_next", "/icons"];
+const STATIC_FILES = new Set([
+  "/favicon.ico",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/robots.txt",
+  "/sitemap.xml",
+]);
 
-const hashValue = async (value: string) => {
-  const data = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+const isStaticAsset = (pathname: string) => {
+  if (STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return true;
+  }
+  if (STATIC_FILES.has(pathname)) {
+    return true;
+  }
+  return PUBLIC_FILE.test(pathname);
 };
 
 export const proxy = async (request: NextRequest) => {
   const { pathname, search } = request.nextUrl;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico" ||
-    pathname === "/login" ||
-    pathname === "/review" ||
-    pathname.startsWith("/api/login") ||
-    PUBLIC_FILE.test(pathname)
-  ) {
+  if (isStaticAsset(pathname) || PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next();
   }
 
-  const appPassword = process.env.APP_PASSWORD;
-  if (!appPassword) {
+  if (pathname.startsWith("/admin")) {
+    const role = await getRoleFromRequest(request);
+    if (role === "VIEWER") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 
-  const expected = await hashValue(appPassword);
-  const cookie = request.cookies.get(AUTH_COOKIE)?.value;
-  if (cookie && cookie === expected) {
+  if (pathname.startsWith("/api/admin")) {
     return NextResponse.next();
   }
 
-  const loginUrl = request.nextUrl.clone();
-  loginUrl.pathname = "/login";
-  loginUrl.searchParams.set("next", `${pathname}${search}`);
-  return NextResponse.redirect(loginUrl);
+  if (pathname.startsWith("/api/")) {
+    const role = await getRoleFromRequest(request);
+    if (!role) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    if (pathname.startsWith("/api/push")) {
+      return NextResponse.next();
+    }
+    const method = request.method.toUpperCase();
+    if (role === "VIEWER" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
+  const role = await getRoleFromRequest(request);
+  if (role) {
+    return NextResponse.next();
+  }
+
+  const viewerUrl = request.nextUrl.clone();
+  viewerUrl.pathname = "/viewer";
+  viewerUrl.searchParams.set("next", `${pathname}${search}`);
+  return NextResponse.redirect(viewerUrl);
 };
 
 export const config = {
