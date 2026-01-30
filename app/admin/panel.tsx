@@ -212,6 +212,20 @@ export default function AdminPanel() {
         ? '{ "modelName": "FL 540", "bomType": "STANDARD", "items": [{"partId":1,"qtyPerPlow":2}] }'
         : '{ "modelName": "FL 540", "bomType": "STANDARD", "items": [{"partId":1,"qtyPerPlow":2}] }',
     jsonInvalid: lang === "pl" ? "Nieprawidlowy JSON BOM." : "Ungultiges BOM-JSON.",
+    jsonMissingItems:
+      lang === "pl" ? "Brak items[] w BOM." : "items[] im BOM fehlt.",
+    jsonMissingModel:
+      lang === "pl" ? "Brak modelName." : "modelName fehlt.",
+    jsonInvalidType:
+      lang === "pl" ? "Nieprawidlowy bomType." : "Ungultiger bomType.",
+    jsonInvalidPartId:
+      lang === "pl" ? "partId musi byc liczba > 0." : "partId muss > 0 sein.",
+    jsonInvalidQty:
+      lang === "pl" ? "qtyPerPlow musi byc liczba > 0." : "qtyPerPlow muss > 0 sein.",
+    jsonReplaceConfirm:
+      lang === "pl"
+        ? "Wczytanie podmieni obecne pozycje BOM. Kontynuowac?"
+        : "Das Laden ersetzt die aktuellen BOM-Positionen. Fortfahren?",
     jsonCopied: lang === "pl" ? "Skopiowano BOM." : "BOM kopiert.",
     jsonLoaded: lang === "pl" ? "Wczytano pozycje BOM." : "BOM-Positionen geladen.",
     duplicateTitle: lang === "pl" ? "Duplikuj BOM" : "BOM duplizieren",
@@ -491,55 +505,73 @@ export default function AdminPanel() {
   };
 
   const parseBomJson = (value: string) => {
-    const parsed = JSON.parse(value) as {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return { items: null, error: bomUi.jsonInvalid };
+    }
+    let parsed: {
+      modelName?: string;
+      bomType?: BomType;
       items?: Array<{ partId: number; qtyPerPlow: number }>;
     };
-    if (!parsed?.items || !Array.isArray(parsed.items)) {
-      return null;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      return { items: null, error: bomUi.jsonInvalid };
+    }
+    if (!parsed || typeof parsed.modelName !== "string" || !parsed.modelName.trim()) {
+      return { items: null, error: bomUi.jsonMissingModel };
+    }
+    const allowedTypes = new Set(bomTypeOptions.map((option) => option.value));
+    if (!parsed.bomType || !allowedTypes.has(parsed.bomType)) {
+      return { items: null, error: bomUi.jsonInvalidType };
+    }
+    if (!parsed.items || !Array.isArray(parsed.items)) {
+      return { items: null, error: bomUi.jsonMissingItems };
     }
     const normalized = parsed.items.map((item) => ({
       partId: Number(item.partId),
       qtyPerPlow: Number(item.qtyPerPlow),
     }));
-    if (
-      normalized.some(
-        (item) =>
-          !Number.isInteger(item.partId) ||
-          item.partId <= 0 ||
-          !Number.isFinite(item.qtyPerPlow) ||
-          item.qtyPerPlow <= 0
-      )
-    ) {
-      return null;
+    for (const item of normalized) {
+      if (!Number.isInteger(item.partId) || item.partId <= 0) {
+        return { items: null, error: bomUi.jsonInvalidPartId };
+      }
+      if (!Number.isFinite(item.qtyPerPlow) || item.qtyPerPlow <= 0) {
+        return { items: null, error: bomUi.jsonInvalidQty };
+      }
     }
-    return normalized;
+    return { items: normalized, error: null };
   };
 
   const applyBomJson = (
     value: string,
     setItems: (items: BomItem[]) => void,
-    setError: (value: string | null) => void
+    setError: (value: string | null) => void,
+    currentItems: BomItem[]
   ) => {
-    try {
-      const parsedItems = parseBomJson(value);
-      if (!parsedItems) {
-        setError(bomUi.jsonInvalid);
+    const result = parseBomJson(value);
+    if (!result.items) {
+      setError(result.error ?? bomUi.jsonInvalid);
+      return;
+    }
+    if (currentItems.length > 0) {
+      const confirmed = window.confirm(bomUi.jsonReplaceConfirm);
+      if (!confirmed) {
         return;
       }
-      const nextItems: BomItem[] = parsedItems.map((item) => {
-        const match = bomPartOptions.find((part) => part.id === item.partId);
-        return {
-          partId: item.partId,
-          qtyPerPlow: item.qtyPerPlow,
-          part: match ? { name: match.name } : undefined,
-        };
-      });
-      setItems(nextItems);
-      setError(null);
-      setNotice({ type: "success", message: bomUi.jsonLoaded });
-    } catch {
-      setError(bomUi.jsonInvalid);
     }
+    const nextItems: BomItem[] = result.items.map((item) => {
+      const match = bomPartOptions.find((part) => part.id === item.partId);
+      return {
+        partId: item.partId,
+        qtyPerPlow: item.qtyPerPlow,
+        part: match ? { name: match.name } : undefined,
+      };
+    });
+    setItems(nextItems);
+    setError(null);
+    setNotice({ type: "success", message: bomUi.jsonLoaded });
   };
 
   const openDuplicateModal = (bomType: BomType, modelName: string, items: BomItem[]) => {
@@ -1342,7 +1374,12 @@ export default function AdminPanel() {
                     type="button"
                     className="button button-ghost"
                     onClick={() =>
-                      applyBomJson(standardJson, setStandardItems, setStandardJsonError)
+                      applyBomJson(
+                        standardJson,
+                        setStandardItems,
+                        setStandardJsonError,
+                        standardItems
+                      )
                     }
                   >
                     {bomUi.paste}
@@ -1517,7 +1554,12 @@ export default function AdminPanel() {
                     type="button"
                     className="button button-ghost"
                     onClick={() =>
-                      applyBomJson(addonJson, setAddonItems, setAddonJsonError)
+                      applyBomJson(
+                        addonJson,
+                        setAddonItems,
+                        setAddonJsonError,
+                        addonItems
+                      )
                     }
                   >
                     {bomUi.paste}
@@ -1688,7 +1730,12 @@ export default function AdminPanel() {
                     type="button"
                     className="button button-ghost"
                     onClick={() =>
-                      applyBomJson(schwenkJson, setSchwenkItems, setSchwenkJsonError)
+                      applyBomJson(
+                        schwenkJson,
+                        setSchwenkItems,
+                        setSchwenkJsonError,
+                        schwenkItems
+                      )
                     }
                   >
                     {bomUi.paste}
