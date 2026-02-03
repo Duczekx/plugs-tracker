@@ -5,22 +5,23 @@
 
 @media (max-width: 719px) {
   .heroHeader {
-    padding-right: 132px;
-    padding-top: 8px;
+    padding-right: 0;
+    padding-top: 0;
     align-items: flex-start;
+    row-gap: 10px;
   }
 
-  .heroTitle :global(.title-icon) {
-    display: none;
+  .heroTitle {
+    width: 100%;
   }
 
   .heroActions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+    position: static;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    justify-content: flex-end;
+    width: 100%;
   }
 
   .heroActions :global(.notification-bell) {
