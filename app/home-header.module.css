@@ -5,14 +5,26 @@
 
 @media (max-width: 719px) {
   .heroHeader {
-    padding-right: 84px;
+    padding-right: 132px;
     padding-top: 8px;
+    align-items: flex-start;
+  }
+
+  .heroTitle :global(.title-icon) {
+    display: none;
   }
 
   .heroActions {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .heroActions :global(.notification-bell) {
+    display: flex;
     align-items: center;
   }
 }

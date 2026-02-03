@@ -432,22 +432,7 @@ export default function Home() {
         <header className="card">
           <div className={`card-header ${styles.heroHeader}`}>
             <div>
-              <h1 className="title title-with-icon">
-                <span className="title-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M4 6.5h6.2l1.4 2.2H20a1 1 0 0 1 1 1v7.1a1 1 0 0 1-1 1H4.8a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z"
-                      fill="currentColor"
-                      opacity="0.16"
-                    />
-                    <path
-                      d="M4 6.5h6.2l1.4 2.2H20a1 1 0 0 1 1 1v7.1a1 1 0 0 1-1 1H4.8a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                </span>
+              <h1 className={`title ${styles.heroTitle}`}>
                 {t.appTitle}
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
