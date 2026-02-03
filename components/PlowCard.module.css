@@ -1,0 +1,155 @@
+.card {
+  background: #ffffff;
+  border: 1px solid #edf0f4;
+  border-radius: 22px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  width: 100%;
+  max-width: 360px;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quantityWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quantityLabel {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8a94a6;
+  font-weight: 600;
+}
+
+.quantityPill {
+  background: #f2f4f7;
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #8a94a6;
+  font-weight: 600;
+}
+
+.section {
+  background: #f6f3ef;
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5b6577;
+  font-weight: 700;
+}
+
+.boxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.box {
+  background: #f9f7f4;
+  border-radius: 14px;
+  padding: 12px 10px;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 70px;
+}
+
+.boxValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: #2b3445;
+}
+
+.boxValueMuted {
+  color: #9aa3b2;
+}
+
+.boxLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a94a6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.dotZinc {
+  background: #7aa2e5;
+}
+
+.dotOrange {
+  background: #f0a054;
+}
+
+.actionBtn {
+  border: 0;
+  background: #f2f4f7;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6577;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  background: #e7ebf0;
+}
+
+.actionBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

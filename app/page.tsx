@@ -9,6 +9,7 @@ import { clearCached, getCached, setCached } from "@/lib/client-cache";
 import MobileNav from "@/app/mobile-nav";
 import { fetchRole } from "@/lib/role-client";
 import NotificationBell from "@/components/NotificationBell";
+import PlowCardGrid from "@/components/PlowCardGrid";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -790,146 +791,44 @@ export default function Home() {
             </select>
           </div>
           {inventoryView === "cards" ? (
-            <div
-              className={`grid grid-2 inventory-grid ${
-                filteredInventory.length === 1 ? "inventory-grid-single" : ""
-              }`}
-              style={{ marginTop: 20 }}
-            >
-              {filteredInventory.length === 0 && <p>{t.inventoryEmpty}</p>}
-              {filteredInventory.map((product) => (
-                <div
-                  key={`${product.model}-${product.serialNumber}`}
-                  className="inventory-card"
-                >
-                  <div className="inventory-title">
-                    <span className="inventory-heading">
-                      {modelLabel[product.model]} {product.serialNumber}
-                      <span className="inventory-divider" aria-hidden="true" />
-                    </span>
-                    {product.isManual && (
-                        <button
-                          type="button"
-                          className="button button-ghost button-small"
-                          onClick={() =>
-                            handleDeleteProduct({
-                              model: product.model,
-                              serialNumber: product.serialNumber,
-                            })
-                          }
-                          disabled={isReadOnly}
-                        >
-                        <svg
-                          className="button-icon"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        {t.delete}
-                      </button>
-                    )}
-                  </div>
-                  <div className="inventory-stack">
-                    <div className="inventory-group">
-                      <div className="inventory-group-title">
-                        <span className="group-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="M4 7h16M4 12h16M4 17h16"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </span>
-                        {t.standard}
-                      </div>
-                      {variants.map((variant) => (
-                        <div key={`standard-${variant}`} className="variant-block">
-                          <div className="variant-label">
-                            <span
-                              className={`variant-dot ${
-                                variant === "ZINC" ? "dot-zinc" : "dot-orange"
-                              }`}
-                              aria-hidden="true"
-                            />
-                            {variantLabel[variant]}
-                          </div>
-                          <div
-                            className={`variant-value ${
-                              variant === "ZINC"
-                                ? "variant-zinc"
-                                : "variant-orange"
-                            } ${
-                              product.standard[variant] === 0
-                                ? "variant-zero"
-                                : ""
-                            }`}
-                          >
-                            {product.standard[variant]}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="inventory-group">
-                      <div className="inventory-group-title">
-                        <span className="group-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="M12 4v16M4 12h16"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                            />
-                            <path
-                              d="M16 8l4 4-4 4"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
-                        {t.schwenkbock}
-                      </div>
-                      {variants.map((variant) => (
-                        <div key={`schwenk-${variant}`} className="variant-block">
-                          <div className="variant-label">
-                            <span
-                              className={`variant-dot ${
-                                variant === "ZINC" ? "dot-zinc" : "dot-orange"
-                              }`}
-                              aria-hidden="true"
-                            />
-                            {variantLabel[variant]}
-                          </div>
-                          <div
-                            className={`variant-value ${
-                              variant === "ZINC"
-                                ? "variant-zinc"
-                                : "variant-orange"
-                            } ${
-                              product.schwenkbock[variant] === 0
-                                ? "variant-zero"
-                                : ""
-                            }`}
-                          >
-                            {product.schwenkbock[variant]}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PlowCardGrid
+              items={filteredInventory.map((product) => {
+                const total =
+                  product.standard.ZINC +
+                  product.standard.ORANGE +
+                  product.schwenkbock.ZINC +
+                  product.schwenkbock.ORANGE;
+                return {
+                  key: `${product.model}-${product.serialNumber}`,
+                  title: `${modelLabel[product.model]} ${product.serialNumber}`,
+                  quantity: total,
+                  standard: {
+                    zinc: product.standard.ZINC,
+                    orange: product.standard.ORANGE,
+                  },
+                  schwenkbock: {
+                    zinc: product.schwenkbock.ZINC,
+                    orange: product.schwenkbock.ORANGE,
+                  },
+                  onDelete: product.isManual
+                    ? () =>
+                        handleDeleteProduct({
+                          model: product.model,
+                          serialNumber: product.serialNumber,
+                        })
+                    : undefined,
+                  deleteLabel: product.isManual ? t.delete : undefined,
+                  deleteDisabled: isReadOnly,
+                };
+              })}
+              emptyLabel={t.inventoryEmpty}
+              quantityLabel={t.quantity}
+              unitLabel="szt."
+              standardLabel={t.standard}
+              schwenkbockLabel={t.schwenkbock}
+              zincLabel={variantLabel.ZINC}
+              orangeLabel={variantLabel.ORANGE}
+            />
           ) : (
             <div className="inventory-list">
               {filteredInventory.length === 0 ? (
