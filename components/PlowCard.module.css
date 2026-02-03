@@ -96,7 +96,9 @@
 }
 
 .boxOrange {
-  background: #fff3e6;
+  background: #ffd7b0;
+  border: 1px solid rgba(251, 191, 36, 0.7);
+  box-shadow: 0 4px 10px rgba(251, 146, 60, 0.18);
 }
 
 .boxValue {
