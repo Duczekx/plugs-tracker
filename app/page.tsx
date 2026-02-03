@@ -10,6 +10,7 @@ import MobileNav from "@/app/mobile-nav";
 import { fetchRole } from "@/lib/role-client";
 import NotificationBell from "@/components/NotificationBell";
 import PlowCardGrid from "@/components/PlowCardGrid";
+import styles from "@/app/home-header.module.css";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
@@ -108,6 +109,14 @@ export default function Home() {
   }, []);
 
   const t = labels[lang];
+  const filterLabels = useMemo(
+    () => ({
+      model: lang === "pl" ? "Model" : "Modell",
+      color: lang === "pl" ? "Kolor" : "Farbe",
+      mount: lang === "pl" ? "Mocowanie" : "Aufnahme",
+    }),
+    [lang]
+  );
 
   const variantLabel = useMemo(
     () => ({
@@ -421,7 +430,7 @@ export default function Home() {
     <div className="app-shell">
       <div className="app-content">
         <header className="card">
-          <div className="card-header">
+          <div className={`card-header ${styles.heroHeader}`}>
             <div>
               <h1 className="title title-with-icon">
                 <span className="title-icon" aria-hidden="true">
@@ -443,7 +452,7 @@ export default function Home() {
               </h1>
               <p className="subtitle">{t.appSubtitle}</p>
             </div>
-            <div className="card-actions">
+            <div className={`card-actions ${styles.heroActions}`}>
               <NotificationBell lang={lang} />
               <Link className="button button-ghost" href="/admin">
                 {t.adminButton}
@@ -747,48 +756,57 @@ export default function Home() {
           </div>
           <div className="filter-row">
             <span className="pill">{t.filters}</span>
-            <select
-              value={inventoryFilter.model}
-              onChange={(event) =>
-                setInventoryFilter((prev) => ({
-                  ...prev,
-                  model: event.target.value,
-                }))
-              }
-            >
-              <option value="ALL">{t.all}</option>
-              {models.map((model) => (
-                <option key={model} value={model}>
-                  {modelLabel[model]}
-                </option>
-              ))}
-            </select>
-            <select
-              value={inventoryFilter.variant}
-              onChange={(event) =>
-                setInventoryFilter((prev) => ({
-                  ...prev,
-                  variant: event.target.value,
-                }))
-              }
-            >
-              <option value="ALL">{t.all}</option>
-              <option value="ZINC">{variantLabel.ZINC}</option>
-              <option value="ORANGE">{variantLabel.ORANGE}</option>
-            </select>
-            <select
-              value={inventoryFilter.schwenkbock}
-              onChange={(event) =>
-                setInventoryFilter((prev) => ({
-                  ...prev,
-                  schwenkbock: event.target.value,
-                }))
-              }
-            >
-              <option value="ALL">{t.all}</option>
-              <option value="STANDARD">{t.standard}</option>
-              <option value="SCHWENK">{t.schwenkbock}</option>
-            </select>
+            <label>
+              <span>{filterLabels.model}</span>
+              <select
+                value={inventoryFilter.model}
+                onChange={(event) =>
+                  setInventoryFilter((prev) => ({
+                    ...prev,
+                    model: event.target.value,
+                  }))
+                }
+              >
+                <option value="ALL">{t.all}</option>
+                {models.map((model) => (
+                  <option key={model} value={model}>
+                    {modelLabel[model]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>{filterLabels.color}</span>
+              <select
+                value={inventoryFilter.variant}
+                onChange={(event) =>
+                  setInventoryFilter((prev) => ({
+                    ...prev,
+                    variant: event.target.value,
+                  }))
+                }
+              >
+                <option value="ALL">{t.all}</option>
+                <option value="ZINC">{variantLabel.ZINC}</option>
+                <option value="ORANGE">{variantLabel.ORANGE}</option>
+              </select>
+            </label>
+            <label>
+              <span>{filterLabels.mount}</span>
+              <select
+                value={inventoryFilter.schwenkbock}
+                onChange={(event) =>
+                  setInventoryFilter((prev) => ({
+                    ...prev,
+                    schwenkbock: event.target.value,
+                  }))
+                }
+              >
+                <option value="ALL">{t.all}</option>
+                <option value="STANDARD">{t.standard}</option>
+                <option value="SCHWENK">{t.schwenkbock}</option>
+              </select>
+            </label>
           </div>
           {inventoryView === "cards" ? (
             <PlowCardGrid

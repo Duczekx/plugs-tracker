@@ -1,0 +1,16 @@
+.heroHeader {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 719px) {
+  .heroHeader {
+    padding-right: 44px;
+  }
+
+  .heroActions {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
