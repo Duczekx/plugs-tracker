@@ -5,12 +5,14 @@
 
 @media (max-width: 719px) {
   .heroHeader {
-    padding-right: 44px;
+    padding-right: 84px;
+    padding-top: 8px;
   }
 
   .heroActions {
     position: absolute;
     top: 0;
     right: 0;
+    align-items: center;
   }
 }
