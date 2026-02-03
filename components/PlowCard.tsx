@@ -88,7 +88,7 @@ export default function PlowCard({
               {zincLabel}
             </div>
           </div>
-          <div className={styles.box}>
+          <div className={`${styles.box} ${styles.boxOrange}`}>
             <div
               className={`${styles.boxValue} ${
                 standard.orange === 0 ? styles.boxValueMuted : ""
@@ -119,7 +119,7 @@ export default function PlowCard({
               {zincLabel}
             </div>
           </div>
-          <div className={styles.box}>
+          <div className={`${styles.box} ${styles.boxOrange}`}>
             <div
               className={`${styles.boxValue} ${
                 schwenkbock.orange === 0 ? styles.boxValueMuted : ""

@@ -40,9 +40,9 @@ export default function PlowCardGrid({
   }
 
   return (
-    <div className={styles.grid}>
+    <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
       {items.map((item) => (
-        <div key={item.key} className={styles.gridItem}>
+        <div key={item.key} className="h-full">
           <PlowCard
             title={item.title}
             quantity={item.quantity}

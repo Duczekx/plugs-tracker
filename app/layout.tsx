@@ -3,7 +3,6 @@ import { Fraunces, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import PushRegister from "@/components/PushRegister";
-import PushPrompt from "@/components/PushPrompt";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -48,7 +47,6 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.variable} ${fraunces.variable}`}>
         {children}
         <PushRegister />
-        <PushPrompt />
         <SpeedInsights />
         <Analytics />
       </body>
