@@ -40,14 +40,68 @@ type PartsTableProps = {
   onDelete?: (part: Part) => void;
 };
 
-const getStockTone = (stock: number) => {
-  if (stock <= 2) {
+const normalizeCategory = (category?: string | null) => {
+  const trimmed = category?.trim().toLowerCase() ?? "";
+  if (!trimmed) return "inne";
+  const aliasMap: Record<string, string> = {
+    schrauben: "sruby",
+    muttern: "nakretki",
+    unterlegscheiben: "podkladki",
+    bolzen: "bolce",
+    hydraulik: "hydraulika",
+    gummi: "gumy",
+    elektrik: "elektryka",
+    zylinder: "cylindry",
+    schlaeuche: "weze",
+    schlaeuchen: "weze",
+    sonstiges: "inne",
+  };
+  return aliasMap[trimmed] ?? trimmed;
+};
+
+const getStockTone = (stock: number, category?: string | null) => {
+  const normalized = normalizeCategory(category);
+  let redLimit = 2;
+  let orangeLimit = 10;
+  let greenStart = 50;
+
+  if (normalized === "bolce" || normalized === "cylindry") {
+    redLimit = 10;
+    orangeLimit = 21;
+    greenStart = 22;
+  } else if (normalized === "elektryka") {
+    redLimit = 20;
+    orangeLimit = 31;
+    greenStart = 32;
+  } else if (
+    normalized === "gumy" ||
+    normalized === "hydraulika" ||
+    normalized === "inne"
+  ) {
+    redLimit = 10;
+    orangeLimit = 20;
+    greenStart = 21;
+  } else if (
+    normalized === "sruby" ||
+    normalized === "nakretki" ||
+    normalized === "podkladki"
+  ) {
+    redLimit = 50;
+    orangeLimit = 100;
+    greenStart = 101;
+  } else if (normalized === "weze") {
+    redLimit = 10;
+    orangeLimit = 20;
+    greenStart = 21;
+  }
+
+  if (stock <= redLimit) {
     return "stock-badge stock-badge-critical";
   }
-  if (stock < 10) {
+  if (stock < orangeLimit) {
     return "stock-badge stock-badge-low";
   }
-  if (stock < 50) {
+  if (stock < greenStart) {
     return "stock-badge stock-badge-warn";
   }
   return "stock-badge stock-badge-good";
@@ -100,7 +154,7 @@ export default function PartsTable({
                 </div>
               </div>
               <div>
-                <span className={getStockTone(part.stock)}>{part.stock}</span>
+                <span className={getStockTone(part.stock, part.category)}>{part.stock}</span>
               </div>
               <div>
                 {part.shopUrl ? (
@@ -280,7 +334,7 @@ export default function PartsTable({
           <section key={part.id} className="card parts-card-item">
             <div className="parts-card-title">
               <div className="parts-name-text">{part.name}</div>
-              <span className={getStockTone(part.stock)}>{part.stock}</span>
+              <span className={getStockTone(part.stock, part.category)}>{part.stock}</span>
             </div>
             <div className="parts-meta">
               <span className="category-badge">
