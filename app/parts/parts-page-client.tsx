@@ -302,6 +302,29 @@ export default function PartsPage() {
               </h2>
               <p className="subtitle">{t.partsPageSubtitle}</p>
             </div>
+            <div className="card-actions parts-pdf-actions">
+              <details className="pdf-menu">
+                <summary className="button button-ghost">{t.partsPdfLabel}</summary>
+                <div className="pdf-menu-list">
+                  <a
+                    className="button button-ghost button-small"
+                    href="/api/parts/pdf?mode=all"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t.partsPdfAll}
+                  </a>
+                  <a
+                    className="button button-ghost button-small"
+                    href="/api/parts/pdf?mode=low"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t.partsPdfLow}
+                  </a>
+                </div>
+              </details>
+            </div>
           </div>
 
           <PartsToolbar

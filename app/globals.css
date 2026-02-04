@@ -3481,6 +3481,41 @@ body:has(.modal-overlay) {
   font-size: 15px;
 }
 
+.pdf-menu {
+  position: relative;
+}
+
+.pdf-menu summary {
+  list-style: none;
+}
+
+.pdf-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.pdf-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  z-index: 30;
+}
+
+@media (max-width: 720px) {
+  .pdf-menu-list {
+    left: 0;
+    right: auto;
+    min-width: 160px;
+  }
+}
+
 .parts-action-overlay {
   z-index: 80;
 }
