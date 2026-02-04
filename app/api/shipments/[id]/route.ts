@@ -90,6 +90,13 @@ type IncomingItem = {
   extraParts?: string | null;
 };
 
+type IncomingExtraItem = {
+  name: string;
+  quantity: number;
+  note?: string | null;
+  partId?: number | null;
+};
+
 const inventoryKey = (
   item: Pick<
     IncomingItem,
@@ -184,6 +191,9 @@ export async function PATCH(
 
   const body = await request.json();
   const items = Array.isArray(body.items) ? (body.items as IncomingItem[]) : [];
+  const extras = Array.isArray(body.extras)
+    ? (body.extras as IncomingExtraItem[])
+    : [];
   const statusValue = typeof body.status === "string" ? body.status : null;
   const status =
     statusValue && isShipmentStatus(statusValue)
@@ -194,7 +204,7 @@ export async function PATCH(
     return NextResponse.json({ message: "Invalid status" }, { status: 400 });
   }
 
-  if (!items.length && status) {
+  if (!items.length && !extras.length && status) {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const existing = await tx.shipment.findUnique({
@@ -286,7 +296,7 @@ export async function PATCH(
     }
   }
 
-  if (!items.length) {
+  if (!items.length && !extras.length) {
     return NextResponse.json({ message: "Missing items" }, { status: 400 });
   }
 
@@ -300,10 +310,37 @@ export async function PATCH(
   }
 
   let validatedItems: ReturnType<typeof normalizeItems> = [];
+  let validatedExtras: {
+    name: string;
+    quantity: number;
+    note: string | null;
+    partId: number | null;
+  }[] = [];
   try {
-    validatedItems = normalizeItems(items);
-    if (hasDuplicateBuildNumbers(validatedItems)) {
-      return NextResponse.json({ message: "Duplicate build number" }, { status: 400 });
+    if (items.length) {
+      validatedItems = normalizeItems(items);
+      if (hasDuplicateBuildNumbers(validatedItems)) {
+        return NextResponse.json({ message: "Duplicate build number" }, { status: 400 });
+      }
+    }
+    if (extras.length) {
+      validatedExtras = extras.map((extra) => {
+        const name = String(extra.name || "").trim();
+        const quantity = Number(extra.quantity);
+        const partId = Number(extra.partId);
+        const note = extra.note ? String(extra.note).trim() : null;
+
+        if (name.length < 2 || !Number.isInteger(quantity) || quantity <= 0) {
+          throw new Error("INVALID_EXTRA");
+        }
+
+        return {
+          name,
+          quantity,
+          note: note ? note : null,
+          partId: Number.isInteger(partId) && partId > 0 ? partId : null,
+        };
+      });
     }
   } catch {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
@@ -426,6 +463,15 @@ export async function PATCH(
               bucketHolder: item.bucketHolder,
               valveType: item.valveType as ValveType,
               extraParts: item.extraParts,
+            })),
+          },
+          extras: {
+            deleteMany: {},
+            create: validatedExtras.map((extra) => ({
+              name: extra.name,
+              quantity: extra.quantity,
+              note: extra.note,
+              partId: extra.partId,
             })),
           },
         },

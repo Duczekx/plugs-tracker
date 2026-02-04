@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +14,7 @@ type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
 type ValveType = "NONE" | "SMALL" | "LARGE";
 type ShipmentStatus = "RESERVED" | "READY" | "SENT";
+type EditSection = "customer" | "plow" | "extras";
 
 type ShipmentItem = {
   id: number;
@@ -54,6 +55,7 @@ type Shipment = {
 };
 
 type ShipmentItemDraft = Omit<ShipmentItem, "id">;
+type ShipmentExtraDraft = Omit<ShipmentExtraItem, "id">;
 
 type CustomerForm = {
   companyName: string;
@@ -108,6 +110,13 @@ const emptyCustomerForm: CustomerForm = {
   notes: "",
 };
 
+const emptyExtraForm: ShipmentExtraDraft = {
+  name: "",
+  quantity: 1,
+  note: "",
+  partId: null,
+};
+
 const formatDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -151,12 +160,18 @@ export default function SentPage() {
   });
   const [filter, setFilter] = useState(filterInput);
   const [editId, setEditId] = useState<number | null>(null);
+  const [editSection, setEditSection] = useState<EditSection>("plow");
+  const [editHasPlow, setEditHasPlow] = useState(true);
   const [editItems, setEditItems] = useState<ShipmentItemDraft[]>([]);
   const [editItemForm, setEditItemForm] =
     useState<ShipmentItemDraft>(emptyItemForm);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editCustomer, setEditCustomer] =
     useState<CustomerForm>(emptyCustomerForm);
+  const [editExtras, setEditExtras] = useState<ShipmentExtraItem[]>([]);
+  const [editExtraForm, setEditExtraForm] =
+    useState<ShipmentExtraDraft>(emptyExtraForm);
+  const [editExtraIndex, setEditExtraIndex] = useState<number | null>(null);
   const [statusPrompt, setStatusPrompt] = useState<{
     shipmentId: number;
     status: "READY" | "SENT";
@@ -171,6 +186,9 @@ export default function SentPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const plowSectionRef = useRef<HTMLDivElement | null>(null);
+  const customerSectionRef = useRef<HTMLDivElement | null>(null);
+  const extrasSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -385,6 +403,17 @@ export default function SentPage() {
     }
   }, [editItemForm.model, editItemForm.serialNumber, productNumbersByModel]);
 
+  useEffect(() => {
+    if (!editId) {
+      return;
+    }
+    const hasPlow = editItems.length > 0;
+    setEditHasPlow(hasPlow);
+    if (!hasPlow && editSection === "plow") {
+      setEditSection("extras");
+    }
+  }, [editId, editItems.length, editSection]);
+
   const handleFilterChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -417,6 +446,75 @@ export default function SentPage() {
   ) => {
     const { name, value } = event.target;
     setEditCustomer((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleExtraChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setEditExtraForm((prev) => ({
+      ...prev,
+      [name]: name === "quantity" ? Number(value) : value,
+    }));
+  };
+
+  const handleAddExtra = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    const name = editExtraForm.name.trim();
+    const quantity = Number(editExtraForm.quantity);
+    const note = editExtraForm.note?.trim() ?? "";
+    if (name.length < 2 || !Number.isInteger(quantity) || quantity <= 0) {
+      setNotice({ type: "error", message: t.error + t.extraItemName });
+      return;
+    }
+    const nextItem: ShipmentExtraItem = {
+      id: editExtraIndex !== null ? editExtras[editExtraIndex]?.id ?? Date.now() : Date.now(),
+      name,
+      quantity,
+      note: note ? note : null,
+      partId: editExtraForm.partId ?? null,
+    };
+    if (editExtraIndex !== null) {
+      setEditExtras((prev) =>
+        prev.map((item, index) => (index === editExtraIndex ? nextItem : item))
+      );
+    } else {
+      setEditExtras((prev) => [...prev, nextItem]);
+    }
+    setEditExtraForm(emptyExtraForm);
+    setEditExtraIndex(null);
+    setNotice(null);
+  };
+
+  const handleRemoveExtra = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    setEditExtras((prev) => prev.filter((_, idx) => idx !== index));
+    setEditExtraIndex((prev) => (prev === index ? null : prev));
+  };
+
+  const handleEditExistingExtra = (index: number) => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    const item = editExtras[index];
+    if (!item) {
+      return;
+    }
+    setEditExtraForm({
+      name: item.name,
+      quantity: item.quantity,
+      note: item.note ?? "",
+      partId: item.partId ?? null,
+    });
+    setEditExtraIndex(index);
   };
 
   const handleAddEditItem = (event: FormEvent<HTMLFormElement>) => {
@@ -487,7 +585,10 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.readOnlyNotice });
       return;
     }
+    const hasPlow = shipment.items.length > 0;
     setEditId(shipment.id);
+    setEditHasPlow(hasPlow);
+    setEditSection(hasPlow ? "plow" : "extras");
     setEditCustomer({
       companyName: shipment.companyName,
       firstName: shipment.firstName,
@@ -512,6 +613,9 @@ export default function SentPage() {
         extraParts: item.extraParts ?? "",
       }))
     );
+    setEditExtras(shipment.extras ?? []);
+    setEditExtraForm(emptyExtraForm);
+    setEditExtraIndex(null);
     setEditItemForm(emptyItemForm);
     setEditIndex(null);
     setNotice(null);
@@ -519,10 +623,15 @@ export default function SentPage() {
 
   const handleCancelEdit = () => {
     setEditId(null);
+    setEditSection("plow");
+    setEditHasPlow(true);
     setEditItems([]);
     setEditCustomer(emptyCustomerForm);
     setEditItemForm(emptyItemForm);
     setEditIndex(null);
+    setEditExtras([]);
+    setEditExtraForm(emptyExtraForm);
+    setEditExtraIndex(null);
   };
 
   const handleUpdateShipment = async (event: FormEvent<HTMLFormElement>) => {
@@ -534,7 +643,7 @@ export default function SentPage() {
     if (!editId) {
       return;
     }
-    if (!editItems.length) {
+    if (!editItems.length && !editExtras.length) {
       setNotice({ type: "error", message: t.shipmentItemEmpty });
       return;
     }
@@ -544,6 +653,7 @@ export default function SentPage() {
       body: JSON.stringify({
         ...editCustomer,
         items: editItems,
+        extras: editExtras,
       }),
     });
     if (!response.ok) {
@@ -668,6 +778,25 @@ export default function SentPage() {
       status,
       allowEmail ? sendEmail : false
     );
+  };
+
+  useEffect(() => {
+    if (!editId) {
+      return;
+    }
+    const ref =
+      editSection === "plow"
+        ? plowSectionRef
+        : editSection === "extras"
+        ? extrasSectionRef
+        : customerSectionRef;
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [editId, editSection]);
+
+  const handleSectionSelect = (section: EditSection) => {
+    setEditSection(section);
   };
 
   return (
@@ -885,385 +1014,549 @@ export default function SentPage() {
                 </button>
               </div>
             </div>
-            <form className="form" onSubmit={handleAddEditItem}>
-              <div className="form-row form-row-compact">
-                <label>
-                  {t.modelLabel}
-                  <select
-                    className="select-compact"
-                    name="model"
-                    value={editItemForm.model}
-                    onChange={handleEditItemChange}
-                    disabled={isReadOnly}
-                  >
-                    {models.map((model) => (
-                      <option key={model} value={model}>
-                        {modelLabel[model]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {t.serialNumber}
-                  <select
-                    className="select-compact"
-                    name="serialNumber"
-                    value={editItemForm.serialNumber}
-                    onChange={handleEditItemChange}
-                    disabled={isReadOnly}
-                  >
-                    {productNumbersByModel[editItemForm.model].map((serial) => (
-                      <option key={serial} value={serial}>
-                        {serial}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {t.quantity}
-                  <input
-                    className="input-compact"
-                    type="number"
-                    name="quantity"
-                    min={1}
-                    value={editItemForm.quantity}
-                    onChange={handleEditItemChange}
-                    disabled={isReadOnly}
-                  />
-                </label>
-              </div>
-              <div className="form-row">
-                <label>
-                  {t.buildNumber}
-                  <input
-                    className="input-compact"
-                    name="buildNumber"
-                    value={editItemForm.buildNumber}
-                    onChange={handleEditItemChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-                <label>
-                  {t.buildDate}
-                  <input
-                    type="date"
-                    name="buildDate"
-                    value={editItemForm.buildDate}
-                    onChange={handleEditItemChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-              </div>
-              <div className="parts-grid">
-                <div className="parts-column">
-                <label>
-                  {t.variant}
-                  <select
-                    className="select-compact"
-                    name="variant"
-                    value={editItemForm.variant}
-                    onChange={handleEditItemChange}
-                    disabled={isReadOnly}
-                  >
-                      <option value="ZINC">{variantLabel.ZINC}</option>
-                      <option value="ORANGE">{variantLabel.ORANGE}</option>
-                    </select>
-                  </label>
-                <label>
-                  {t.valveType}
-                  <select
-                    className="select-compact"
-                    name="valveType"
-                    value={editItemForm.valveType}
-                    onChange={handleEditItemChange}
-                    disabled={isReadOnly}
-                  >
-                      {valveTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {valveLabel[type]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="parts-column">
-                  <label className="switch">
-                    <span>{t.schwenkbock}</span>
-                    <input
-                      type="checkbox"
-                      name="isSchwenkbock"
-                      checked={editItemForm.isSchwenkbock}
-                      onChange={handleEditItemChange}
-                      disabled={isReadOnly}
-                    />
-                  </label>
-                  <label className="switch">
-                    <span>{t.bucketHolder}</span>
-                    <input
-                      type="checkbox"
-                      name="bucketHolder"
-                      checked={editItemForm.bucketHolder}
-                      onChange={handleEditItemChange}
-                      disabled={isReadOnly}
-                    />
-                  </label>
+            <div className="status-toggle" style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                className={`button button-ghost button-small status-btn ${
+                  editSection === "customer" ? "active" : ""
+                }`}
+                onClick={() => handleSectionSelect("customer")}
+              >
+                {t.editSectionCustomer}
+              </button>
+              <button
+                type="button"
+                className={`button button-ghost button-small status-btn ${
+                  editSection === "plow" ? "active" : ""
+                }`}
+                onClick={() => handleSectionSelect("plow")}
+                disabled={!editHasPlow}
+                title={!editHasPlow ? t.plowMissingNotice : undefined}
+              >
+                {t.editSectionPlow}
+              </button>
+              <button
+                type="button"
+                className={`button button-ghost button-small status-btn ${
+                  editSection === "extras" ? "active" : ""
+                }`}
+                onClick={() => handleSectionSelect("extras")}
+              >
+                {t.editSectionExtras}
+              </button>
+            </div>
+            <div ref={plowSectionRef} style={{ scrollMarginTop: 12 }}>
+              <div className="card-header">
+                <div>
+                  <h3 className="title">{t.editSectionPlow}</h3>
                 </div>
               </div>
-              <label>
-                {t.extraParts}
-                <textarea
-                  name="extraParts"
-                  value={editItemForm.extraParts ?? ""}
-                  onChange={handleEditItemChange}
-                  disabled={isReadOnly}
-                />
-              </label>
-              <div className="form-actions">
-                {editIndex !== null && (
-                  <button
-                    type="button"
-                    className="button button-ghost"
-                    onClick={() => {
-                      setEditItemForm(emptyItemForm);
-                      setEditIndex(null);
-                    }}
-                  >
-                    {t.cancel}
-                  </button>
-                )}
-                <button className="button" type="submit" disabled={isReadOnly}>
-                  <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M5 12h9M12 8l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  {editIndex !== null ? t.updateItem : t.addShipmentItem}
-                </button>
-              </div>
-            </form>
-
-            <div className="shipment-items" style={{ marginTop: 18 }}>
-              {editItems.length === 0 && <p>{t.shipmentItemEmpty}</p>}
-              {editItems.map((item, index) => (
-                <div
-                  key={`${item.model}-${item.serialNumber}-${index}`}
-                  className="shipment-item-card"
-                >
-                  <div className="shipment-item-head">
-                    <div className="shipment-title">
-                      {modelLabel[item.model]} {item.serialNumber}
-                      <span className="shipment-build-number">{item.buildNumber}</span>
-                      <span className="pill variant-pill">{variantLabel[item.variant]}</span>
+              {!editHasPlow ? (
+                <p className="muted">{t.plowMissingNotice}</p>
+              ) : (
+                <>
+                  <form className="form" onSubmit={handleAddEditItem}>
+                    <div className="form-row form-row-compact">
+                      <label>
+                        {t.modelLabel}
+                        <select
+                          className="select-compact"
+                          name="model"
+                          value={editItemForm.model}
+                          onChange={handleEditItemChange}
+                          disabled={isReadOnly}
+                        >
+                          {models.map((model) => (
+                            <option key={model} value={model}>
+                              {modelLabel[model]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t.serialNumber}
+                        <select
+                          className="select-compact"
+                          name="serialNumber"
+                          value={editItemForm.serialNumber}
+                          onChange={handleEditItemChange}
+                          disabled={isReadOnly}
+                        >
+                          {productNumbersByModel[editItemForm.model].map((serial) => (
+                            <option key={serial} value={serial}>
+                              {serial}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t.quantity}
+                        <input
+                          className="input-compact"
+                          type="number"
+                          name="quantity"
+                          min={1}
+                          value={editItemForm.quantity}
+                          onChange={handleEditItemChange}
+                          disabled={isReadOnly}
+                        />
+                      </label>
                     </div>
-                    <div className="shipment-actions">
-                      <button
-                        type="button"
-                        className="button button-ghost button-small edit-pulse"
-                        onClick={() => handleEditExistingItem(index)}
+                    <div className="form-row">
+                      <label>
+                        {t.buildNumber}
+                        <input
+                          className="input-compact"
+                          name="buildNumber"
+                          value={editItemForm.buildNumber}
+                          onChange={handleEditItemChange}
+                          required
+                          disabled={isReadOnly}
+                        />
+                      </label>
+                      <label>
+                        {t.buildDate}
+                        <input
+                          type="date"
+                          name="buildDate"
+                          value={editItemForm.buildDate}
+                          onChange={handleEditItemChange}
+                          required
+                          disabled={isReadOnly}
+                        />
+                      </label>
+                    </div>
+                    <div className="parts-grid">
+                      <div className="parts-column">
+                        <label>
+                          {t.variant}
+                          <select
+                            className="select-compact"
+                            name="variant"
+                            value={editItemForm.variant}
+                            onChange={handleEditItemChange}
+                            disabled={isReadOnly}
+                          >
+                            <option value="ZINC">{variantLabel.ZINC}</option>
+                            <option value="ORANGE">{variantLabel.ORANGE}</option>
+                          </select>
+                        </label>
+                        <label>
+                          {t.valveType}
+                          <select
+                            className="select-compact"
+                            name="valveType"
+                            value={editItemForm.valveType}
+                            onChange={handleEditItemChange}
+                            disabled={isReadOnly}
+                          >
+                            {valveTypes.map((type) => (
+                              <option key={type} value={type}>
+                                {valveLabel[type]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="parts-column">
+                        <label className="switch">
+                          <span>{t.schwenkbock}</span>
+                          <input
+                            type="checkbox"
+                            name="isSchwenkbock"
+                            checked={editItemForm.isSchwenkbock}
+                            onChange={handleEditItemChange}
+                            disabled={isReadOnly}
+                          />
+                        </label>
+                        <label className="switch">
+                          <span>{t.bucketHolder}</span>
+                          <input
+                            type="checkbox"
+                            name="bucketHolder"
+                            checked={editItemForm.bucketHolder}
+                            onChange={handleEditItemChange}
+                            disabled={isReadOnly}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <label>
+                      {t.extraParts}
+                      <textarea
+                        name="extraParts"
+                        value={editItemForm.extraParts ?? ""}
+                        onChange={handleEditItemChange}
                         disabled={isReadOnly}
-                      >
-                        {t.editItem}
-                      </button>
-                      <button
-                        type="button"
-                        className="button button-ghost button-small"
-                        onClick={() => handleRemoveEditItem(index)}
-                        disabled={isReadOnly}
-                      >
+                      />
+                    </label>
+                    <div className="form-actions">
+                      {editIndex !== null && (
+                        <button
+                          type="button"
+                          className="button button-ghost"
+                          onClick={() => {
+                            setEditItemForm(emptyItemForm);
+                            setEditIndex(null);
+                          }}
+                        >
+                          {t.cancel}
+                        </button>
+                      )}
+                      <button className="button" type="submit" disabled={isReadOnly}>
                         <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
                           <path
-                            d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                            d="M5 12h9M12 8l4 4-4 4"
                             stroke="currentColor"
                             strokeWidth="1.6"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
                         </svg>
-                        {t.delete}
+                        {editIndex !== null ? t.updateItem : t.addShipmentItem}
                       </button>
                     </div>
+                  </form>
+
+                  <div className="shipment-items" style={{ marginTop: 18 }}>
+                    {editItems.length === 0 && <p>{t.shipmentItemEmpty}</p>}
+                    {editItems.map((item, index) => (
+                      <div
+                        key={`${item.model}-${item.serialNumber}-${index}`}
+                        className="shipment-item-card"
+                      >
+                        <div className="shipment-item-head">
+                          <div className="shipment-title">
+                            {modelLabel[item.model]} {item.serialNumber}
+                            <span className="shipment-build-number">{item.buildNumber}</span>
+                            <span className="pill variant-pill">
+                              {variantLabel[item.variant]}
+                            </span>
+                          </div>
+                          <div className="shipment-actions">
+                            <button
+                              type="button"
+                              className="button button-ghost button-small edit-pulse"
+                              onClick={() => handleEditExistingItem(index)}
+                              disabled={isReadOnly}
+                            >
+                              {t.editItem}
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-ghost button-small"
+                              onClick={() => handleRemoveEditItem(index)}
+                              disabled={isReadOnly}
+                            >
+                              <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                  d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                              {t.delete}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="shipment-item-meta">
+                          <span className="pill">{t.quantity}: {item.quantity}</span>
+                        </div>
+                        <div className="shipment-item-tags">
+                          <span className={`item-chip ${item.isSchwenkbock ? "on" : "off"}`}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path
+                                d="M12 4v4l3-3M12 20v-4l-3 3M5 12h14"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
+                          </span>
+                          <span className={`item-chip ${item.bucketHolder ? "on" : "off"}`}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path
+                                d="M6 8h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8zM9 8V6a3 3 0 0 1 6 0v2"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
+                          </span>
+                          <span className="item-chip">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path
+                                d="M12 5v14M7 9h10M7 15h10"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            {t.valveType}: {valveLabel[item.valveType]}
+                          </span>
+                        </div>
+                        {item.extraParts && (
+                          <div className="shipment-item-notes">
+                            <span className="pill">{t.extraParts}</span>
+                            <span className="muted">{item.extraParts}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <div className="shipment-item-meta">
-                    <span className="pill">{t.quantity}: {item.quantity}</span>
-                  </div>
-                  <div className="shipment-item-tags">
-                    <span className={`item-chip ${item.isSchwenkbock ? "on" : "off"}`}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M12 4v4l3-3M12 20v-4l-3 3M5 12h14"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
-                    </span>
-                    <span className={`item-chip ${item.bucketHolder ? "on" : "off"}`}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M6 8h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8zM9 8V6a3 3 0 0 1 6 0v2"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
-                    </span>
-                    <span className="item-chip">
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M12 5v14M7 9h10M7 15h10"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      {t.valveType}: {valveLabel[item.valveType]}
-                    </span>
-                  </div>
-                  {item.extraParts && (
-                    <div className="shipment-item-notes">
-                      <span className="pill">{t.extraParts}</span>
-                      <span className="muted">{item.extraParts}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                </>
+              )}
             </div>
 
-            <form className="form" onSubmit={handleUpdateShipment}>
+            <div ref={extrasSectionRef} style={{ scrollMarginTop: 12 }}>
               <div className="card-header">
                 <div>
-                  <h3 className="title title-with-icon">
-                    <span
-                      className={`title-icon confirm-icon ${
-                        statusPrompt?.status === "READY"
-                          ? "confirm-icon-ready"
-                          : "confirm-icon-sent"
-                      }`}
-                      aria-hidden="true"
-                    >
-                      <svg viewBox="0 0 24 24">
-                        <path
-                          d="M6 7h12M6 12h6M6 17h10"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </span>
-                    {t.shipmentCustomerTitle}
-                  </h3>
+                  <h3 className="title">{t.editSectionExtras}</h3>
                 </div>
               </div>
-              <label>
-                {t.companyName}
-                <input
-                  name="companyName"
-                  value={editCustomer.companyName}
-                  onChange={handleCustomerChange}
-                  required
-                  disabled={isReadOnly}
-                />
-              </label>
-              <div className="form-row">
-                <label>
-                  {t.firstName}
-                  <input
-                    name="firstName"
-                    value={editCustomer.firstName}
-                    onChange={handleCustomerChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-                <label>
-                  {t.lastName}
-                  <input
-                    name="lastName"
-                    value={editCustomer.lastName}
-                    onChange={handleCustomerChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-              </div>
-              <label>
-                {t.street}
-                <input
-                  name="street"
-                  value={editCustomer.street}
-                  onChange={handleCustomerChange}
-                  required
-                  disabled={isReadOnly}
-                />
-              </label>
-              <div className="form-row">
-                <label>
-                  {t.postalCode}
-                  <input
-                    name="postalCode"
-                    value={editCustomer.postalCode}
-                    onChange={handleCustomerChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-                <label>
-                  {t.city}
-                  <input
-                    name="city"
-                    value={editCustomer.city}
-                    onChange={handleCustomerChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-              </div>
-              <div className="form-row">
-                <label>
-                  {t.country}
-                  <input
-                    name="country"
-                    value={editCustomer.country}
-                    onChange={handleCustomerChange}
-                    required
-                    disabled={isReadOnly}
-                  />
-                </label>
-              </div>
-              <label>
-                {t.notes}
-                <textarea
-                  name="notes"
-                  value={editCustomer.notes}
-                  onChange={handleCustomerChange}
-                  disabled={isReadOnly}
-                />
-              </label>
-              <div className="form-actions">
-                <button className="button" type="submit" disabled={isReadOnly}>
-                  <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M5 12h9M12 8l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+              <form className="form" onSubmit={handleAddExtra}>
+                <div className="form-row extra-row">
+                  <label>
+                    {t.extraItemName}
+                    <input
+                      name="name"
+                      value={editExtraForm.name}
+                      onChange={handleExtraChange}
+                      placeholder={t.extraItemPlaceholder}
+                      required
+                      disabled={isReadOnly}
+                      minLength={2}
                     />
-                  </svg>
-                  {t.updateShipment}
-                </button>
-              </div>
-            </form>
+                  </label>
+                  <label>
+                    {t.quantity}
+                    <input
+                      className="input-compact input-centered quantity-input"
+                      type="number"
+                      name="quantity"
+                      min={1}
+                      value={editExtraForm.quantity}
+                      onChange={handleExtraChange}
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                </div>
+                <label>
+                  {t.extraItemNote}
+                  <textarea
+                    name="note"
+                    value={editExtraForm.note ?? ""}
+                    onChange={handleExtraChange}
+                    placeholder={t.extraItemNotePlaceholder}
+                    disabled={isReadOnly}
+                  />
+                </label>
+                <div className="form-actions">
+                  {editExtraIndex !== null && (
+                    <button
+                      type="button"
+                      className="button button-ghost"
+                      onClick={() => {
+                        setEditExtraForm(emptyExtraForm);
+                        setEditExtraIndex(null);
+                      }}
+                    >
+                      {t.cancel}
+                    </button>
+                  )}
+                  <button className="button" type="submit" disabled={isReadOnly}>
+                    <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M5 12h9M12 8l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {editExtraIndex !== null ? t.updateItem : t.extraItemAdd}
+                  </button>
+                </div>
+              </form>
+
+              {editExtras.length === 0 ? (
+                <p className="muted">{t.extraItemEmpty}</p>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: 10 }}>
+                  <table className="inventory-table">
+                    <thead>
+                      <tr>
+                        <th>{t.extraItemName}</th>
+                        <th>{t.quantity}</th>
+                        <th>{t.extraItemNote}</th>
+                        <th>{t.actionsLabel}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editExtras.map((extra, index) => (
+                        <tr key={`${extra.name}-${index}`}>
+                          <td>{extra.name}</td>
+                          <td>{extra.quantity}</td>
+                          <td>{extra.note ? extra.note : <span className="muted">-</span>}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="button button-ghost button-small edit-pulse"
+                              onClick={() => handleEditExistingExtra(index)}
+                              disabled={isReadOnly}
+                            >
+                              {t.editItem}
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-ghost button-small"
+                              onClick={() => handleRemoveExtra(index)}
+                              disabled={isReadOnly}
+                            >
+                              {t.delete}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div ref={customerSectionRef} style={{ scrollMarginTop: 12 }}>
+              <form className="form" onSubmit={handleUpdateShipment}>
+                <div className="card-header">
+                  <div>
+                    <h3 className="title title-with-icon">
+                      <span
+                        className={`title-icon confirm-icon ${
+                          statusPrompt?.status === "READY"
+                            ? "confirm-icon-ready"
+                            : "confirm-icon-sent"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <svg viewBox="0 0 24 24">
+                          <path
+                            d="M6 7h12M6 12h6M6 17h10"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </span>
+                      {t.shipmentCustomerTitle}
+                    </h3>
+                  </div>
+                </div>
+                <label>
+                  {t.companyName}
+                  <input
+                    name="companyName"
+                    value={editCustomer.companyName}
+                    onChange={handleCustomerChange}
+                    required
+                    disabled={isReadOnly}
+                  />
+                </label>
+                <div className="form-row">
+                  <label>
+                    {t.firstName}
+                    <input
+                      name="firstName"
+                      value={editCustomer.firstName}
+                      onChange={handleCustomerChange}
+                      required
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                  <label>
+                    {t.lastName}
+                    <input
+                      name="lastName"
+                      value={editCustomer.lastName}
+                      onChange={handleCustomerChange}
+                      required
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                </div>
+                <label>
+                  {t.street}
+                  <input
+                    name="street"
+                    value={editCustomer.street}
+                    onChange={handleCustomerChange}
+                    required
+                    disabled={isReadOnly}
+                  />
+                </label>
+                <div className="form-row">
+                  <label>
+                    {t.postalCode}
+                    <input
+                      name="postalCode"
+                      value={editCustomer.postalCode}
+                      onChange={handleCustomerChange}
+                      required
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                  <label>
+                    {t.city}
+                    <input
+                      name="city"
+                      value={editCustomer.city}
+                      onChange={handleCustomerChange}
+                      required
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                </div>
+                <div className="form-row">
+                  <label>
+                    {t.country}
+                    <input
+                      name="country"
+                      value={editCustomer.country}
+                      onChange={handleCustomerChange}
+                      required
+                      disabled={isReadOnly}
+                    />
+                  </label>
+                </div>
+                <label>
+                  {t.notes}
+                  <textarea
+                    name="notes"
+                    value={editCustomer.notes}
+                    onChange={handleCustomerChange}
+                    disabled={isReadOnly}
+                  />
+                </label>
+                <div className="form-actions">
+                  <button className="button" type="submit" disabled={isReadOnly}>
+                    <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M5 12h9M12 8l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {t.updateShipment}
+                  </button>
+                </div>
+              </form>
+            </div>
           </section>
         </div>
         )}

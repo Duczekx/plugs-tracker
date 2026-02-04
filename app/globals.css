@@ -2432,6 +2432,7 @@ textarea {
   padding: 24px 5vw;
   backdrop-filter: none;
   overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .modal-card {
@@ -2440,6 +2441,10 @@ textarea {
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+}
+
+body:has(.modal-overlay) {
+  overflow: hidden;
 }
 
 .modal-card .card-actions {
@@ -2661,10 +2666,18 @@ textarea {
 
   .modal-overlay {
     padding: 16px 4vw;
+    align-items: stretch;
   }
 
   .modal-card {
-    max-height: 92vh;
+    max-height: calc(100dvh - 32px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-card input,
+  .modal-card select,
+  .modal-card textarea {
+    font-size: 16px;
   }
 
   .shipment-items-card .form-row-compact {
