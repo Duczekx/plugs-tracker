@@ -3,7 +3,10 @@ import path from "path";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/role-auth";
 
+const PDFDocument = require("pdfkit");
+
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type PdfPart = {
   name: string;
@@ -28,15 +31,15 @@ const normalizeCategory = (category: string | null) => {
 };
 
 const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
-  const pdfkit = await import("pdfkit");
-  const PDFDocument = (pdfkit as any).default ?? (pdfkit as any);
   const doc = new PDFDocument({
     size: "A4",
     margin: 40,
     bufferPages: true,
   });
-  const fontPath = path.join(process.cwd(), "public", "fonts", "noto-sans-regular.ttf");
-  doc.registerFont("Body", fontPath);
+  const fontRegular = path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf");
+  const fontBold = path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf");
+  doc.registerFont("Body", fontRegular);
+  doc.registerFont("BodyBold", fontBold);
   doc.font("Body");
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
