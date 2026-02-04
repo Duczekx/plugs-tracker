@@ -2595,6 +2595,29 @@ textarea {
   margin-top: 12px;
 }
 
+.scan-overlay {
+  background: rgba(12, 18, 32, 0.6);
+}
+
+.scan-modal-card {
+  width: min(100%, 720px);
+  max-height: 100dvh;
+}
+
+.scan-textarea {
+  min-height: 220px;
+}
+
+@media (max-width: 720px) {
+  .scan-modal-card {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 .modal-plow-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

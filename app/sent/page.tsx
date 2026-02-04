@@ -66,6 +66,8 @@ type CustomerForm = {
   city: string;
   country: string;
   notes: string;
+  email: string;
+  phone: string;
 };
 
 type Product = {
@@ -108,6 +110,8 @@ const emptyCustomerForm: CustomerForm = {
   city: "",
   country: "",
   notes: "",
+  email: "",
+  phone: "",
 };
 
 const emptyExtraForm: ShipmentExtraDraft = {
@@ -186,6 +190,8 @@ export default function SentPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanText, setScanText] = useState("");
   const [statusLoading, setStatusLoading] = useState<{
     shipmentId: number;
     status: ShipmentStatus;
@@ -479,6 +485,91 @@ export default function SentPage() {
     setEditCustomer((prev) => ({ ...prev, [name]: value }));
   };
 
+  const parseScanText = (text: string) => {
+    const normalized = text.replace(/\r/g, "\n").replace(/\n+/g, "\n").trim();
+    const lines = normalized
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const emailMatch = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const phoneMatch = normalized.match(/(\+?\d[\d\s().-]{6,}\d)/);
+
+    const postalLineIndex = lines.findIndex((line) =>
+      /(\d{2}-\d{3}|\d{5})/.test(line)
+    );
+    let postalCode = "";
+    let city = "";
+    if (postalLineIndex >= 0) {
+      const postalLine = lines[postalLineIndex];
+      const postalMatch = postalLine.match(/(\d{2}-\d{3}|\d{5})/);
+      postalCode = postalMatch ? postalMatch[1] : "";
+      city = postalLine.replace(postalCode, "").trim();
+      if (!city && postalLineIndex + 1 < lines.length) {
+        city = lines[postalLineIndex + 1].replace(postalCode, "").trim();
+      }
+    }
+
+    const streetLine = lines.find((line) =>
+      /(ul\.|ulica|str\.|straße|strasse|road|street|weg|allee|platz)\b/i.test(line)
+    );
+    const street = streetLine ?? "";
+
+    const companyLine = lines.find((line) =>
+      /(gmbh|gbr|ag|kg|ug|sp\. z o\.o\.|s\.a\.|ltd|inc|co\.|company|firma)\b/i.test(
+        line.toLowerCase()
+      )
+    );
+    const nameLine =
+      lines.find(
+        (line) =>
+          !/\d/.test(line) &&
+          !/(gmbh|gbr|ag|kg|ug|sp\. z o\.o\.|s\.a\.|ltd|inc|co\.|company|firma)\b/i.test(
+            line.toLowerCase()
+          ) &&
+          line.split(" ").length >= 2
+      ) ?? "";
+    const nameParts = nameLine ? nameLine.split(/\s+/) : [];
+    const firstName = nameParts[0] ?? "";
+    const lastName = nameParts.slice(1).join(" ");
+
+    const countryLine = lines.find((line) =>
+      /(polska|deutschland|germany|poland|austria|österreich|france|italy|italia)\b/i.test(
+        line.toLowerCase()
+      )
+    );
+
+    return {
+      companyName: companyLine ?? "",
+      firstName,
+      lastName,
+      street,
+      postalCode,
+      city,
+      country: countryLine ?? "",
+      email: emailMatch ? emailMatch[0] : "",
+      phone: phoneMatch ? phoneMatch[1] : "",
+    };
+  };
+
+  const handleApplyScan = () => {
+    const parsed = parseScanText(scanText);
+    setEditCustomer((prev) => ({
+      ...prev,
+      companyName: parsed.companyName || prev.companyName,
+      firstName: parsed.firstName || prev.firstName,
+      lastName: parsed.lastName || prev.lastName,
+      street: parsed.street || prev.street,
+      postalCode: parsed.postalCode || prev.postalCode,
+      city: parsed.city || prev.city,
+      country: parsed.country || prev.country,
+      email: parsed.email || prev.email,
+      phone: parsed.phone || prev.phone,
+    }));
+    setScanOpen(false);
+    setScanText("");
+  };
+
   const handleExtraChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -629,6 +720,8 @@ export default function SentPage() {
       city: shipment.city,
       country: shipment.country,
       notes: shipment.notes ?? "",
+      email: "",
+      phone: "",
     });
     setEditItems(
       shipment.items.map((item) => ({
@@ -1524,8 +1617,8 @@ export default function SentPage() {
             )}
 
             {editSection === "customer" && (
-            <div ref={customerSectionRef} style={{ scrollMarginTop: 12 }}>
-              <form className="form" onSubmit={handleUpdateShipment}>
+              <div ref={customerSectionRef} style={{ scrollMarginTop: 12 }}>
+                <form className="form" onSubmit={handleUpdateShipment}>
                 <div className="card-header modal-section-header">
                   <div>
                     <h3 className="title title-with-icon">
@@ -1546,8 +1639,17 @@ export default function SentPage() {
                           />
                         </svg>
                       </span>
-                      {t.shipmentCustomerTitle}
+                        {t.shipmentCustomerTitle}
                     </h3>
+                  </div>
+                  <div className="card-actions">
+                    <button
+                      type="button"
+                      className="button button-ghost button-small mobile-only"
+                      onClick={() => setScanOpen(true)}
+                    >
+                      {t.scanCustomerData}
+                    </button>
                   </div>
                 </div>
                 <label>
@@ -1558,6 +1660,8 @@ export default function SentPage() {
                     onChange={handleCustomerChange}
                     required
                     disabled={isReadOnly}
+                    autoComplete="organization"
+                    inputMode="text"
                   />
                 </label>
                 <div className="form-row">
@@ -1569,6 +1673,8 @@ export default function SentPage() {
                       onChange={handleCustomerChange}
                       required
                       disabled={isReadOnly}
+                      autoComplete="given-name"
+                      inputMode="text"
                     />
                   </label>
                   <label>
@@ -1579,6 +1685,8 @@ export default function SentPage() {
                       onChange={handleCustomerChange}
                       required
                       disabled={isReadOnly}
+                      autoComplete="family-name"
+                      inputMode="text"
                     />
                   </label>
                 </div>
@@ -1590,6 +1698,8 @@ export default function SentPage() {
                     onChange={handleCustomerChange}
                     required
                     disabled={isReadOnly}
+                    autoComplete="address-line1"
+                    inputMode="text"
                   />
                 </label>
                 <div className="form-row">
@@ -1601,6 +1711,8 @@ export default function SentPage() {
                       onChange={handleCustomerChange}
                       required
                       disabled={isReadOnly}
+                      autoComplete="postal-code"
+                      inputMode="numeric"
                     />
                   </label>
                   <label>
@@ -1611,6 +1723,8 @@ export default function SentPage() {
                       onChange={handleCustomerChange}
                       required
                       disabled={isReadOnly}
+                      autoComplete="address-level2"
+                      inputMode="text"
                     />
                   </label>
                 </div>
@@ -1623,6 +1737,34 @@ export default function SentPage() {
                       onChange={handleCustomerChange}
                       required
                       disabled={isReadOnly}
+                      autoComplete="country-name"
+                      inputMode="text"
+                    />
+                  </label>
+                </div>
+                <div className="form-row">
+                  <label>
+                    {t.emailLabel}
+                    <input
+                      name="email"
+                      value={editCustomer.email}
+                      onChange={handleCustomerChange}
+                      disabled={isReadOnly}
+                      autoComplete="email"
+                      inputMode="email"
+                      type="email"
+                    />
+                  </label>
+                  <label>
+                    {t.phoneLabel}
+                    <input
+                      name="phone"
+                      value={editCustomer.phone}
+                      onChange={handleCustomerChange}
+                      disabled={isReadOnly}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      type="tel"
                     />
                   </label>
                 </div>
@@ -1633,6 +1775,7 @@ export default function SentPage() {
                     value={editCustomer.notes}
                     onChange={handleCustomerChange}
                     disabled={isReadOnly}
+                    autoComplete="off"
                   />
                 </label>
                 <div className="form-actions">
@@ -1649,8 +1792,57 @@ export default function SentPage() {
                     {t.updateShipment}
                   </button>
                 </div>
-              </form>
-            </div>
+                </form>
+              </div>
+            )}
+            {scanOpen && (
+              <div className="modal-overlay scan-overlay" role="dialog" aria-modal="true">
+                <section className="card modal-card scan-modal-card">
+                  <div className="card-header">
+                    <div>
+                      <h3 className="title">{t.scanCustomerData}</h3>
+                      <p className="subtitle">{t.scanCustomerHint}</p>
+                    </div>
+                    <div className="card-actions">
+                      <button
+                        type="button"
+                        className="button button-ghost button-small button-icon-only"
+                        onClick={() => setScanOpen(false)}
+                        aria-label={t.cancel}
+                      >
+                        X
+                      </button>
+                    </div>
+                  </div>
+                  <label>
+                    {t.scanCustomerLabel}
+                    <textarea
+                      className="scan-textarea"
+                      value={scanText}
+                      onChange={(event) => setScanText(event.target.value)}
+                      placeholder={t.scanCustomerPlaceholder}
+                      autoComplete="off"
+                    />
+                  </label>
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={handleApplyScan}
+                      disabled={!scanText.trim()}
+                    >
+                      {t.scanCustomerApply}
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-ghost"
+                      onClick={() => setScanOpen(false)}
+                    >
+                      {t.cancel}
+                    </button>
+                  </div>
+                </section>
+              </div>
             )}
           </section>
         </div>
