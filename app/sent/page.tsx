@@ -1673,7 +1673,6 @@ export default function SentPage() {
                         {shipment.street}, {shipment.postalCode} {shipment.city},{" "}
                         {shipment.country}
                       </div>
-                      </div>
                     </div>
                   </div>
                   {shipmentStatus === "RESERVED" && (
