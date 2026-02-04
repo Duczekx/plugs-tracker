@@ -35,7 +35,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     bufferPages: true,
   });
   const chunks: Buffer[] = [];
-  doc.on("data", (chunk) => chunks.push(chunk as Buffer));
+  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   const title = "Flächenschneeschieber";
   const subtitle = "Lista części";
