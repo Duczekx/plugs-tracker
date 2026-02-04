@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import path from "path";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/role-auth";
 
@@ -34,6 +35,9 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     margin: 40,
     bufferPages: true,
   });
+  const fontPath = path.join(process.cwd(), "public", "fonts", "noto-sans-regular.ttf");
+  doc.registerFont("Body", fontPath);
+  doc.font("Body");
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
