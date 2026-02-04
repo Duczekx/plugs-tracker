@@ -902,7 +902,7 @@ export default function SentPage() {
         {emailPrompt && (
           <div className="modal-overlay" role="dialog" aria-modal="true">
             <section className="card modal-card confirm-card">
-              <div className="card-header">
+              <div className="card-header modal-section-header">
                 <div>
                   <h3 className="title title-with-icon">
                     <span
@@ -1045,8 +1045,9 @@ export default function SentPage() {
                 {t.editSectionExtras}
               </button>
             </div>
+            {editSection === "plow" && (
             <div ref={plowSectionRef} style={{ scrollMarginTop: 12 }}>
-              <div className="card-header">
+              <div className="card-header modal-section-header">
                 <div>
                   <h3 className="title">{t.editSectionPlow}</h3>
                 </div>
@@ -1055,8 +1056,8 @@ export default function SentPage() {
                 <p className="muted">{t.plowMissingNotice}</p>
               ) : (
                 <>
-                  <form className="form" onSubmit={handleAddEditItem}>
-                    <div className="form-row form-row-compact">
+                    <form className="form" onSubmit={handleAddEditItem}>
+                      <div className="modal-plow-grid">
                       <label>
                         {t.modelLabel}
                         <select
@@ -1102,7 +1103,7 @@ export default function SentPage() {
                         />
                       </label>
                     </div>
-                    <div className="form-row">
+                      <div className="form-row modal-plow-row">
                       <label>
                         {t.buildNumber}
                         <input
@@ -1126,7 +1127,7 @@ export default function SentPage() {
                         />
                       </label>
                     </div>
-                    <div className="parts-grid">
+                      <div className="parts-grid modal-plow-row">
                       <div className="parts-column">
                         <label>
                           {t.variant}
@@ -1181,15 +1182,15 @@ export default function SentPage() {
                         </label>
                       </div>
                     </div>
-                    <label>
-                      {t.extraParts}
-                      <textarea
-                        name="extraParts"
-                        value={editItemForm.extraParts ?? ""}
-                        onChange={handleEditItemChange}
-                        disabled={isReadOnly}
-                      />
-                    </label>
+                      <label className="modal-plow-row">
+                        {t.extraParts}
+                        <textarea
+                          name="extraParts"
+                          value={editItemForm.extraParts ?? ""}
+                          onChange={handleEditItemChange}
+                          disabled={isReadOnly}
+                        />
+                      </label>
                     <div className="form-actions">
                       {editIndex !== null && (
                         <button
@@ -1218,7 +1219,9 @@ export default function SentPage() {
                     </div>
                   </form>
 
-                  <div className="shipment-items" style={{ marginTop: 18 }}>
+                    <div className="modal-list-block" style={{ marginTop: 18 }}>
+                      <div className="modal-list-header">{t.shipmentItemsTitle}</div>
+                      <div className="shipment-items">
                     {editItems.length === 0 && <p>{t.shipmentItemEmpty}</p>}
                     {editItems.map((item, index) => (
                       <div
@@ -1313,7 +1316,9 @@ export default function SentPage() {
                 </>
               )}
             </div>
+            )}
 
+            {editSection === "extras" && (
             <div ref={extrasSectionRef} style={{ scrollMarginTop: 12 }}>
               <div className="card-header">
                 <div>
@@ -1405,22 +1410,24 @@ export default function SentPage() {
                           <td>{extra.quantity}</td>
                           <td>{extra.note ? extra.note : <span className="muted">-</span>}</td>
                           <td>
-                            <button
-                              type="button"
-                              className="button button-ghost button-small edit-pulse"
-                              onClick={() => handleEditExistingExtra(index)}
-                              disabled={isReadOnly}
-                            >
-                              {t.editItem}
-                            </button>
-                            <button
-                              type="button"
-                              className="button button-ghost button-small"
-                              onClick={() => handleRemoveExtra(index)}
-                              disabled={isReadOnly}
-                            >
-                              {t.delete}
-                            </button>
+                            <div className="modal-table-actions">
+                              <button
+                                type="button"
+                                className="button button-ghost button-small edit-pulse"
+                                onClick={() => handleEditExistingExtra(index)}
+                                disabled={isReadOnly}
+                              >
+                                {t.editItem}
+                              </button>
+                              <button
+                                type="button"
+                                className="button button-ghost button-small"
+                                onClick={() => handleRemoveExtra(index)}
+                                disabled={isReadOnly}
+                              >
+                                {t.delete}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1429,10 +1436,12 @@ export default function SentPage() {
                 </div>
               )}
             </div>
+            )}
 
+            {editSection === "customer" && (
             <div ref={customerSectionRef} style={{ scrollMarginTop: 12 }}>
               <form className="form" onSubmit={handleUpdateShipment}>
-                <div className="card-header">
+                <div className="card-header modal-section-header">
                   <div>
                     <h3 className="title title-with-icon">
                       <span
@@ -1557,6 +1566,7 @@ export default function SentPage() {
                 </div>
               </form>
             </div>
+            )}
           </section>
         </div>
         )}
@@ -1647,6 +1657,7 @@ export default function SentPage() {
                       <div className="muted address-compact">
                         {shipment.street}, {shipment.postalCode} {shipment.city},{" "}
                         {shipment.country}
+                      </div>
                       </div>
                     </div>
                   </div>
