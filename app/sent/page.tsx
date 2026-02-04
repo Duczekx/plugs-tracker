@@ -335,7 +335,7 @@ export default function SentPage() {
   }, [products]);
 
   const filteredShipments = useMemo(() => {
-    return shipments.filter((shipment) => {
+    const visible = shipments.filter((shipment) => {
       const buildQuery = filter.buildNumber.trim().toLowerCase();
       const companyQuery = filter.company.trim().toLowerCase();
       if (companyQuery) {
@@ -351,7 +351,34 @@ export default function SentPage() {
       }
       return shipment.items.length > 0 || (shipment.extras?.length ?? 0) > 0;
     });
+    const statusRank: Record<ShipmentStatus, number> = {
+      RESERVED: 0,
+      READY: 1,
+      SENT: 2,
+    };
+    return visible.sort((a, b) => {
+      const aStatus = a.status ?? "READY";
+      const bStatus = b.status ?? "READY";
+      const rank = statusRank[aStatus] - statusRank[bStatus];
+      if (rank !== 0) {
+        return rank;
+      }
+      const aDate = new Date(getShipmentDate(a)).getTime();
+      const bDate = new Date(getShipmentDate(b)).getTime();
+      return bDate - aDate;
+    });
   }, [shipments, filter]);
+
+  const statusCounts = useMemo(() => {
+    return filteredShipments.reduce(
+      (acc, shipment) => {
+        const status = shipment.status ?? "READY";
+        acc[status] += 1;
+        return acc;
+      },
+      { RESERVED: 0, READY: 0, SENT: 0 } as Record<ShipmentStatus, number>
+    );
+  }, [filteredShipments]);
 
   const applyProducts = (data: Product[]) => {
     setProducts(data);
@@ -1340,7 +1367,6 @@ export default function SentPage() {
                 </>
               )}
             </div>
-            )}
 
             {editSection === "extras" && (
             <div ref={extrasSectionRef} style={{ scrollMarginTop: 12 }}>
@@ -1619,9 +1645,19 @@ export default function SentPage() {
               </h2>
               <p className="subtitle">{t.sentSubtitle}</p>
             </div>
-            <div className="badge-stack">
-              <span className="pill">{t.sentTab}</span>
-              <span className="badge-glow">{filteredShipments.length}</span>
+            <div className="status-summary-stack">
+              <div className="status-summary ready">
+                <span className="pill">{statusLabel.READY}</span>
+                <span className="badge-glow">{statusCounts.READY}</span>
+              </div>
+              <div className="status-summary reserved">
+                <span className="pill">{statusLabel.RESERVED}</span>
+                <span className="badge-glow">{statusCounts.RESERVED}</span>
+              </div>
+              <div className="status-summary sent">
+                <span className="pill">{statusLabel.SENT}</span>
+                <span className="badge-glow">{statusCounts.SENT}</span>
+              </div>
             </div>
           </div>
           <div className="filter-row">
