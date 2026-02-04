@@ -788,10 +788,14 @@ export default function SentPage() {
 
   const handleStatusRequest = (
     shipmentId: number,
-    nextStatus: "READY" | "SENT",
+    nextStatus: ShipmentStatus,
     currentStatus: ShipmentStatus
   ) => {
     if (currentStatus === nextStatus) {
+      return;
+    }
+    if (nextStatus === "RESERVED") {
+      void handleUpdateShipmentStatus(shipmentId, nextStatus, false);
       return;
     }
     if (nextStatus === "READY" && currentStatus !== "RESERVED") {
@@ -1040,6 +1044,18 @@ export default function SentPage() {
                 <p className="subtitle">{t.shipmentItemsSubtitle}</p>
               </div>
               <div className="card-actions">
+                <button
+                  type="button"
+                  className="button button-ghost button-small"
+                  onClick={() => {
+                    if (editId) {
+                      void handleUpdateShipmentStatus(editId, "RESERVED", false);
+                    }
+                  }}
+                  disabled={isReadOnly || !editId}
+                >
+                  {statusLabel.RESERVED}
+                </button>
                 <button
                   type="button"
                   className="button button-ghost button-small button-icon-only"
