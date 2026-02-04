@@ -1725,12 +1725,15 @@ export default function SentPage() {
                       {isStatusLoading && (
                         <div className="status-loading">
                           <span className="plow-loader" aria-hidden="true">
-                            <svg viewBox="0 0 64 20" className="plow-loader-icon">
-                              <rect x="6" y="6" width="20" height="8" rx="2" />
-                              <rect x="24" y="8" width="8" height="4" rx="1" />
-                              <path d="M32 7l6 3-6 3" />
-                              <circle cx="14" cy="16" r="3" />
-                              <circle cx="24" cy="16" r="3" />
+                            <svg viewBox="0 0 96 24" className="plow-loader-icon">
+                              <rect x="10" y="9" width="28" height="8" rx="2" />
+                              <rect x="22" y="5" width="10" height="6" rx="1.5" />
+                              <rect x="18" y="7" width="6" height="4" rx="1" />
+                              <rect x="30" y="12" width="8" height="3" rx="1" />
+                              <circle cx="18" cy="18" r="4" />
+                              <circle cx="30" cy="18" r="4" />
+                              <path d="M38 10h10l6 4-6 4H38z" />
+                              <path d="M54 8l8 4-8 4" />
                             </svg>
                             <span className="plow-loader-track" />
                           </span>

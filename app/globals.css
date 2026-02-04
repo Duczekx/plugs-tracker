@@ -2174,7 +2174,7 @@ textarea {
 
 .plow-loader {
   position: relative;
-  width: 64px;
+  width: 80px;
   height: 20px;
   overflow: hidden;
   border-radius: 999px;
@@ -2182,15 +2182,15 @@ textarea {
 }
 
 .plow-loader-icon {
-  width: 36px;
+  width: 48px;
   height: 20px;
   position: absolute;
-  left: -36px;
+  left: -48px;
   top: 0;
   fill: rgba(15, 23, 42, 0.45);
   stroke: rgba(15, 23, 42, 0.45);
   strokeWidth: 1.4;
-  animation: plowDrive 1.4s linear infinite;
+  animation: plowDrive 1.6s linear infinite;
   z-index: 2;
 }
 
@@ -2236,7 +2236,7 @@ textarea {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(96px);
+    transform: translateX(120px);
   }
 }
 
@@ -2249,7 +2249,7 @@ textarea {
     opacity: 0.9;
   }
   100% {
-    transform: translateX(96px) scaleX(1.1);
+    transform: translateX(120px) scaleX(1.1);
     opacity: 0;
   }
 }
