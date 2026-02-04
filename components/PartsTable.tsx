@@ -335,43 +335,62 @@ export default function PartsTable({
                       </svg>
                     </button>
                     {activeActionId === part.id && (
-                      <div className="parts-actions-menu">
-                        {onAdjust && (
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() => {
-                              onAdjust(part);
-                              setActiveActionId(null);
-                            }}
-                          >
-                            {labels.partsAdjust}
-                          </button>
-                        )}
-                        {onEdit && (
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() => {
-                              onEdit(part);
-                              setActiveActionId(null);
-                            }}
-                          >
-                            {labels.partsEdit}
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            type="button"
-                            className="button button-ghost button-small button-danger"
-                            onClick={() => {
-                              onDelete(part);
-                              setActiveActionId(null);
-                            }}
-                          >
-                            {labels.partsDelete}
-                          </button>
-                        )}
+                      <div
+                        className="parts-actions-menu-overlay"
+                        onClick={() => setActiveActionId(null)}
+                      >
+                        <div
+                          className="parts-actions-menu-sheet"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="parts-actions-menu-header">
+                            <span>{labels.actionsLabel}</span>
+                            <button
+                              type="button"
+                              className="button button-ghost button-icon-only"
+                              aria-label={labels.actionsLabel}
+                              onClick={() => setActiveActionId(null)}
+                            >
+                              X
+                            </button>
+                          </div>
+                          {onAdjust && (
+                            <button
+                              type="button"
+                              className="button button-ghost button-small"
+                              onClick={() => {
+                                onAdjust(part);
+                                setActiveActionId(null);
+                              }}
+                            >
+                              {labels.partsAdjust}
+                            </button>
+                          )}
+                          {onEdit && (
+                            <button
+                              type="button"
+                              className="button button-ghost button-small"
+                              onClick={() => {
+                                onEdit(part);
+                                setActiveActionId(null);
+                              }}
+                            >
+                              {labels.partsEdit}
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              type="button"
+                              className="button button-ghost button-small button-danger"
+                              onClick={() => {
+                                onDelete(part);
+                                setActiveActionId(null);
+                              }}
+                            >
+                              {labels.partsDelete}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

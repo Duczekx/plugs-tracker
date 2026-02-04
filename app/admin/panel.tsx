@@ -173,7 +173,7 @@ export default function AdminPanel() {
     stockAbsolute: "",
   });
   const [adjustTarget, setAdjustTarget] = useState<Part | null>(null);
-  const [adjustForm, setAdjustForm] = useState({ delta: 0, note: "" });
+  const [adjustForm, setAdjustForm] = useState({ delta: "", note: "" });
 
   const [movements, setMovements] = useState<Movement[]>([]);
   const [movementsPage, setMovementsPage] = useState(1);
@@ -904,7 +904,7 @@ export default function AdminPanel() {
     const { name, value } = event.target;
     setAdjustForm((prev) => ({
       ...prev,
-      [name]: name === "delta" ? Number(value) : value,
+      [name]: name === "delta" ? value : value,
     }));
   };
 
@@ -913,7 +913,8 @@ export default function AdminPanel() {
     if (!adjustTarget) {
       return;
     }
-    if (!Number.isInteger(adjustForm.delta) || adjustForm.delta === 0) {
+    const deltaValue = Number(adjustForm.delta);
+    if (!Number.isInteger(deltaValue) || deltaValue === 0) {
       setNotice({ type: "error", message: t.error + t.partsAdjustQty });
       return;
     }
@@ -922,7 +923,7 @@ export default function AdminPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         partId: adjustTarget.id,
-        delta: adjustForm.delta,
+        delta: deltaValue,
         note: adjustForm.note,
       }),
     });
@@ -933,7 +934,7 @@ export default function AdminPanel() {
     const updated: Part = await response.json();
     setParts((prev) => prev.map((part) => (part.id === updated.id ? updated : part)));
     setAdjustTarget(null);
-    setAdjustForm({ delta: 0, note: "" });
+    setAdjustForm({ delta: "", note: "" });
     setNotice({ type: "success", message: t.saved });
   };
 

@@ -3449,6 +3449,16 @@ body:has(.modal-overlay) {
   overflow-y: auto;
 }
 
+@media (max-width: 720px) {
+  .parts-actions-menu-sheet {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 .parts-actions-menu-header {
   display: flex;
   align-items: center;
