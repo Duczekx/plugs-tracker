@@ -1052,10 +1052,28 @@ export default function SentPage() {
                       void handleUpdateShipmentStatus(editId, "RESERVED", false);
                     }
                   }}
-                  disabled={isReadOnly || !editId}
+                  disabled={isReadOnly || !editId || statusLoading?.shipmentId === editId}
                 >
                   {statusLabel.RESERVED}
                 </button>
+                {statusLoading?.shipmentId === editId && (
+                  <div className="status-loading">
+                    <span className="plow-loader" aria-hidden="true">
+                      <svg viewBox="0 0 96 24" className="plow-loader-icon">
+                        <rect x="10" y="9" width="28" height="8" rx="2" />
+                        <rect x="22" y="5" width="10" height="6" rx="1.5" />
+                        <rect x="18" y="7" width="6" height="4" rx="1" />
+                        <rect x="30" y="12" width="8" height="3" rx="1" />
+                        <circle cx="18" cy="18" r="4" />
+                        <circle cx="30" cy="18" r="4" />
+                        <path d="M38 10h10l6 4-6 4H38z" />
+                        <path d="M54 8l8 4-8 4" />
+                      </svg>
+                      <span className="plow-loader-track" />
+                    </span>
+                    <span>{t.statusUpdating}</span>
+                  </div>
+                )}
                 <button
                   type="button"
                   className="button button-ghost button-small button-icon-only"
