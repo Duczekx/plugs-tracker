@@ -221,7 +221,7 @@ export async function PATCH(
         });
 
         let stockWarnings: StockWarning[] = [];
-        if (status === ShipmentStatus.READY) {
+        if (status === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
           const summary = await buildPartsSummary(tx, updated.items, updated.extras);
           const deltaByPartId = await calculateShipmentDelta(
             tx,
@@ -481,7 +481,7 @@ export async function PATCH(
       const nextStatus = status ?? existing.status;
       const statusChanged = status ? existing.status !== status : false;
       let stockWarnings: StockWarning[] = [];
-      if (nextStatus === ShipmentStatus.READY) {
+      if (nextStatus === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
         const summary = await buildPartsSummary(tx, updated.items, updated.extras);
         const deltaByPartId = await calculateShipmentDelta(
           tx,
@@ -623,6 +623,13 @@ export async function DELETE(
           },
         });
       }
+
+      const deltaByPartId = await calculateShipmentDelta(
+        tx,
+        existing.id,
+        new Map()
+      );
+      await applyShipmentPartDeltas(tx, existing.id, deltaByPartId);
 
       await tx.shipment.delete({ where: { id: shipmentId } });
 
