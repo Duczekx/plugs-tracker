@@ -51,6 +51,13 @@
   font-size: 15px;
 }
 
+.quantityInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 .titleRow {
   display: flex;
   align-items: baseline;
@@ -64,11 +71,6 @@
   color: #0f172a;
 }
 
-.subtitle {
-  font-size: 14px;
-  color: #475569;
-  font-weight: 500;
-}
 
 .section {
   background: #eef1f5;

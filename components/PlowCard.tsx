@@ -38,15 +38,10 @@ export default function PlowCard({
   deleteLabel,
   deleteDisabled,
 }: PlowCardProps) {
-  const totalLabel = `${quantity} ${unitLabel}`;
-
   return (
     <article className={styles.card}>
       <header className={styles.header}>
-        <div className={styles.quantityWrap}>
-          <span className={styles.quantityLabel}>{quantityLabel}</span>
-          <span className={styles.quantityPill}>{quantity}</span>
-        </div>
+        <div className={styles.quantityWrap} />
         {onDelete && deleteLabel ? (
           <button
             type="button"
@@ -70,7 +65,10 @@ export default function PlowCard({
       </header>
       <div className={styles.titleRow}>
         <div className={styles.title}>{title}</div>
-        <div className={styles.subtitle}>{totalLabel}</div>
+        <div className={styles.quantityInline}>
+          <span className={styles.quantityLabel}>{quantityLabel}</span>
+          <span className={styles.quantityPill}>{quantity}</span>
+        </div>
       </div>
       <section className={styles.section}>
         <div className={styles.sectionTitle}>{standardLabel}</div>
