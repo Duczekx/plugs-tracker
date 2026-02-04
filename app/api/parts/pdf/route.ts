@@ -1,4 +1,3 @@
-import PDFDocument from "pdfkit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/role-auth";
@@ -28,6 +27,8 @@ const normalizeCategory = (category: string | null) => {
 };
 
 const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
+  const pdfkit = await import("pdfkit");
+  const PDFDocument = (pdfkit as { default?: typeof pdfkit }).default ?? (pdfkit as any);
   const doc = new PDFDocument({
     size: "A4",
     margin: 40,
