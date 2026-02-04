@@ -227,7 +227,7 @@ export default function PartsTable({
                           {onAdjust && (
                             <button
                               type="button"
-                              className="button button-ghost button-small"
+                              className="button button-ghost parts-actions-menu-item"
                               onClick={() => {
                                 onAdjust(part);
                                 setActiveActionId(null);
@@ -239,7 +239,7 @@ export default function PartsTable({
                           {onEdit && (
                             <button
                               type="button"
-                              className="button button-ghost button-small"
+                              className="button button-ghost parts-actions-menu-item"
                               onClick={() => {
                                 onEdit(part);
                                 setActiveActionId(null);
@@ -251,7 +251,7 @@ export default function PartsTable({
                           {onDelete && (
                             <button
                               type="button"
-                              className="button button-ghost button-small button-danger"
+                              className="button button-ghost button-danger parts-actions-menu-item"
                               onClick={() => {
                                 onDelete(part);
                                 setActiveActionId(null);
@@ -357,7 +357,7 @@ export default function PartsTable({
                           {onAdjust && (
                             <button
                               type="button"
-                              className="button button-ghost button-small"
+                              className="button button-ghost parts-actions-menu-item"
                               onClick={() => {
                                 onAdjust(part);
                                 setActiveActionId(null);
@@ -369,7 +369,7 @@ export default function PartsTable({
                           {onEdit && (
                             <button
                               type="button"
-                              className="button button-ghost button-small"
+                              className="button button-ghost parts-actions-menu-item"
                               onClick={() => {
                                 onEdit(part);
                                 setActiveActionId(null);
@@ -381,7 +381,7 @@ export default function PartsTable({
                           {onDelete && (
                             <button
                               type="button"
-                              className="button button-ghost button-small button-danger"
+                              className="button button-ghost button-danger parts-actions-menu-item"
                               onClick={() => {
                                 onDelete(part);
                                 setActiveActionId(null);
