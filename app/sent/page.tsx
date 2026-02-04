@@ -1222,97 +1222,112 @@ export default function SentPage() {
                     <div className="modal-list-block" style={{ marginTop: 18 }}>
                       <div className="modal-list-header">{t.shipmentItemsTitle}</div>
                       <div className="shipment-items">
-                    {editItems.length === 0 && <p>{t.shipmentItemEmpty}</p>}
-                    {editItems.map((item, index) => (
-                      <div
-                        key={`${item.model}-${item.serialNumber}-${index}`}
-                        className="shipment-item-card"
-                      >
-                        <div className="shipment-item-head">
-                          <div className="shipment-title">
-                            {modelLabel[item.model]} {item.serialNumber}
-                            <span className="shipment-build-number">{item.buildNumber}</span>
-                            <span className="pill variant-pill">
-                              {variantLabel[item.variant]}
-                            </span>
+                        {editItems.length === 0 && <p>{t.shipmentItemEmpty}</p>}
+                        {editItems.map((item, index) => (
+                          <div
+                            key={`${item.model}-${item.serialNumber}-${index}`}
+                            className="shipment-item-card"
+                          >
+                            <div className="shipment-item-head">
+                              <div className="shipment-title">
+                                {modelLabel[item.model]} {item.serialNumber}
+                                <span className="shipment-build-number">
+                                  {item.buildNumber}
+                                </span>
+                                <span className="pill variant-pill">
+                                  {variantLabel[item.variant]}
+                                </span>
+                              </div>
+                              <div className="shipment-actions">
+                                <button
+                                  type="button"
+                                  className="button button-ghost button-small edit-pulse"
+                                  onClick={() => handleEditExistingItem(index)}
+                                  disabled={isReadOnly}
+                                >
+                                  {t.editItem}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button button-ghost button-small"
+                                  onClick={() => handleRemoveEditItem(index)}
+                                  disabled={isReadOnly}
+                                >
+                                  <svg
+                                    className="button-icon"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <path
+                                      d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
+                                      stroke="currentColor"
+                                      strokeWidth="1.6"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                  {t.delete}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="shipment-item-meta">
+                              <span className="pill">{t.quantity}: {item.quantity}</span>
+                            </div>
+                            <div className="shipment-item-tags">
+                              <span
+                                className={`item-chip ${
+                                  item.isSchwenkbock ? "on" : "off"
+                                }`}
+                              >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                  <path
+                                    d="M12 4v4l3-3M12 20v-4l-3 3M5 12h14"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                                {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
+                              </span>
+                              <span
+                                className={`item-chip ${
+                                  item.bucketHolder ? "on" : "off"
+                                }`}
+                              >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                  <path
+                                    d="M6 8h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8zM9 8V6a3 3 0 0 1 6 0v2"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                                {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
+                              </span>
+                              <span className="item-chip">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                  <path
+                                    d="M12 5v14M7 9h10M7 15h10"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                {t.valveType}: {valveLabel[item.valveType]}
+                              </span>
+                            </div>
+                            {item.extraParts && (
+                              <div className="shipment-item-notes">
+                                <span className="pill">{t.extraParts}</span>
+                                <span className="muted">{item.extraParts}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="shipment-actions">
-                            <button
-                              type="button"
-                              className="button button-ghost button-small edit-pulse"
-                              onClick={() => handleEditExistingItem(index)}
-                              disabled={isReadOnly}
-                            >
-                              {t.editItem}
-                            </button>
-                            <button
-                              type="button"
-                              className="button button-ghost button-small"
-                              onClick={() => handleRemoveEditItem(index)}
-                              disabled={isReadOnly}
-                            >
-                              <svg className="button-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path
-                                  d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6"
-                                  stroke="currentColor"
-                                  strokeWidth="1.6"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                              {t.delete}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="shipment-item-meta">
-                          <span className="pill">{t.quantity}: {item.quantity}</span>
-                        </div>
-                        <div className="shipment-item-tags">
-                          <span className={`item-chip ${item.isSchwenkbock ? "on" : "off"}`}>
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path
-                                d="M12 4v4l3-3M12 20v-4l-3 3M5 12h14"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            {t.schwenkbock}: {item.isSchwenkbock ? t.yes : t.no}
-                          </span>
-                          <span className={`item-chip ${item.bucketHolder ? "on" : "off"}`}>
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path
-                                d="M6 8h12l-1 10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 8zM9 8V6a3 3 0 0 1 6 0v2"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            {t.bucketHolder}: {item.bucketHolder ? t.yes : t.no}
-                          </span>
-                          <span className="item-chip">
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path
-                                d="M12 5v14M7 9h10M7 15h10"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                            {t.valveType}: {valveLabel[item.valveType]}
-                          </span>
-                        </div>
-                        {item.extraParts && (
-                          <div className="shipment-item-notes">
-                            <span className="pill">{t.extraParts}</span>
-                            <span className="muted">{item.extraParts}</span>
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
                 </>
               )}
             </div>
