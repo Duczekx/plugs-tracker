@@ -43,6 +43,7 @@ export const labels = {
     openEmail: "E-Mail otworz",
     missingNotifyEmails: "Brak skonfigurowanych adresow powiadomien",
     statusSaved: "Status zapisany",
+    statusUpdating: "Aktualizacja statusu...",
     models: {
       FL_640: "FL 640",
       FL_540: "FL 540",
@@ -318,6 +319,7 @@ export const labels = {
     openEmail: "E-Mail oeffnen",
     missingNotifyEmails: "Keine Benachrichtigungsadressen konfiguriert",
     statusSaved: "Status gespeichert",
+    statusUpdating: "Status wird aktualisiert...",
     models: {
       FL_640: "FL 640",
       FL_540: "FL 540",

@@ -186,6 +186,10 @@ export default function SentPage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [statusLoading, setStatusLoading] = useState<{
+    shipmentId: number;
+    status: ShipmentStatus;
+  } | null>(null);
   const plowSectionRef = useRef<HTMLDivElement | null>(null);
   const customerSectionRef = useRef<HTMLDivElement | null>(null);
   const extrasSectionRef = useRef<HTMLDivElement | null>(null);
@@ -703,50 +707,55 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.readOnlyNotice });
       return;
     }
-    const response = await fetch(`/api/shipments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      const message = body?.message ? `${t.error}${body.message}` : t.error;
-      setNotice({ type: "error", message });
-      return;
-    }
-    const updated = await response.json().catch(() => null);
-    setShipments((prev) =>
-      prev.map((shipment) =>
-        shipment.id === id ? { ...shipment, ...updated } : shipment
-      )
-    );
-    setNotice({ type: "success", message: t.statusSaved });
-
-    if (sendEmail) {
-      if (status === "RESERVED") {
-        return;
-      }
-      if (!notifyEmailTo) {
-        setEmailPrompt({
-          mailto: null,
-          message: t.missingNotifyEmails,
-          status,
-        });
-        return;
-      }
-      const current =
-        updated ?? shipments.find((shipment) => shipment.id === id);
-      if (current) {
-        const mailto = buildMailto(current, status);
-        setEmailPrompt({ mailto, message: t.statusSaved, status });
-      }
-    }
-    if (updated?.stockWarnings?.length) {
-      const count = updated.stockWarnings.length;
-      setNotice({
-        type: "error",
-        message: t.stockWarning.replace("{count}", String(count)),
+    setStatusLoading({ shipmentId: id, status });
+    try {
+      const response = await fetch(`/api/shipments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
       });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const message = body?.message ? `${t.error}${body.message}` : t.error;
+        setNotice({ type: "error", message });
+        return;
+      }
+      const updated = await response.json().catch(() => null);
+      setShipments((prev) =>
+        prev.map((shipment) =>
+          shipment.id === id ? { ...shipment, ...updated } : shipment
+        )
+      );
+      setNotice({ type: "success", message: t.statusSaved });
+
+      if (sendEmail) {
+        if (status === "RESERVED") {
+          return;
+        }
+        if (!notifyEmailTo) {
+          setEmailPrompt({
+            mailto: null,
+            message: t.missingNotifyEmails,
+            status,
+          });
+          return;
+        }
+        const current =
+          updated ?? shipments.find((shipment) => shipment.id === id);
+        if (current) {
+          const mailto = buildMailto(current, status);
+          setEmailPrompt({ mailto, message: t.statusSaved, status });
+        }
+      }
+      if (updated?.stockWarnings?.length) {
+        const count = updated.stockWarnings.length;
+        setNotice({
+          type: "error",
+          message: t.stockWarning.replace("{count}", String(count)),
+        });
+      }
+    } finally {
+      setStatusLoading(null);
     }
   };
 
@@ -1634,6 +1643,7 @@ export default function SentPage() {
             {filteredShipments.length === 0 && <p>{t.statusEmpty}</p>}
             {filteredShipments.map((shipment) => {
               const shipmentStatus = shipment.status ?? "READY";
+              const isStatusLoading = statusLoading?.shipmentId === shipment.id;
               return (
               <details
                 key={shipment.id}
@@ -1689,10 +1699,11 @@ export default function SentPage() {
                             shipmentStatus === "READY" ? "active" : ""
                           }`}
                           onClick={(event) => {
+                            event.stopPropagation();
                             event.preventDefault();
                             handleStatusRequest(shipment.id, "READY", shipmentStatus);
                           }}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || isStatusLoading}
                         >
                           {statusLabel.READY}
                         </button>
@@ -1702,14 +1713,30 @@ export default function SentPage() {
                             shipmentStatus === "SENT" ? "active" : ""
                           }`}
                           onClick={(event) => {
+                            event.stopPropagation();
                             event.preventDefault();
                             handleStatusRequest(shipment.id, "SENT", shipmentStatus);
                           }}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || isStatusLoading}
                         >
                           {statusLabel.SENT}
                         </button>
                       </div>
+                      {isStatusLoading && (
+                        <div className="status-loading">
+                          <span className="plow-loader" aria-hidden="true">
+                            <svg viewBox="0 0 64 20" className="plow-loader-icon">
+                              <rect x="6" y="6" width="20" height="8" rx="2" />
+                              <rect x="24" y="8" width="8" height="4" rx="1" />
+                              <path d="M32 7l6 3-6 3" />
+                              <circle cx="14" cy="16" r="3" />
+                              <circle cx="24" cy="16" r="3" />
+                            </svg>
+                            <span className="plow-loader-track" />
+                          </span>
+                          <span>{t.statusUpdating}</span>
+                        </div>
+                      )}
                       <button
                         type="button"
                         className="button button-ghost button-small"
