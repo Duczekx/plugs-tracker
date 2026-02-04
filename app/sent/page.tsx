@@ -1331,6 +1331,7 @@ export default function SentPage() {
                 </>
               )}
             </div>
+            )}
 
             {editSection === "extras" && (
             <div ref={extrasSectionRef} style={{ scrollMarginTop: 12 }}>
