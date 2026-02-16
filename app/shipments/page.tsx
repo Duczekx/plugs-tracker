@@ -67,6 +67,7 @@ type PartOption = {
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
 const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
+const RENTAL_MARKER = "[RENTAL]";
 
 const createEmptyItemForm = (): ShipmentItemDraft => ({
   model: "FL_540",
@@ -127,6 +128,7 @@ export default function ShipmentsPage() {
     useState<CustomerForm>(emptyCustomerForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reservedSuccess, setReservedSuccess] = useState(false);
+  const [isRentalOrder, setIsRentalOrder] = useState(false);
   const [notice, setNotice] = useState<{
     type: "success" | "error";
     message: string;
@@ -538,12 +540,19 @@ export default function ShipmentsPage() {
     if (isSubmitting) {
       return;
     }
+    const cleanedNotes = customerForm.notes
+      .replace(/\[RENTAL\]\s*/gi, "")
+      .trim();
+    const finalNotes = isRentalOrder
+      ? [RENTAL_MARKER, cleanedNotes].filter(Boolean).join("\n")
+      : cleanedNotes;
     setIsSubmitting(true);
     const response = await fetch("/api/shipments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...customerForm,
+        notes: finalNotes,
         items,
         extras: extras.map((extra) => ({
           name: extra.name,
@@ -576,6 +585,7 @@ export default function ShipmentsPage() {
     setExtras([]);
     setExtraForm(emptyExtraForm);
     setCustomerForm(emptyCustomerForm);
+    setIsRentalOrder(false);
     setNotice(null);
     setIsSubmitting(false);
     if (shipment?.id) {
@@ -729,7 +739,7 @@ export default function ShipmentsPage() {
           <section className="card shipment-items-card">
             <form className="form" onSubmit={handleAddItem}>
               <div className="card-header">
-                <div>
+              <div>
                   <h2 className="title title-with-icon">
                   <span className="title-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24">
@@ -746,6 +756,29 @@ export default function ShipmentsPage() {
                 </h2>
                 <p className="subtitle">{t.shipmentItemsSubtitle}</p>
               </div>
+            </div>
+            <div className="status-toggle" style={{ marginBottom: 8 }}>
+              <span className="pill">{t.orderTypeLabel}</span>
+              <button
+                type="button"
+                className={`button button-ghost button-small status-btn ${
+                  !isRentalOrder ? "active" : ""
+                }`}
+                onClick={() => setIsRentalOrder(false)}
+                disabled={isReadOnly}
+              >
+                {t.orderTypeSale}
+              </button>
+              <button
+                type="button"
+                className={`button button-ghost button-small status-btn ${
+                  isRentalOrder ? "active" : ""
+                }`}
+                onClick={() => setIsRentalOrder(true)}
+                disabled={isReadOnly}
+              >
+                {t.orderTypeRental}
+              </button>
             </div>
             <div className="form-row form-row-compact">
               <label>
