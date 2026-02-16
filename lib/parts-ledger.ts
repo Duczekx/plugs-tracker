@@ -218,6 +218,17 @@ export const applyShipmentPartDeltas = async (
     if (!delta) {
       continue;
     }
+    const existingPart = await tx.part.findUnique({
+      where: { id: partId },
+      select: { id: true, name: true, stock: true },
+    });
+    if (!existingPart) {
+      console.warn(
+        `Skipping stock delta for missing partId=${partId} in shipment ${shipmentId}`
+      );
+      continue;
+    }
+
     const updated = await tx.part.update({
       where: { id: partId },
       data: { stock: { increment: delta } },
