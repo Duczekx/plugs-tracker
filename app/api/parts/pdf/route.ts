@@ -68,6 +68,26 @@ const normalizeCategory = (category: string | null) => {
   return categoryToGerman(base);
 };
 
+const getCategoryPalette = (category: string) => {
+  const key = fold(category);
+  if (key.includes("hydraul")) {
+    return { bg: "#ecfeff", bar: "#0891b2", text: "#0e7490", badgeBg: "#cffafe", badgeText: "#155e75" };
+  }
+  if (key.includes("elektr")) {
+    return { bg: "#eef2ff", bar: "#4f46e5", text: "#4338ca", badgeBg: "#e0e7ff", badgeText: "#3730a3" };
+  }
+  if (key.includes("schraub") || key.includes("mutter") || key.includes("unterleg")) {
+    return { bg: "#fff7ed", bar: "#ea580c", text: "#c2410c", badgeBg: "#ffedd5", badgeText: "#9a3412" };
+  }
+  if (key.includes("zylinder") || key.includes("bolzen")) {
+    return { bg: "#f0fdf4", bar: "#16a34a", text: "#15803d", badgeBg: "#dcfce7", badgeText: "#166534" };
+  }
+  if (key.includes("gummi")) {
+    return { bg: "#fdf4ff", bar: "#c026d3", text: "#a21caf", badgeBg: "#f5d0fe", badgeText: "#86198f" };
+  }
+  return { bg: "#f8fafc", bar: "#475569", text: "#334155", badgeBg: "#e2e8f0", badgeText: "#334155" };
+};
+
 const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
   const pdfkitModule = await import("pdfkit");
   const PDFDocument = (pdfkitModule.default ?? pdfkitModule) as typeof pdfkitModule.default;
@@ -254,17 +274,41 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
   };
 
   const drawCategoryHeader = (category: string, count: number) => {
+    const palette = getCategoryPalette(category);
     const y = doc.y;
+    const h = 22;
     doc
       .save()
-      .rect(pageLeft, y, contentWidth, 17)
-      .fill(colors.categoryBg)
+      .roundedRect(pageLeft, y, contentWidth, h, 6)
+      .fill(palette.bg)
       .restore();
-    doc.font("BodyBold").fontSize(8.8).fillColor(colors.ink);
-    doc.text(category, pageLeft + 6, y + 4, { width: contentWidth - 56, ellipsis: true });
-    doc.font("Body").fontSize(8.3).fillColor(colors.muted);
-    doc.text(`${count} Stk.`, pageRight - 52, y + 4, { width: 46, align: "right" });
-    doc.y = y + 17;
+    doc
+      .save()
+      .roundedRect(pageLeft, y, 6, h, 6)
+      .fill(palette.bar)
+      .restore();
+
+    const badgeText = `${count} Stk.`;
+    doc.font("BodyBold").fontSize(8.2);
+    const badgeWidth = Math.max(44, Math.min(74, doc.widthOfString(badgeText) + 12));
+    doc
+      .save()
+      .roundedRect(pageRight - badgeWidth - 6, y + 3, badgeWidth, h - 6, 7)
+      .fill(palette.badgeBg)
+      .restore();
+    doc.fillColor(palette.badgeText).text(badgeText, pageRight - badgeWidth - 6, y + 7, {
+      width: badgeWidth,
+      align: "center",
+      lineBreak: false,
+    });
+
+    doc.font("BodyBold").fontSize(9.4).fillColor(palette.text);
+    doc.text(category, pageLeft + 11, y + 6, {
+      width: contentWidth - badgeWidth - 28,
+      ellipsis: true,
+      lineBreak: false,
+    });
+    doc.y = y + h;
   };
 
   const drawRow = (part: PdfPart, indexInCategory: number) => {
@@ -352,7 +396,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       return;
     }
 
-    const sectionHeightNeeded = 17 + rowHeight + 8;
+    const sectionHeightNeeded = 22 + rowHeight + 10;
     const sectionHeaderLimit = doc.page.height - doc.page.margins.bottom - sectionHeightNeeded;
     if (doc.y > sectionHeaderLimit) {
       doc.addPage();
@@ -372,7 +416,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       drawRow(part, index);
     });
 
-    doc.y += 6;
+    doc.y += 9;
   });
 
   const pageRange = doc.bufferedPageRange();
