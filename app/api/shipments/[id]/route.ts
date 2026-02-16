@@ -172,6 +172,11 @@ const getLowStockParts = async (tx: Prisma.TransactionClient, partIds: number[])
     select: { id: true, name: true, stock: true },
   });
 
+const formatMissingBom = (
+  missing: Array<{ modelName: string; bomType: BomType }>
+) =>
+  Array.from(new Set(missing.map((entry) => `${entry.modelName}:${entry.bomType}`))).join(", ");
+
 const getRequiredPartsForStatus = async (
   tx: Prisma.TransactionClient,
   status: ShipmentStatus,
@@ -249,7 +254,7 @@ export async function PATCH(
           updated.extras
         );
         if (summary.missingBom.length > 0) {
-          throw new Error("MISSING_BOM");
+          throw new Error(`MISSING_BOM:${formatMissingBom(summary.missingBom)}`);
         }
         const deltaByPartId = await calculateShipmentDelta(
           tx,
@@ -330,10 +335,10 @@ export async function PATCH(
       const message =
         error instanceof Error && error.message === "NOT_FOUND"
           ? "Not found"
-          : error instanceof Error && error.message === "INVALID_STATUS_TRANSITION"
+        : error instanceof Error && error.message === "INVALID_STATUS_TRANSITION"
           ? "Invalid status transition"
-          : error instanceof Error && error.message === "MISSING_BOM"
-          ? "Missing BOM configuration"
+          : error instanceof Error && error.message.startsWith("MISSING_BOM:")
+          ? `Missing BOM configuration: ${error.message.slice("MISSING_BOM:".length)}`
           : "Server error";
       const statusCode =
         message === "Not found"
@@ -542,7 +547,7 @@ export async function PATCH(
         updated.extras
       );
       if (summary.missingBom.length > 0) {
-        throw new Error("MISSING_BOM");
+        throw new Error(`MISSING_BOM:${formatMissingBom(summary.missingBom)}`);
       }
       const deltaByPartId = await calculateShipmentDelta(
         tx,
@@ -624,8 +629,8 @@ export async function PATCH(
         ? "Not found"
         : error instanceof Error && error.message === "INVALID_STATUS_TRANSITION"
         ? "Invalid status transition"
-        : error instanceof Error && error.message === "MISSING_BOM"
-        ? "Missing BOM configuration"
+        : error instanceof Error && error.message.startsWith("MISSING_BOM:")
+        ? `Missing BOM configuration: ${error.message.slice("MISSING_BOM:".length)}`
         : error instanceof Error && error.message === "INSUFFICIENT_STOCK"
         ? "Insufficient stock"
         : "Server error";

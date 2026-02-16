@@ -746,6 +746,12 @@ export default function SentPage() {
         const message =
           body?.message === "Invalid status transition"
             ? t.error + t.statusSentRequiresReady
+            : typeof body?.message === "string" &&
+              body.message.startsWith("Missing BOM configuration")
+            ? `${t.error}${t.statusMissingBom} (${body.message.replace(
+                "Missing BOM configuration: ",
+                ""
+              )})`
             : body?.message
             ? `${t.error}${body.message}`
             : t.error;
