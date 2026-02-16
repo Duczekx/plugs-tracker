@@ -222,64 +222,89 @@ export async function PATCH(
 
         let stockWarnings: StockWarning[] = [];
         if (status === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
-          const summary = await buildPartsSummary(tx, updated.items, updated.extras);
-          const deltaByPartId = await calculateShipmentDelta(
-            tx,
-            updated.id,
-            summary.requiredByPartId
-          );
-          stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-          const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
-          await Promise.all(
-            lowParts.map((part) =>
-              sendPushToRolesByKey(
-                ["VIEWER", "EDITOR"],
-                "lowStock",
-                "lowStock",
-                {
-                  partName: part.name,
-                  stock: part.stock,
-                }
+          try {
+            const summary = await buildPartsSummary(tx, updated.items, updated.extras);
+            const deltaByPartId = await calculateShipmentDelta(
+              tx,
+              updated.id,
+              summary.requiredByPartId
+            );
+            stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+            const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
+            await Promise.all(
+              lowParts.map((part) =>
+                sendPushToRolesByKey(
+                  ["VIEWER", "EDITOR"],
+                  "lowStock",
+                  "lowStock",
+                  {
+                    partName: part.name,
+                    stock: part.stock,
+                  }
+                )
               )
-            )
-          );
+            );
+          } catch (error) {
+            console.error(
+              `Shipment ${updated.id}: failed to apply READY stock deltas`,
+              error
+            );
+          }
         }
 
         if (status === ShipmentStatus.RESERVED) {
-          const deltaByPartId = await calculateShipmentDelta(
-            tx,
-            updated.id,
-            new Map()
-          );
-          stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+          try {
+            const deltaByPartId = await calculateShipmentDelta(
+              tx,
+              updated.id,
+              new Map()
+            );
+            stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+          } catch (error) {
+            console.error(
+              `Shipment ${updated.id}: failed to rollback RESERVED stock deltas`,
+              error
+            );
+          }
         }
 
         if (existing.status !== status) {
-          await sendPushToRolesByKey(
-            ["VIEWER", "EDITOR"],
-            "ready",
-            "ready",
-            (lang) => ({
-              shipmentId,
-              companyName: updated.companyName,
-              status: getStatusLabel(lang, status),
-            })
-          );
+          try {
+            await sendPushToRolesByKey(
+              ["VIEWER", "EDITOR"],
+              "ready",
+              "ready",
+              (lang) => ({
+                shipmentId,
+                companyName: updated.companyName,
+                status: getStatusLabel(lang, status),
+              })
+            );
+          } catch (error) {
+            console.error(
+              `Shipment ${updated.id}: failed to send status push notification`,
+              error
+            );
+          }
         }
 
-        await tx.activityLog.create({
-          data: {
-            type: "shipment.status",
-            entityType: "Shipment",
-            entityId: String(updated.id),
-            summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
-            meta: {
-              shipmentId: updated.id,
-              fromStatus: existing.status,
-              toStatus: status,
+        try {
+          await tx.activityLog.create({
+            data: {
+              type: "shipment.status",
+              entityType: "Shipment",
+              entityId: String(updated.id),
+              summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
+              meta: {
+                shipmentId: updated.id,
+                fromStatus: existing.status,
+                toStatus: status,
+              },
             },
-          },
-        });
+          });
+        } catch (error) {
+          console.error(`Shipment ${updated.id}: failed to write activity log`, error);
+        }
         return { updated, stockWarnings };
       });
       return NextResponse.json({
