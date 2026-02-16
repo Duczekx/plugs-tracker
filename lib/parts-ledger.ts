@@ -60,29 +60,19 @@ type BomLookup = Map<
 type BomKey = { modelName: string; bomType: BomType };
 
 const buildBomKey = (modelName: string, bomType: BomType) =>
-  `${modelName}::${bomType}`;
+  `${normalizeModelName(modelName)}::${bomType}`;
 
 const normalizeModelName = (value: string) =>
-  value.replace(/[\s_]+/g, "").toUpperCase();
-
-const getModelAliases = (value: string) => {
-  const normalized = normalizeModelName(value);
-  const withSpace = normalized.replace(/^FL(\d+)$/, "FL $1");
-  const withUnderscore = normalized.replace(/^FL(\d+)$/, "FL_$1");
-  const aliases = new Set<string>([value, withSpace, withUnderscore]);
-  return Array.from(aliases).filter(Boolean);
-};
+  value.toUpperCase().replace(/[^A-Z0-9]+/g, "");
 
 const findBomItems = (
   modelName: string,
   bomType: BomType,
   bomLookup: BomLookup
 ) => {
-  for (const alias of getModelAliases(modelName)) {
-    const hit = bomLookup.get(buildBomKey(alias, bomType));
-    if (hit) {
-      return hit.items;
-    }
+  const hit = bomLookup.get(buildBomKey(modelName, bomType));
+  if (hit) {
+    return hit.items;
   }
   return null;
 };
@@ -133,42 +123,24 @@ export const buildPartsSummary = async (
 ): Promise<PartsSummary> => {
   const requiredByPartId = new Map<number, number>();
   const missingBom: BomKey[] = [];
-
-  const bomKeys = new Map<string, BomKey>();
+  const requiredBomTypes = new Set<BomType>();
   items.forEach((item) => {
-    const modelName = getModelName(item.model);
+    requiredBomTypes.add("STANDARD");
     const hasSixTwo = hasValve(item.valveType);
-    getModelAliases(modelName).forEach((alias) => {
-      bomKeys.set(buildBomKey(alias, "STANDARD"), {
-        modelName: alias,
-        bomType: "STANDARD",
-      });
-    });
     if (hasSixTwo) {
-      getModelAliases(modelName).forEach((alias) => {
-        bomKeys.set(buildBomKey(alias, "ADDON_6_2"), {
-          modelName: alias,
-          bomType: "ADDON_6_2",
-        });
-      });
+      requiredBomTypes.add("ADDON_6_2");
     }
     if (item.isSchwenkbock) {
       const schwenkType = getSchwenkbockType(item.model);
-      bomKeys.set(buildBomKey("GLOBAL", schwenkType), {
-        modelName: "GLOBAL",
-        bomType: schwenkType,
-      });
+      requiredBomTypes.add(schwenkType);
     }
   });
 
   const bomLookup: BomLookup = new Map();
-  if (bomKeys.size > 0) {
+  if (requiredBomTypes.size > 0) {
     const boms = await tx.bom.findMany({
       where: {
-        OR: Array.from(bomKeys.values()).map((key) => ({
-          modelName: key.modelName,
-          bomType: key.bomType,
-        })),
+        bomType: { in: Array.from(requiredBomTypes.values()) },
       },
       include: { items: true },
     });
