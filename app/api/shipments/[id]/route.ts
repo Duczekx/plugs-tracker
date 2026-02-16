@@ -286,7 +286,7 @@ export async function PATCH(
         }
 
         return { updated, stockWarnings, lowParts, statusChanged };
-      });
+      }, { maxWait: 10000, timeout: 20000 });
 
       if (result.statusChanged) {
         try {
@@ -585,7 +585,7 @@ export async function PATCH(
       }
 
       return { updated, stockWarnings, statusChanged, lowParts };
-    });
+    }, { maxWait: 10000, timeout: 20000 });
 
     if (shipment.statusChanged && status) {
       try {
@@ -747,7 +747,7 @@ export async function DELETE(
           },
         },
       });
-    });
+    }, { maxWait: 10000, timeout: 20000 });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
