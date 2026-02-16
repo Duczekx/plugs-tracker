@@ -268,25 +268,7 @@ export async function PATCH(
           }
         }
 
-        if (existing.status !== status) {
-          try {
-            await sendPushToRolesByKey(
-              ["VIEWER", "EDITOR"],
-              "ready",
-              "ready",
-              (lang) => ({
-                shipmentId,
-                companyName: updated.companyName,
-                status: getStatusLabel(lang, status),
-              })
-            );
-          } catch (error) {
-            console.error(
-              `Shipment ${updated.id}: failed to send status push notification`,
-              error
-            );
-          }
-        }
+        const shouldNotifyStatusChange = existing.status !== status;
 
         try {
           await tx.activityLog.create({
@@ -305,8 +287,29 @@ export async function PATCH(
         } catch (error) {
           console.error(`Shipment ${updated.id}: failed to write activity log`, error);
         }
-        return { updated, stockWarnings };
+        return { updated, stockWarnings, shouldNotifyStatusChange };
       });
+
+      if (result.shouldNotifyStatusChange) {
+        try {
+          await sendPushToRolesByKey(
+            ["VIEWER", "EDITOR"],
+            "ready",
+            "ready",
+            (lang) => ({
+              shipmentId,
+              companyName: result.updated.companyName,
+              status: getStatusLabel(lang, status),
+            })
+          );
+        } catch (error) {
+          console.error(
+            `Shipment ${result.updated.id}: failed to send status push notification`,
+            error
+          );
+        }
+      }
+
       return NextResponse.json({
         ...result.updated,
         stockWarnings: result.stockWarnings,
@@ -540,16 +543,6 @@ export async function PATCH(
       }
 
       if (statusChanged) {
-        await sendPushToRolesByKey(
-          ["VIEWER", "EDITOR"],
-          "ready",
-          "ready",
-          (lang) => ({
-            shipmentId,
-            companyName: updated.companyName,
-            status: getStatusLabel(lang, status as ShipmentStatus),
-          })
-        );
         await tx.activityLog.create({
           data: {
             type: "shipment.status",
@@ -565,8 +558,28 @@ export async function PATCH(
         });
       }
 
-      return { updated, stockWarnings };
+      return { updated, stockWarnings, statusChanged };
     });
+
+    if (shipment.statusChanged && status) {
+      try {
+        await sendPushToRolesByKey(
+          ["VIEWER", "EDITOR"],
+          "ready",
+          "ready",
+          (lang) => ({
+            shipmentId,
+            companyName: shipment.updated.companyName,
+            status: getStatusLabel(lang, status),
+          })
+        );
+      } catch (error) {
+        console.error(
+          `Shipment ${shipment.updated.id}: failed to send status push notification`,
+          error
+        );
+      }
+    }
 
     return NextResponse.json({
       ...shipment.updated,
