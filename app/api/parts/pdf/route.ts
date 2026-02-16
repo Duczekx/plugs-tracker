@@ -38,11 +38,20 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     bufferPages: true,
   });
 
-  const fontRegular = path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf");
-  const fontBold = path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf");
-  const canUseCustomFonts = fs.existsSync(fontRegular) && fs.existsSync(fontBold);
+  const fontCandidates = [
+    path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf"),
+    path.join(process.cwd(), "public", "fonts", "noto-sans-regular.ttf"),
+  ];
+  const boldFontCandidates = [
+    path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf"),
+    path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf"),
+    path.join(process.cwd(), "public", "fonts", "noto-sans-regular.ttf"),
+  ];
+  const fontRegular = fontCandidates.find((candidate) => fs.existsSync(candidate));
+  const fontBold = boldFontCandidates.find((candidate) => fs.existsSync(candidate));
+  const canUseCustomFonts = Boolean(fontRegular && fontBold);
 
-  if (canUseCustomFonts) {
+  if (fontRegular && fontBold) {
     doc.registerFont("Body", fontRegular);
     doc.registerFont("BodyBold", fontBold);
     doc.font("Body");
@@ -50,12 +59,29 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     doc.font("Helvetica");
   }
 
+  const toAscii = (value: string) =>
+    value
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/Ä/g, "Ae")
+      .replace(/Ö/g, "Oe")
+      .replace(/Ü/g, "Ue")
+      .replace(/ß/g, "ss")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^\x20-\x7E]/g, "");
+
+  const pdfSafe = (value: string) => (canUseCustomFonts ? value : toAscii(value));
+
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   const title = "Flachenschneeschieber";
   const subtitle = "Lista czesci";
-  const timestamp = formatTimestamp(new Date());
+  const timestamp = canUseCustomFonts
+    ? formatTimestamp(new Date())
+    : new Date().toISOString().slice(0, 16).replace("T", " ");
   const showThreshold = items.some((item) => item.warningThreshold !== null);
 
   const columnWidths = showThreshold ? [240, 120, 60, 60, 60] : [260, 140, 60, 70];
@@ -66,10 +92,13 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
   const rowHeight = 18;
 
   const drawHeader = (pageTitle: string) => {
-    doc.fontSize(18).fillColor("#111").text(title);
-    doc.fontSize(14).text(pageTitle);
-    doc.fontSize(9).fillColor("#666").text(`Data: ${timestamp}`, { align: "left" });
-    doc.fontSize(10).fillColor("#111").text(`Pozycji: ${items.length}`, { align: "left" });
+    doc.fontSize(18).fillColor("#111").text(pdfSafe(title));
+    doc.fontSize(14).text(pdfSafe(pageTitle));
+    doc.fontSize(9).fillColor("#666").text(pdfSafe(`Data: ${timestamp}`), { align: "left" });
+    doc
+      .fontSize(10)
+      .fillColor("#111")
+      .text(pdfSafe(`Pozycji: ${items.length}`), { align: "left" });
     doc.moveDown();
   };
 
@@ -78,7 +107,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     let x = startX;
     doc.fontSize(10).fillColor("#444");
     columnLabels.forEach((label, index) => {
-      doc.text(label, x, doc.y, { width: columnWidths[index], continued: false });
+      doc.text(pdfSafe(label), x, doc.y, { width: columnWidths[index], continued: false });
       x += columnWidths[index];
     });
     doc
@@ -103,7 +132,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       : [part.name, part.category ?? "-", String(part.stock), part.unit];
 
     values.forEach((value, index) => {
-      doc.text(value, x, doc.y, {
+      doc.text(pdfSafe(value), x, doc.y, {
         width: columnWidths[index],
         height: rowHeight,
         ellipsis: true,
@@ -138,7 +167,10 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       drawHeader(mode === "low" ? "Lista czesci - niski stan" : subtitle);
     }
 
-    doc.fontSize(11).fillColor("#222").text(`${category} (${categoryItems.length})`);
+    doc
+      .fontSize(11)
+      .fillColor("#222")
+      .text(pdfSafe(`${category} (${categoryItems.length})`));
     doc.moveDown(0.4);
     drawTableHeader();
 
@@ -147,7 +179,10 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       if (doc.y > bottomLimit) {
         doc.addPage();
         drawHeader(mode === "low" ? "Lista czesci - niski stan" : subtitle);
-        doc.fontSize(11).fillColor("#222").text(`${category} (${categoryItems.length})`);
+        doc
+          .fontSize(11)
+          .fillColor("#222")
+          .text(pdfSafe(`${category} (${categoryItems.length})`));
         doc.moveDown(0.4);
         drawTableHeader();
       }
