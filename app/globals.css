@@ -4030,6 +4030,27 @@ body:has(.modal-overlay) {
   padding: 8px 10px;
 }
 
+.bom-group-row td {
+  background: rgba(12, 18, 32, 0.02);
+  border-bottom: none;
+  padding-top: 12px;
+  padding-bottom: 6px;
+}
+
+.bom-group-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: linear-gradient(90deg, rgba(244, 124, 47, 0.16), rgba(12, 18, 32, 0.05));
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .form-compact .form-row {
   gap: 12px;
 }

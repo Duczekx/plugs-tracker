@@ -34,7 +34,7 @@ type Part = {
 type BomItem = {
   partId: number;
   qtyPerPlow: number;
-  part?: { name: string };
+  part?: { name: string; category?: string | null };
 };
 
 type BomType = "STANDARD" | "ADDON_6_2" | "SCHWENKBOCK_3000" | "SCHWENKBOCK_2000";
@@ -93,6 +93,105 @@ const bomTypeOptions: { value: BomType; label: string }[] = [
 ];
 
 const PAGE_SIZE = 50;
+
+type BomGroupKey = "fasteners" | "electric" | "parts" | "hydraulics" | "other";
+
+const normalizeBomCategory = (category?: string | null) => {
+  const trimmed = category?.trim().toLowerCase() ?? "";
+  if (!trimmed) return "inne";
+  const aliasMap: Record<string, string> = {
+    schrauben: "sruby",
+    muttern: "nakretki",
+    unterlegscheiben: "podkladki",
+    bolzen: "bolce",
+    hydraulik: "hydraulika",
+    gummi: "gumy",
+    elektrik: "elektryka",
+    zylinder: "cylindry",
+    schlaeuche: "weze",
+    schlaeuchen: "weze",
+    sonstiges: "inne",
+  };
+  return aliasMap[trimmed] ?? trimmed;
+};
+
+const foldForBomMatch = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+
+const inferBomGroupFromName = (name: string): BomGroupKey => {
+  const folded = foldForBomMatch(name);
+
+  if (
+    folded.includes("hydraul") ||
+    folded.includes("schlauch") ||
+    folded.includes("schluch") ||
+    folded.includes("schlau") ||
+    folded.includes("kupplung") ||
+    folded.includes("fitting") ||
+    folded.includes("verschraubung") ||
+    folded.includes("einschrauber") ||
+    folded.includes("muffe")
+  ) {
+    return "hydraulics";
+  }
+  if (
+    folded.includes("schraub") ||
+    folded.includes("nakret") ||
+    folded.includes("mutter") ||
+    folded.includes("podklad") ||
+    folded.includes("scheibe") ||
+    /\bm(?:[3-9]|[12]\d|30)\b/i.test(name)
+  ) {
+    return "fasteners";
+  }
+  if (
+    folded.includes("kabel") ||
+    folded.includes("lampe") ||
+    folded.includes("leuchte") ||
+    folded.includes("stecker") ||
+    folded.includes("schalter") ||
+    folded.includes("relais")
+  ) {
+    return "electric";
+  }
+  if (
+    folded.includes("zylinder") ||
+    folded.includes("bolzen") ||
+    folded.includes("splint") ||
+    folded.includes("pin") ||
+    folded.includes("link pin") ||
+    folded.includes("flag") ||
+    folded.includes("gummi") ||
+    folded.includes("buchse")
+  ) {
+    return "parts";
+  }
+  return "other";
+};
+
+const getBomGroupKey = (item: BomItem): BomGroupKey => {
+  const normalized = normalizeBomCategory(item.part?.category);
+  if (normalized === "sruby" || normalized === "nakretki" || normalized === "podkladki") {
+    return "fasteners";
+  }
+  if (normalized === "elektryka") {
+    return "electric";
+  }
+  if (normalized === "hydraulika" || normalized === "weze") {
+    return "hydraulics";
+  }
+  if (normalized === "cylindry" || normalized === "bolce" || normalized === "gumy") {
+    return "parts";
+  }
+  return inferBomGroupFromName(item.part?.name ?? String(item.partId));
+};
 
 export default function AdminPanel() {
   const [lang, setLang] = useState<Lang>("pl");
@@ -251,6 +350,94 @@ export default function AdminPanel() {
   const getBomTypeLabel = (bomType: BomType) => {
     const match = bomTypeOptions.find((option) => option.value === bomType);
     return match ? match.label : bomType;
+  };
+
+  const bomGroupLabels: Record<BomGroupKey, string> = {
+    fasteners: `${t.categorySruby} / ${t.categoryPodkladki} / ${t.categoryNakretki}`,
+    electric: t.categoryElektryka,
+    parts: lang === "pl" ? "Czesci" : "Teile",
+    hydraulics: t.categoryHydraulika,
+    other: t.categoryInne,
+  };
+
+  const groupBomItems = (items: BomItem[]) => {
+    const grouped: Record<BomGroupKey, BomItem[]> = {
+      fasteners: [],
+      electric: [],
+      parts: [],
+      hydraulics: [],
+      other: [],
+    };
+
+    items.forEach((item) => {
+      grouped[getBomGroupKey(item)].push(item);
+    });
+
+    const order: BomGroupKey[] = ["fasteners", "electric", "parts", "hydraulics", "other"];
+    return order
+      .map((key) => ({
+        key,
+        label: bomGroupLabels[key],
+        items: grouped[key].sort((a, b) => {
+          const left = a.part?.name ?? String(a.partId);
+          const right = b.part?.name ?? String(b.partId);
+          return left.localeCompare(right);
+        }),
+      }))
+      .filter((group) => group.items.length > 0);
+  };
+
+  const renderGroupedBomRows = (
+    items: BomItem[],
+    setItems: (items: BomItem[]) => void,
+    bomType: BomType,
+    modelName: string,
+    setSaving: (value: boolean) => void,
+    isSaving: boolean
+  ) => {
+    if (items.length === 0) {
+      return (
+        <tr>
+          <td colSpan={3} className="muted">
+            {t.bomEmpty}
+          </td>
+        </tr>
+      );
+    }
+
+    const groups = groupBomItems(items);
+    return groups.flatMap((group) => [
+      <tr key={`group-${group.key}`} className="bom-group-row">
+        <td colSpan={3}>
+          <span className="bom-group-pill">{group.label}</span>
+        </td>
+      </tr>,
+      ...group.items.map((item) => (
+        <tr key={`${group.key}-${item.partId}`}>
+          <td>{item.part?.name ?? item.partId}</td>
+          <td>{item.qtyPerPlow}</td>
+          <td>
+            <button
+              type="button"
+              className="button button-ghost button-small"
+              onClick={() =>
+                removeBomItem(
+                  item.partId,
+                  items,
+                  setItems,
+                  bomType,
+                  modelName,
+                  setSaving,
+                  isSaving
+                )
+              }
+            >
+              {t.delete}
+            </button>
+          </td>
+        </tr>
+      )),
+    ]);
   };
 
   const importReasonLabels: Record<ImportSkipReason, string> = {
@@ -566,7 +753,7 @@ export default function AdminPanel() {
       return {
         partId: item.partId,
         qtyPerPlow: item.qtyPerPlow,
-        part: match ? { name: match.name } : undefined,
+        part: match ? { name: match.name, category: match.category ?? null } : undefined,
       };
     });
     setItems(nextItems);
@@ -709,7 +896,11 @@ export default function AdminPanel() {
     }
     const baseItems = [
       ...items.filter((item) => item.partId !== part.id),
-      { partId: part.id, qtyPerPlow: qty, part: { name: part.name } },
+      {
+        partId: part.id,
+        qtyPerPlow: qty,
+        part: { name: part.name, category: part.category ?? null },
+      },
     ];
 
     const relations = buildAutoRelations(bomPartOptions, part.name);
@@ -729,7 +920,7 @@ export default function AdminPanel() {
             nextItems.push({
               partId: relation.part.id,
               qtyPerPlow: relation.qty * qty,
-              part: { name: relation.part.name },
+              part: { name: relation.part.name, category: relation.part.category ?? null },
             });
           }
         });
@@ -1320,38 +1511,14 @@ export default function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {standardItems.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="muted">
-                          {t.bomEmpty}
-                        </td>
-                      </tr>
+                    {renderGroupedBomRows(
+                      standardItems,
+                      setStandardItems,
+                      "STANDARD",
+                      standardModel,
+                      setIsSavingStandard,
+                      isSavingStandard
                     )}
-                    {standardItems.map((item) => (
-                      <tr key={item.partId}>
-                        <td>{item.part?.name ?? item.partId}</td>
-                        <td>{item.qtyPerPlow}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() =>
-                              removeBomItem(
-                                item.partId,
-                                standardItems,
-                                setStandardItems,
-                                "STANDARD",
-                                standardModel,
-                                setIsSavingStandard,
-                                isSavingStandard
-                              )
-                            }
-                          >
-                            {t.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1500,38 +1667,14 @@ export default function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {addonItems.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="muted">
-                          {t.bomEmpty}
-                        </td>
-                      </tr>
+                    {renderGroupedBomRows(
+                      addonItems,
+                      setAddonItems,
+                      "ADDON_6_2",
+                      addonModel,
+                      setIsSavingAddon,
+                      isSavingAddon
                     )}
-                    {addonItems.map((item) => (
-                      <tr key={item.partId}>
-                        <td>{item.part?.name ?? item.partId}</td>
-                        <td>{item.qtyPerPlow}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() =>
-                              removeBomItem(
-                                item.partId,
-                                addonItems,
-                                setAddonItems,
-                                "ADDON_6_2",
-                                addonModel,
-                                setIsSavingAddon,
-                                isSavingAddon
-                              )
-                            }
-                          >
-                            {t.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1676,38 +1819,14 @@ export default function AdminPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {schwenkItems.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="muted">
-                          {t.bomEmpty}
-                        </td>
-                      </tr>
+                    {renderGroupedBomRows(
+                      schwenkItems,
+                      setSchwenkItems,
+                      schwenkType,
+                      "GLOBAL",
+                      setIsSavingSchwenk,
+                      isSavingSchwenk
                     )}
-                    {schwenkItems.map((item) => (
-                      <tr key={item.partId}>
-                        <td>{item.part?.name ?? item.partId}</td>
-                        <td>{item.qtyPerPlow}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="button button-ghost button-small"
-                            onClick={() =>
-                              removeBomItem(
-                                item.partId,
-                                schwenkItems,
-                                setSchwenkItems,
-                                schwenkType,
-                                "GLOBAL",
-                                setIsSavingSchwenk,
-                                isSavingSchwenk
-                              )
-                            }
-                          >
-                            {t.delete}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
