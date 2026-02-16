@@ -62,6 +62,31 @@ type BomKey = { modelName: string; bomType: BomType };
 const buildBomKey = (modelName: string, bomType: BomType) =>
   `${modelName}::${bomType}`;
 
+const normalizeModelName = (value: string) =>
+  value.replace(/[\s_]+/g, "").toUpperCase();
+
+const getModelAliases = (value: string) => {
+  const normalized = normalizeModelName(value);
+  const withSpace = normalized.replace(/^FL(\d+)$/, "FL $1");
+  const withUnderscore = normalized.replace(/^FL(\d+)$/, "FL_$1");
+  const aliases = new Set<string>([value, withSpace, withUnderscore]);
+  return Array.from(aliases).filter(Boolean);
+};
+
+const findBomItems = (
+  modelName: string,
+  bomType: BomType,
+  bomLookup: BomLookup
+) => {
+  for (const alias of getModelAliases(modelName)) {
+    const hit = bomLookup.get(buildBomKey(alias, bomType));
+    if (hit) {
+      return hit.items;
+    }
+  }
+  return null;
+};
+
 export const getPartsForPlow = (
   model: Model,
   hasSchwenkbock: boolean,
@@ -85,12 +110,12 @@ export const getPartsForPlow = (
   }
 
   requiredKeys.forEach((key) => {
-    const bom = bomLookup.get(buildBomKey(key.modelName, key.bomType));
-    if (!bom) {
+    const bomItems = findBomItems(key.modelName, key.bomType, bomLookup);
+    if (!bomItems) {
       missingBom.push(key);
       return;
     }
-    bom.items.forEach((item) => {
+    bomItems.forEach((item) => {
       requiredByPartId.set(
         item.partId,
         (requiredByPartId.get(item.partId) ?? 0) + item.qtyPerPlow
@@ -113,14 +138,18 @@ export const buildPartsSummary = async (
   items.forEach((item) => {
     const modelName = getModelName(item.model);
     const hasSixTwo = hasValve(item.valveType);
-    bomKeys.set(buildBomKey(modelName, "STANDARD"), {
-      modelName,
-      bomType: "STANDARD",
+    getModelAliases(modelName).forEach((alias) => {
+      bomKeys.set(buildBomKey(alias, "STANDARD"), {
+        modelName: alias,
+        bomType: "STANDARD",
+      });
     });
     if (hasSixTwo) {
-      bomKeys.set(buildBomKey(modelName, "ADDON_6_2"), {
-        modelName,
-        bomType: "ADDON_6_2",
+      getModelAliases(modelName).forEach((alias) => {
+        bomKeys.set(buildBomKey(alias, "ADDON_6_2"), {
+          modelName: alias,
+          bomType: "ADDON_6_2",
+        });
       });
     }
     if (item.isSchwenkbock) {
