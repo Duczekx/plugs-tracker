@@ -23,9 +23,49 @@ const formatTimestamp = (date: Date) =>
 
 const resolveLowStock = (part: PdfPart) => part.stock <= (part.warningThreshold ?? 2);
 
+const fold = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+
+const categoryToGerman = (category: string) => {
+  const key = fold(category);
+  const map: Record<string, string> = {
+    sruby: "Schrauben",
+    schrauben: "Schrauben",
+    podkladki: "Unterlegscheiben",
+    unterlegscheiben: "Unterlegscheiben",
+    nakretki: "Muttern",
+    muttern: "Muttern",
+    elektryka: "Elektrik",
+    elektrik: "Elektrik",
+    hydraulika: "Hydraulik",
+    hydraulik: "Hydraulik",
+    weze: "Schlaeuche",
+    schlaeuche: "Schlaeuche",
+    schlauche: "Schlaeuche",
+    bolce: "Bolzen",
+    bolzen: "Bolzen",
+    cylindry: "Zylinder",
+    zylinder: "Zylinder",
+    gumy: "Gummi",
+    gummi: "Gummi",
+    inne: "Sonstiges",
+    sonstiges: "Sonstiges",
+  };
+  return map[key] ?? category;
+};
+
 const normalizeCategory = (category: string | null) => {
   const trimmed = category?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : "Sonstiges";
+  const base = trimmed && trimmed.length > 0 ? trimmed : "Sonstiges";
+  return categoryToGerman(base);
 };
 
 const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
