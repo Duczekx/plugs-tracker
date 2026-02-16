@@ -32,12 +32,6 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
   const pdfkitModule = await import("pdfkit");
   const PDFDocument = (pdfkitModule.default ?? pdfkitModule) as typeof pdfkitModule.default;
 
-  const doc = new PDFDocument({
-    size: "A4",
-    margin: 40,
-    bufferPages: true,
-  });
-
   const fontCandidates = [
     path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf"),
     path.join(process.cwd(), "public", "fonts", "noto-sans-regular.ttf"),
@@ -49,39 +43,28 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
   ];
   const fontRegular = fontCandidates.find((candidate) => fs.existsSync(candidate));
   const fontBold = boldFontCandidates.find((candidate) => fs.existsSync(candidate));
-  const canUseCustomFonts = Boolean(fontRegular && fontBold);
-
-  if (fontRegular && fontBold) {
-    doc.registerFont("Body", fontRegular);
-    doc.registerFont("BodyBold", fontBold);
-    doc.font("Body");
-  } else {
-    doc.font("Helvetica");
+  if (!fontRegular || !fontBold) {
+    throw new Error("Missing PDF font files in public/fonts");
   }
 
-  const toAscii = (value: string) =>
-    value
-      .replace(/ä/g, "ae")
-      .replace(/ö/g, "oe")
-      .replace(/ü/g, "ue")
-      .replace(/Ä/g, "Ae")
-      .replace(/Ö/g, "Oe")
-      .replace(/Ü/g, "Ue")
-      .replace(/ß/g, "ss")
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^\x20-\x7E]/g, "");
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 40,
+    bufferPages: true,
+    font: fontRegular,
+  });
+  doc.registerFont("Body", fontRegular);
+  doc.registerFont("BodyBold", fontBold);
+  doc.font("Body");
 
-  const pdfSafe = (value: string) => (canUseCustomFonts ? value : toAscii(value));
+  const pdfSafe = (value: string) => value;
 
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   const title = "Flachenschneeschieber";
   const subtitle = "Lista czesci";
-  const timestamp = canUseCustomFonts
-    ? formatTimestamp(new Date())
-    : new Date().toISOString().slice(0, 16).replace("T", " ");
+  const timestamp = formatTimestamp(new Date());
   const showThreshold = items.some((item) => item.warningThreshold !== null);
 
   const columnWidths = showThreshold ? [240, 120, 60, 60, 60] : [260, 140, 60, 70];
