@@ -2185,6 +2185,21 @@ textarea {
   max-width: 100%;
 }
 
+.shipment-summary-rental {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.rental-pill {
+  border-color: rgba(56, 189, 248, 0.48);
+  background: rgba(56, 189, 248, 0.17);
+  color: #0c4a6e;
+}
+
 .reserved-pulse {
   animation: reservedPulse 1.4s ease-in-out infinite;
 }

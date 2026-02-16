@@ -246,8 +246,6 @@ export default function SentPage() {
   const modelLabel = useMemo(() => t.models, [t]);
   const isRentalShipment = (shipment: Shipment) =>
     Boolean(shipment.notes?.toUpperCase().includes(RENTAL_MARKER));
-  const getReservedStatusLabel = (shipment: Shipment) =>
-    isRentalShipment(shipment) ? t.statusRented : t.statusReserved;
 
   const buildMailto = (shipment: Shipment, status: "READY" | "SENT") => {
     if (!notifyEmailTo) {
@@ -389,11 +387,6 @@ export default function SentPage() {
       { RESERVED: 0, READY: 0, SENT: 0 } as Record<ShipmentStatus, number>
     );
   }, [filteredShipments]);
-
-  const editShipment = useMemo(
-    () => shipments.find((shipment) => shipment.id === editId) ?? null,
-    [shipments, editId]
-  );
 
   const applyProducts = (data: Product[]) => {
     setProducts(data);
@@ -1091,7 +1084,7 @@ export default function SentPage() {
                   }}
                   disabled={isReadOnly || !editId || statusLoading?.shipmentId === editId}
                 >
-                  {editShipment ? getReservedStatusLabel(editShipment) : statusLabel.RESERVED}
+                  {statusLabel.RESERVED}
                 </button>
                 {statusLoading?.shipmentId === editId && (
                   <div className="status-loading">
@@ -1818,11 +1811,14 @@ export default function SentPage() {
                       </div>
                     </div>
                   </div>
+                  {isRentalShipment(shipment) && (
+                    <div className="shipment-summary-rental">
+                      <span className="pill rental-pill">{t.statusRented}</span>
+                    </div>
+                  )}
                   {shipmentStatus === "RESERVED" && (
                     <div className="shipment-summary-reserved">
-                      <span className="pill reserved-pulse">
-                        {getReservedStatusLabel(shipment)}
-                      </span>
+                      <span className="pill reserved-pulse">{statusLabel.RESERVED}</span>
                     </div>
                   )}
                   <div className="shipment-summary-right">
