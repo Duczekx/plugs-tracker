@@ -231,6 +231,9 @@ export async function PATCH(
         if (!existing) {
           throw new Error("NOT_FOUND");
         }
+        if (existing.status === ShipmentStatus.RESERVED && status === ShipmentStatus.SENT) {
+          throw new Error("INVALID_STATUS_TRANSITION");
+        }
 
         const updated = await tx.shipment.update({
           where: { id: shipmentId },
@@ -326,13 +329,15 @@ export async function PATCH(
       const message =
         error instanceof Error && error.message === "NOT_FOUND"
           ? "Not found"
+          : error instanceof Error && error.message === "INVALID_STATUS_TRANSITION"
+          ? "Invalid status transition"
           : error instanceof Error && error.message === "MISSING_BOM"
           ? "Missing BOM configuration"
           : "Server error";
       const statusCode =
         message === "Not found"
           ? 404
-          : message === "Missing BOM configuration"
+          : message === "Missing BOM configuration" || message === "Invalid status transition"
           ? 409
           : 500;
       return NextResponse.json({ message }, { status: statusCode });
@@ -403,6 +408,13 @@ export async function PATCH(
       });
       if (!existing) {
         throw new Error("NOT_FOUND");
+      }
+      const nextStatus = status ?? existing.status;
+      if (
+        existing.status === ShipmentStatus.RESERVED &&
+        nextStatus === ShipmentStatus.SENT
+      ) {
+        throw new Error("INVALID_STATUS_TRANSITION");
       }
 
       const restoreTotals = new Map<string, number>();
@@ -521,7 +533,6 @@ export async function PATCH(
         include: { items: true, extras: true },
       });
 
-      const nextStatus = status ?? existing.status;
       const statusChanged = status ? existing.status !== status : false;
       const summary = await getRequiredPartsForStatus(
         tx,
@@ -610,6 +621,8 @@ export async function PATCH(
     const message =
       error instanceof Error && error.message === "NOT_FOUND"
         ? "Not found"
+        : error instanceof Error && error.message === "INVALID_STATUS_TRANSITION"
+        ? "Invalid status transition"
         : error instanceof Error && error.message === "MISSING_BOM"
         ? "Missing BOM configuration"
         : error instanceof Error && error.message === "INSUFFICIENT_STOCK"
@@ -618,7 +631,9 @@ export async function PATCH(
     const status =
       message === "Not found"
         ? 404
-        : message === "Insufficient stock" || message === "Missing BOM configuration"
+        : message === "Insufficient stock" ||
+          message === "Missing BOM configuration" ||
+          message === "Invalid status transition"
         ? 409
         : 500;
     return NextResponse.json({ message }, { status });

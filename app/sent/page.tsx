@@ -743,7 +743,12 @@ export default function SentPage() {
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        const message = body?.message ? `${t.error}${body.message}` : t.error;
+        const message =
+          body?.message === "Invalid status transition"
+            ? t.error + t.statusSentRequiresReady
+            : body?.message
+            ? `${t.error}${body.message}`
+            : t.error;
         setNotice({ type: "error", message });
         return;
       }
@@ -792,6 +797,10 @@ export default function SentPage() {
     currentStatus: ShipmentStatus
   ) => {
     if (currentStatus === nextStatus) {
+      return;
+    }
+    if (currentStatus === "RESERVED" && nextStatus === "SENT") {
+      setNotice({ type: "error", message: t.error + t.statusSentRequiresReady });
       return;
     }
     if (nextStatus === "RESERVED") {
@@ -1788,7 +1797,14 @@ export default function SentPage() {
                             event.preventDefault();
                             handleStatusRequest(shipment.id, "SENT", shipmentStatus);
                           }}
-                          disabled={isReadOnly || isStatusLoading}
+                          disabled={
+                            isReadOnly || isStatusLoading || shipmentStatus === "RESERVED"
+                          }
+                          title={
+                            shipmentStatus === "RESERVED"
+                              ? t.statusSentRequiresReady
+                              : undefined
+                          }
                         >
                           {statusLabel.SENT}
                         </button>
