@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -28,6 +28,8 @@ const guessCategory = (rawName) => {
     folded.includes("schlauchleitung") ||
     folded.includes("schlauchschelle") ||
     folded.includes("schlauchschellen") ||
+    folded.includes("schlauschelle") ||
+    folded.includes("schlauschellen") ||
     folded.includes("schlauche") ||
     folded.includes("schlaeuch") ||
     folded.includes("schluch") ||
@@ -55,6 +57,8 @@ const guessCategory = (rawName) => {
   }
   if (
     folded.includes("kabel") ||
+    folded.includes("lampe") ||
+    folded.includes("leuchte") ||
     folded.includes("stecker") ||
     folded.includes("schalter") ||
     folded.includes("relais") ||
@@ -65,7 +69,10 @@ const guessCategory = (rawName) => {
   ) {
     return "elektryka";
   }
-  if (folded.includes("bolzen") || folded.includes("splint") || folded.includes("sicherungsblech")) {
+  if (folded.includes("bolzen") || folded.includes("splint") || folded.includes("sicherungsblech") || folded.includes("link pin") || folded.includes("lower link pin") || folded.includes("top link pin") || /\bpin\b/.test(folded)) {
+    return "bolce";
+  }
+  if (folded.includes("warnflag") || folded.includes("flaga")) {
     return "bolce";
   }
   if (isMutter) {
@@ -79,6 +86,14 @@ const guessCategory = (rawName) => {
   }
   if (folded.includes("gummi") || folded.includes("gumm") || folded.includes("dichtung") || folded.includes("o-ring") || folded.includes("oring")) {
     return "gumy";
+  }
+  if (
+    folded.includes("schmiernippel") ||
+    folded.includes("smarownicz") ||
+    folded.includes("dokument") ||
+    folded.includes("doku")
+  ) {
+    return "inne";
   }
   return "inne";
 };
@@ -209,3 +224,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

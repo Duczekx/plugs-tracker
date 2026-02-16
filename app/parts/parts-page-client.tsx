@@ -363,6 +363,11 @@ export default function PartsPage() {
               actionsLabel: t.actionsLabel,
               copyName: t.copyName,
               resultsLabel: t.resultsLabel,
+              groupFasteners: `${t.categorySruby} / ${t.categoryPodkladki} / ${t.categoryNakretki}`,
+              groupElectric: t.categoryElektryka,
+              groupParts: lang === "pl" ? "Czesci" : "Teile",
+              groupHydraulics: t.categoryHydraulika,
+              groupOther: t.categoryInne,
             }}
             mode="public"
             resultsCount={totalCount}

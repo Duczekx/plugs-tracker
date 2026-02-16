@@ -3247,6 +3247,19 @@ body:has(.modal-overlay) {
   gap: 6px;
 }
 
+.parts-group-row {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: linear-gradient(90deg, rgba(244, 124, 47, 0.14), rgba(12, 18, 32, 0.04));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .parts-table-body > div {
   min-width: 0;
 }
@@ -3346,6 +3359,19 @@ body:has(.modal-overlay) {
 .parts-cards {
   display: grid;
   gap: 12px;
+}
+
+.parts-group-mobile {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: rgba(12, 18, 32, 0.06);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .parts-card-item {

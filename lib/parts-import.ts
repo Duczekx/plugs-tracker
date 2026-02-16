@@ -1,4 +1,4 @@
-export type ImportSkipReason =
+﻿export type ImportSkipReason =
   | "missing_name"
   | "missing_qty"
   | "model_fl"
@@ -75,11 +75,11 @@ export const normalizeCategory = (value: string) => {
 const foldForMatch = (value: string) =>
   value
     .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/ł/g, "l")
+    .replace(/Ã¤/g, "ae")
+    .replace(/Ã¶/g, "oe")
+    .replace(/Ã¼/g, "ue")
+    .replace(/ÃŸ/g, "ss")
+    .replace(/Å‚/g, "l")
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
 
@@ -201,6 +201,8 @@ export const guessCategory = (rawName: string) => {
     folded.includes("schlauchleitung") ||
     folded.includes("schlauchschelle") ||
     folded.includes("schlauchschellen") ||
+    folded.includes("schlauschelle") ||
+    folded.includes("schlauschellen") ||
     folded.includes("schlauche") ||
     folded.includes("schlaeuch") ||
     folded.includes("schluch") ||
@@ -228,6 +230,8 @@ export const guessCategory = (rawName: string) => {
   }
   if (
     folded.includes("kabel") ||
+    folded.includes("lampe") ||
+    folded.includes("leuchte") ||
     folded.includes("stecker") ||
     folded.includes("schalter") ||
     folded.includes("relais") ||
@@ -238,7 +242,10 @@ export const guessCategory = (rawName: string) => {
   ) {
     return "elektryka";
   }
-  if (folded.includes("bolzen") || folded.includes("splint") || folded.includes("sicherungsblech")) {
+  if (folded.includes("bolzen") || folded.includes("splint") || folded.includes("sicherungsblech") || folded.includes("link pin") || folded.includes("lower link pin") || folded.includes("top link pin") || /\bpin\b/.test(folded)) {
+    return "bolce";
+  }
+  if (folded.includes("warnflag") || folded.includes("flaga")) {
     return "bolce";
   }
   if (isMutter) {
@@ -249,6 +256,14 @@ export const guessCategory = (rawName: string) => {
   }
   if (!isMutter && !isScheibe && (folded.includes("schraub") || hasScrewSize)) {
     return "sruby";
+  }
+  if (
+    folded.includes("schmiernippel") ||
+    folded.includes("smarownicz") ||
+    folded.includes("dokument") ||
+    folded.includes("doku")
+  ) {
+    return "inne";
   }
   if (
     folded.includes("gummi") ||
@@ -329,3 +344,4 @@ export const buildImportPreview = (rows: unknown[][]): ImportPreview => {
     qtyIndex,
   };
 };
+
