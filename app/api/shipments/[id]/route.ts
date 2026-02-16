@@ -206,72 +206,66 @@ export async function PATCH(
 
   if (!items.length && !extras.length && status) {
     try {
-      const result = await prisma.$transaction(async (tx) => {
-        const existing = await tx.shipment.findUnique({
-          where: { id: shipmentId },
-          include: { items: true, extras: true },
-        });
-        if (!existing) {
-          throw new Error("NOT_FOUND");
-        }
-        const updated = await tx.shipment.update({
-          where: { id: shipmentId },
-          data: { status },
-          include: { items: true, extras: true },
-        });
+      const existing = await prisma.shipment.findUnique({
+        where: { id: shipmentId },
+        include: { items: true, extras: true },
+      });
+      if (!existing) {
+        throw new Error("NOT_FOUND");
+      }
 
-        let stockWarnings: StockWarning[] = [];
-        if (status === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
-          try {
+      const updated = await prisma.shipment.update({
+        where: { id: shipmentId },
+        data: { status },
+        include: { items: true, extras: true },
+      });
+
+      let stockWarnings: StockWarning[] = [];
+      let lowParts: Array<{ id: number; name: string; stock: number }> = [];
+      if (status === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
+        try {
+          const ledger = await prisma.$transaction(async (tx) => {
             const summary = await buildPartsSummary(tx, updated.items, updated.extras);
             const deltaByPartId = await calculateShipmentDelta(
               tx,
               updated.id,
               summary.requiredByPartId
             );
-            stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-            const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
-            await Promise.all(
-              lowParts.map((part) =>
-                sendPushToRolesByKey(
-                  ["VIEWER", "EDITOR"],
-                  "lowStock",
-                  "lowStock",
-                  {
-                    partName: part.name,
-                    stock: part.stock,
-                  }
-                )
-              )
-            );
-          } catch (error) {
-            console.error(
-              `Shipment ${updated.id}: failed to apply READY stock deltas`,
-              error
-            );
-          }
+            const warnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+            const parts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
+            return { warnings, parts };
+          });
+          stockWarnings = ledger.warnings;
+          lowParts = ledger.parts;
+        } catch (error) {
+          console.error(
+            `Shipment ${updated.id}: failed to apply READY stock deltas`,
+            error
+          );
         }
+      }
 
-        if (status === ShipmentStatus.RESERVED) {
-          try {
+      if (status === ShipmentStatus.RESERVED) {
+        try {
+          stockWarnings = await prisma.$transaction(async (tx) => {
             const deltaByPartId = await calculateShipmentDelta(
               tx,
               updated.id,
               new Map()
             );
-            stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-          } catch (error) {
-            console.error(
-              `Shipment ${updated.id}: failed to rollback RESERVED stock deltas`,
-              error
-            );
-          }
+            return applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+          });
+        } catch (error) {
+          console.error(
+            `Shipment ${updated.id}: failed to rollback RESERVED stock deltas`,
+            error
+          );
         }
+      }
 
-        const shouldNotifyStatusChange = existing.status !== status;
-
+      if (existing.status !== status) {
         try {
-          await tx.activityLog.create({
+          await prisma.activityLog.create({
             data: {
               type: "shipment.status",
               entityType: "Shipment",
@@ -287,10 +281,9 @@ export async function PATCH(
         } catch (error) {
           console.error(`Shipment ${updated.id}: failed to write activity log`, error);
         }
-        return { updated, stockWarnings, shouldNotifyStatusChange };
-      });
+      }
 
-      if (result.shouldNotifyStatusChange) {
+      if (existing.status !== status) {
         try {
           await sendPushToRolesByKey(
             ["VIEWER", "EDITOR"],
@@ -298,21 +291,44 @@ export async function PATCH(
             "ready",
             (lang) => ({
               shipmentId,
-              companyName: result.updated.companyName,
+              companyName: updated.companyName,
               status: getStatusLabel(lang, status),
             })
           );
         } catch (error) {
           console.error(
-            `Shipment ${result.updated.id}: failed to send status push notification`,
+            `Shipment ${updated.id}: failed to send status push notification`,
+            error
+          );
+        }
+      }
+
+      if (lowParts.length > 0) {
+        try {
+          await Promise.all(
+            lowParts.map((part) =>
+              sendPushToRolesByKey(
+                ["VIEWER", "EDITOR"],
+                "lowStock",
+                "lowStock",
+                {
+                  partName: part.name,
+                  stock: part.stock,
+                }
+              )
+            )
+          );
+        } catch (error) {
+          console.error(
+            `Shipment ${updated.id}: failed to send low stock notifications`,
             error
           );
         }
       }
 
       return NextResponse.json({
-        ...result.updated,
-        stockWarnings: result.stockWarnings,
+        ...updated,
+        stockWarnings,
       });
     } catch (error) {
       const message =
