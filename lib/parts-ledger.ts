@@ -63,7 +63,17 @@ const buildBomKey = (modelName: string, bomType: BomType) =>
   `${normalizeModelName(modelName)}::${bomType}`;
 
 const normalizeModelName = (value: string) =>
-  value.toUpperCase().replace(/[^A-Z0-9]+/g, "");
+  {
+    const upper = value.toUpperCase();
+    if (upper.includes("GLOBAL")) {
+      return "GLOBAL";
+    }
+    const modelMatch = upper.match(/FL\D*(\d{3})/);
+    if (modelMatch) {
+      return `FL${modelMatch[1]}`;
+    }
+    return upper.replace(/[^A-Z0-9]+/g, "");
+  };
 
 const findBomItems = (
   modelName: string,
