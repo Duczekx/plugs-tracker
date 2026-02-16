@@ -266,19 +266,23 @@ export async function PATCH(
 
         const statusChanged = existing.status !== status;
         if (statusChanged) {
-          await tx.activityLog.create({
-            data: {
-              type: "shipment.status",
-              entityType: "Shipment",
-              entityId: String(updated.id),
-              summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
-              meta: {
-                shipmentId: updated.id,
-                fromStatus: existing.status,
-                toStatus: status,
+          try {
+            await tx.activityLog.create({
+              data: {
+                type: "shipment.status",
+                entityType: "Shipment",
+                entityId: String(updated.id),
+                summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
+                meta: {
+                  shipmentId: updated.id,
+                  fromStatus: existing.status,
+                  toStatus: status,
+                },
               },
-            },
-          });
+            });
+          } catch (error) {
+            console.error(`Shipment ${updated.id}: failed to write activity log`, error);
+          }
         }
 
         return { updated, stockWarnings, lowParts, statusChanged };
@@ -332,6 +336,7 @@ export async function PATCH(
         stockWarnings: result.stockWarnings,
       });
     } catch (error) {
+      console.error(`Shipment ${shipmentId}: status-only PATCH failed`, error);
       const message =
         error instanceof Error && error.message === "NOT_FOUND"
           ? "Not found"
@@ -339,6 +344,8 @@ export async function PATCH(
           ? "Invalid status transition"
           : error instanceof Error && error.message.startsWith("MISSING_BOM:")
           ? `Missing BOM configuration: ${error.message.slice("MISSING_BOM:".length)}`
+          : error instanceof Error
+          ? `Server error: ${error.message}`
           : "Server error";
       const statusCode =
         message === "Not found"
@@ -558,19 +565,23 @@ export async function PATCH(
       const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
 
       if (statusChanged) {
-        await tx.activityLog.create({
-          data: {
-            type: "shipment.status",
-            entityType: "Shipment",
-            entityId: String(updated.id),
-            summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
-            meta: {
-              shipmentId: updated.id,
-              fromStatus: existing.status,
-              toStatus: status,
+        try {
+          await tx.activityLog.create({
+            data: {
+              type: "shipment.status",
+              entityType: "Shipment",
+              entityId: String(updated.id),
+              summary: `Shipment ${updated.id} status ${existing.status} -> ${status}`,
+              meta: {
+                shipmentId: updated.id,
+                fromStatus: existing.status,
+                toStatus: status,
+              },
             },
-          },
-        });
+          });
+        } catch (error) {
+          console.error(`Shipment ${updated.id}: failed to write activity log`, error);
+        }
       }
 
       return { updated, stockWarnings, statusChanged, lowParts };
@@ -624,6 +635,7 @@ export async function PATCH(
       stockWarnings: shipment.stockWarnings,
     });
   } catch (error) {
+    console.error(`Shipment ${shipmentId}: full PATCH failed`, error);
     const message =
       error instanceof Error && error.message === "NOT_FOUND"
         ? "Not found"
@@ -633,6 +645,8 @@ export async function PATCH(
         ? `Missing BOM configuration: ${error.message.slice("MISSING_BOM:".length)}`
         : error instanceof Error && error.message === "INSUFFICIENT_STOCK"
         ? "Insufficient stock"
+        : error instanceof Error
+        ? `Server error: ${error.message}`
         : "Server error";
     const status =
       message === "Not found"
