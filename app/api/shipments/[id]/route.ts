@@ -4,6 +4,8 @@ import {
   BomConfiguration,
   Model,
   Prisma,
+  ShipmentExtraItem,
+  ShipmentItem,
   ShipmentStatus,
   ValveType,
   Variant,
@@ -13,7 +15,6 @@ import {
   applyShipmentPartDeltas,
   buildPartsSummary,
   calculateShipmentDelta,
-  type StockWarning,
 } from "@/lib/parts-ledger";
 import { sendPushToRolesByKey } from "@/lib/push";
 import { labels } from "@/lib/i18n";
@@ -170,6 +171,22 @@ const getLowStockParts = async (tx: Prisma.TransactionClient, partIds: number[])
     select: { id: true, name: true, stock: true },
   });
 
+const getRequiredPartsForStatus = async (
+  tx: Prisma.TransactionClient,
+  status: ShipmentStatus,
+  items: ShipmentItem[],
+  extras: ShipmentExtraItem[]
+) => {
+  if (status === ShipmentStatus.RESERVED) {
+    return {
+      requiredByPartId: new Map<number, number>(),
+      missingBom: [] as Array<{ modelName: string; bomType: BomType }>,
+      unmatchedExtras: [] as string[],
+    };
+  }
+  return buildPartsSummary(tx, items, extras);
+};
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -206,66 +223,41 @@ export async function PATCH(
 
   if (!items.length && !extras.length && status) {
     try {
-      const existing = await prisma.shipment.findUnique({
-        where: { id: shipmentId },
-        include: { items: true, extras: true },
-      });
-      if (!existing) {
-        throw new Error("NOT_FOUND");
-      }
-
-      const updated = await prisma.shipment.update({
-        where: { id: shipmentId },
-        data: { status },
-        include: { items: true, extras: true },
-      });
-
-      let stockWarnings: StockWarning[] = [];
-      let lowParts: Array<{ id: number; name: string; stock: number }> = [];
-      if (status === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
-        try {
-          const ledger = await prisma.$transaction(async (tx) => {
-            const summary = await buildPartsSummary(tx, updated.items, updated.extras);
-            const deltaByPartId = await calculateShipmentDelta(
-              tx,
-              updated.id,
-              summary.requiredByPartId
-            );
-            const warnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-            const parts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
-            return { warnings, parts };
-          });
-          stockWarnings = ledger.warnings;
-          lowParts = ledger.parts;
-        } catch (error) {
-          console.error(
-            `Shipment ${updated.id}: failed to apply READY stock deltas`,
-            error
-          );
+      const result = await prisma.$transaction(async (tx) => {
+        const existing = await tx.shipment.findUnique({
+          where: { id: shipmentId },
+          include: { items: true, extras: true },
+        });
+        if (!existing) {
+          throw new Error("NOT_FOUND");
         }
-      }
 
-      if (status === ShipmentStatus.RESERVED) {
-        try {
-          stockWarnings = await prisma.$transaction(async (tx) => {
-            const deltaByPartId = await calculateShipmentDelta(
-              tx,
-              updated.id,
-              new Map()
-            );
-            return applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-          });
-        } catch (error) {
-          console.error(
-            `Shipment ${updated.id}: failed to rollback RESERVED stock deltas`,
-            error
-          );
+        const updated = await tx.shipment.update({
+          where: { id: shipmentId },
+          data: { status },
+          include: { items: true, extras: true },
+        });
+
+        const summary = await getRequiredPartsForStatus(
+          tx,
+          status,
+          updated.items,
+          updated.extras
+        );
+        if (summary.missingBom.length > 0) {
+          throw new Error("MISSING_BOM");
         }
-      }
+        const deltaByPartId = await calculateShipmentDelta(
+          tx,
+          updated.id,
+          summary.requiredByPartId
+        );
+        const stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+        const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
 
-      if (existing.status !== status) {
-        try {
-          await prisma.activityLog.create({
+        const statusChanged = existing.status !== status;
+        if (statusChanged) {
+          await tx.activityLog.create({
             data: {
               type: "shipment.status",
               entityType: "Shipment",
@@ -278,12 +270,12 @@ export async function PATCH(
               },
             },
           });
-        } catch (error) {
-          console.error(`Shipment ${updated.id}: failed to write activity log`, error);
         }
-      }
 
-      if (existing.status !== status) {
+        return { updated, stockWarnings, lowParts, statusChanged };
+      });
+
+      if (result.statusChanged) {
         try {
           await sendPushToRolesByKey(
             ["VIEWER", "EDITOR"],
@@ -291,22 +283,22 @@ export async function PATCH(
             "ready",
             (lang) => ({
               shipmentId,
-              companyName: updated.companyName,
+              companyName: result.updated.companyName,
               status: getStatusLabel(lang, status),
             })
           );
         } catch (error) {
           console.error(
-            `Shipment ${updated.id}: failed to send status push notification`,
+            `Shipment ${result.updated.id}: failed to send status push notification`,
             error
           );
         }
       }
 
-      if (lowParts.length > 0) {
+      if (result.lowParts.length > 0) {
         try {
           await Promise.all(
-            lowParts.map((part) =>
+            result.lowParts.map((part) =>
               sendPushToRolesByKey(
                 ["VIEWER", "EDITOR"],
                 "lowStock",
@@ -320,22 +312,29 @@ export async function PATCH(
           );
         } catch (error) {
           console.error(
-            `Shipment ${updated.id}: failed to send low stock notifications`,
+            `Shipment ${result.updated.id}: failed to send low stock notifications`,
             error
           );
         }
       }
 
       return NextResponse.json({
-        ...updated,
-        stockWarnings,
+        ...result.updated,
+        stockWarnings: result.stockWarnings,
       });
     } catch (error) {
       const message =
         error instanceof Error && error.message === "NOT_FOUND"
           ? "Not found"
+          : error instanceof Error && error.message === "MISSING_BOM"
+          ? "Missing BOM configuration"
           : "Server error";
-      const statusCode = message === "Not found" ? 404 : 500;
+      const statusCode =
+        message === "Not found"
+          ? 404
+          : message === "Missing BOM configuration"
+          ? 409
+          : 500;
       return NextResponse.json({ message }, { status: statusCode });
     }
   }
@@ -524,39 +523,22 @@ export async function PATCH(
 
       const nextStatus = status ?? existing.status;
       const statusChanged = status ? existing.status !== status : false;
-      let stockWarnings: StockWarning[] = [];
-      if (nextStatus === ShipmentStatus.READY && existing.status !== ShipmentStatus.SENT) {
-        const summary = await buildPartsSummary(tx, updated.items, updated.extras);
-        const deltaByPartId = await calculateShipmentDelta(
-          tx,
-          updated.id,
-          summary.requiredByPartId
-        );
-        stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-        const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
-        await Promise.all(
-          lowParts.map((part) =>
-            sendPushToRolesByKey(
-              ["VIEWER", "EDITOR"],
-              "lowStock",
-              "lowStock",
-              {
-                partName: part.name,
-                stock: part.stock,
-              }
-            )
-          )
-        );
+      const summary = await getRequiredPartsForStatus(
+        tx,
+        nextStatus,
+        updated.items,
+        updated.extras
+      );
+      if (summary.missingBom.length > 0) {
+        throw new Error("MISSING_BOM");
       }
-
-      if (nextStatus === ShipmentStatus.RESERVED) {
-        const deltaByPartId = await calculateShipmentDelta(
-          tx,
-          updated.id,
-          new Map()
-        );
-        stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
-      }
+      const deltaByPartId = await calculateShipmentDelta(
+        tx,
+        updated.id,
+        summary.requiredByPartId
+      );
+      const stockWarnings = await applyShipmentPartDeltas(tx, updated.id, deltaByPartId);
+      const lowParts = await getLowStockParts(tx, Array.from(deltaByPartId.keys()));
 
       if (statusChanged) {
         await tx.activityLog.create({
@@ -574,7 +556,7 @@ export async function PATCH(
         });
       }
 
-      return { updated, stockWarnings, statusChanged };
+      return { updated, stockWarnings, statusChanged, lowParts };
     });
 
     if (shipment.statusChanged && status) {
@@ -597,6 +579,29 @@ export async function PATCH(
       }
     }
 
+    if (shipment.lowParts.length > 0) {
+      try {
+        await Promise.all(
+          shipment.lowParts.map((part) =>
+            sendPushToRolesByKey(
+              ["VIEWER", "EDITOR"],
+              "lowStock",
+              "lowStock",
+              {
+                partName: part.name,
+                stock: part.stock,
+              }
+            )
+          )
+        );
+      } catch (error) {
+        console.error(
+          `Shipment ${shipment.updated.id}: failed to send low stock notifications`,
+          error
+        );
+      }
+    }
+
     return NextResponse.json({
       ...shipment.updated,
       stockWarnings: shipment.stockWarnings,
@@ -605,11 +610,17 @@ export async function PATCH(
     const message =
       error instanceof Error && error.message === "NOT_FOUND"
         ? "Not found"
+        : error instanceof Error && error.message === "MISSING_BOM"
+        ? "Missing BOM configuration"
         : error instanceof Error && error.message === "INSUFFICIENT_STOCK"
         ? "Insufficient stock"
         : "Server error";
     const status =
-      message === "Not found" ? 404 : message === "Insufficient stock" ? 409 : 500;
+      message === "Not found"
+        ? 404
+        : message === "Insufficient stock" || message === "Missing BOM configuration"
+        ? 409
+        : 500;
     return NextResponse.json({ message }, { status });
   }
 }
