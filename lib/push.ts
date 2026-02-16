@@ -32,19 +32,30 @@ const defaultTypes: NotificationTypes = {
   stockChange: true,
 };
 
+let missingVapidWarned = false;
+
 const getVapidDetails = () => {
   const publicKey = process.env.VAPID_PUBLIC_KEY ?? "";
   const privateKey = process.env.VAPID_PRIVATE_KEY ?? "";
   const subject = process.env.VAPID_SUBJECT ?? "";
   if (!publicKey || !privateKey || !subject) {
-    throw new Error("Missing VAPID env");
+    return null;
   }
   return { publicKey, privateKey, subject };
 };
 
 const ensureWebPush = () => {
-  const { publicKey, privateKey, subject } = getVapidDetails();
+  const details = getVapidDetails();
+  if (!details) {
+    if (!missingVapidWarned) {
+      console.warn("Push notifications are disabled: missing VAPID env");
+      missingVapidWarned = true;
+    }
+    return false;
+  }
+  const { publicKey, privateKey, subject } = details;
   webPush.setVapidDetails(subject, publicKey, privateKey);
+  return true;
 };
 
 export const getRoleUserId = (role: RoleTarget) => roleUserIds[role];
@@ -159,7 +170,9 @@ export const sendPushToUser = async (
     return;
   }
 
-  ensureWebPush();
+  if (!ensureWebPush()) {
+    return;
+  }
   await Promise.all(
     subs.map(async (sub) => {
       try {
@@ -170,8 +183,14 @@ export const sendPushToUser = async (
           },
           JSON.stringify(payload)
         );
-      } catch (error: any) {
-        const status = error?.statusCode;
+      } catch (error: unknown) {
+        const status =
+          typeof error === "object" &&
+          error !== null &&
+          "statusCode" in error &&
+          typeof (error as { statusCode?: unknown }).statusCode === "number"
+            ? (error as { statusCode: number }).statusCode
+            : null;
         if (status === 404 || status === 410) {
           await prisma.pushSubscription.update({
             where: { id: sub.id },
