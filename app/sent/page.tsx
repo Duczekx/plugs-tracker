@@ -86,6 +86,8 @@ const encodeMailParam = (value: string) => encodeURIComponent(value);
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
 const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
 const RENTAL_MARKER = "[RENTAL]";
+const stripRentalMarker = (value?: string | null) =>
+  (value ?? "").replace(/\[RENTAL\]\s*/gi, "").trim();
 
 const emptyItemForm: ShipmentItemDraft = {
   model: "FL_540",
@@ -169,6 +171,7 @@ export default function SentPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editCustomer, setEditCustomer] =
     useState<CustomerForm>(emptyCustomerForm);
+  const [editIsRentalOrder, setEditIsRentalOrder] = useState(false);
   const [editExtras, setEditExtras] = useState<ShipmentExtraItem[]>([]);
   const [editExtraForm, setEditExtraForm] =
     useState<ShipmentExtraDraft>(emptyExtraForm);
@@ -308,7 +311,9 @@ export default function SentPage() {
       "",
       "ZUSAETZLICHE TEILE:",
       ...extraLines,
-      ...(shipment.notes ? ["", `Notizen: ${shipment.notes}`] : []),
+      ...(stripRentalMarker(shipment.notes)
+        ? ["", `Notizen: ${stripRentalMarker(shipment.notes)}`]
+        : []),
       "",
       "Diese Nachricht wurde automatisch von FS LAGER erstellt.",
     ];
@@ -638,8 +643,9 @@ export default function SentPage() {
       postalCode: shipment.postalCode,
       city: shipment.city,
       country: shipment.country,
-      notes: shipment.notes ?? "",
+      notes: stripRentalMarker(shipment.notes),
     });
+    setEditIsRentalOrder(isRentalShipment(shipment));
     setEditItems(
       shipment.items.map((item) => ({
         model: item.model,
@@ -673,6 +679,7 @@ export default function SentPage() {
     setEditExtras([]);
     setEditExtraForm(emptyExtraForm);
     setEditExtraIndex(null);
+    setEditIsRentalOrder(false);
   };
 
   const handleUpdateShipment = async (event: FormEvent<HTMLFormElement>) => {
@@ -688,11 +695,16 @@ export default function SentPage() {
       setNotice({ type: "error", message: t.shipmentItemEmpty });
       return;
     }
+    const cleanedNotes = stripRentalMarker(editCustomer.notes);
+    const finalNotes = editIsRentalOrder
+      ? [RENTAL_MARKER, cleanedNotes].filter(Boolean).join("\n")
+      : cleanedNotes;
     const response = await fetch(`/api/shipments/${editId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...editCustomer,
+        notes: finalNotes,
         items: editItems,
         extras: editExtras,
       }),
@@ -1575,6 +1587,31 @@ export default function SentPage() {
                     </h3>
                   </div>
                 </div>
+                <div className="order-type-switch-wrap">
+                  <span className="pill">{t.orderTypeLabel}</span>
+                  <div className="order-type-switch" role="group" aria-label={t.orderTypeLabel}>
+                    <button
+                      type="button"
+                      className={`order-type-btn ${!editIsRentalOrder ? "active sale" : "sale"}`}
+                      onClick={() => setEditIsRentalOrder(false)}
+                      disabled={isReadOnly}
+                      aria-pressed={!editIsRentalOrder}
+                    >
+                      <span className="order-type-dot" aria-hidden="true" />
+                      {t.orderTypeSale}
+                    </button>
+                    <button
+                      type="button"
+                      className={`order-type-btn ${editIsRentalOrder ? "active rental" : "rental"}`}
+                      onClick={() => setEditIsRentalOrder(true)}
+                      disabled={isReadOnly}
+                      aria-pressed={editIsRentalOrder}
+                    >
+                      <span className="order-type-dot" aria-hidden="true" />
+                      {t.orderTypeRental}
+                    </button>
+                  </div>
+                </div>
                 <label>
                   {t.companyName}
                   <input
@@ -1954,7 +1991,9 @@ export default function SentPage() {
                     </div>
                   </div>
                 )}
-                {shipment.notes && <div className="muted">{shipment.notes}</div>}
+                {stripRentalMarker(shipment.notes) && (
+                  <div className="muted">{stripRentalMarker(shipment.notes)}</div>
+                )}
               </details>
             );
             })}

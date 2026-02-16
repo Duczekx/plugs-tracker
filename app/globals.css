@@ -2214,6 +2214,70 @@ textarea {
   border: 1px solid rgba(12, 18, 32, 0.1);
 }
 
+.order-type-switch-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.order-type-switch {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(12, 18, 32, 0.12);
+  background: rgba(12, 18, 32, 0.04);
+  padding: 4px;
+  gap: 4px;
+}
+
+.order-type-btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.72);
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+}
+
+.order-type-btn .order-type-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.order-type-btn:hover:not(:disabled) {
+  color: rgba(15, 23, 42, 0.95);
+  border-color: rgba(12, 18, 32, 0.18);
+}
+
+.order-type-btn.active {
+  color: #0f172a;
+  border-color: transparent;
+  box-shadow: 0 7px 16px rgba(15, 23, 42, 0.14);
+}
+
+.order-type-btn.sale.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(251, 191, 36, 0.4));
+}
+
+.order-type-btn.rental.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.24), rgba(56, 189, 248, 0.42));
+}
+
+.order-type-btn:disabled {
+  opacity: 0.55;
+}
+
 .status-loading {
   display: inline-flex;
   align-items: center;

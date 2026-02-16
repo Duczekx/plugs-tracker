@@ -68,6 +68,8 @@ type PartOption = {
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
 const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
 const RENTAL_MARKER = "[RENTAL]";
+const stripRentalMarker = (value: string) =>
+  value.replace(/\[RENTAL\]\s*/gi, "").trim();
 
 const createEmptyItemForm = (): ShipmentItemDraft => ({
   model: "FL_540",
@@ -540,9 +542,7 @@ export default function ShipmentsPage() {
     if (isSubmitting) {
       return;
     }
-    const cleanedNotes = customerForm.notes
-      .replace(/\[RENTAL\]\s*/gi, "")
-      .trim();
+    const cleanedNotes = stripRentalMarker(customerForm.notes);
     const finalNotes = isRentalOrder
       ? [RENTAL_MARKER, cleanedNotes].filter(Boolean).join("\n")
       : cleanedNotes;
@@ -757,28 +757,30 @@ export default function ShipmentsPage() {
                 <p className="subtitle">{t.shipmentItemsSubtitle}</p>
               </div>
             </div>
-            <div className="status-toggle" style={{ marginBottom: 8 }}>
+            <div className="order-type-switch-wrap">
               <span className="pill">{t.orderTypeLabel}</span>
-              <button
-                type="button"
-                className={`button button-ghost button-small status-btn ${
-                  !isRentalOrder ? "active" : ""
-                }`}
-                onClick={() => setIsRentalOrder(false)}
-                disabled={isReadOnly}
-              >
-                {t.orderTypeSale}
-              </button>
-              <button
-                type="button"
-                className={`button button-ghost button-small status-btn ${
-                  isRentalOrder ? "active" : ""
-                }`}
-                onClick={() => setIsRentalOrder(true)}
-                disabled={isReadOnly}
-              >
-                {t.orderTypeRental}
-              </button>
+              <div className="order-type-switch" role="group" aria-label={t.orderTypeLabel}>
+                <button
+                  type="button"
+                  className={`order-type-btn ${!isRentalOrder ? "active sale" : "sale"}`}
+                  onClick={() => setIsRentalOrder(false)}
+                  disabled={isReadOnly}
+                  aria-pressed={!isRentalOrder}
+                >
+                  <span className="order-type-dot" aria-hidden="true" />
+                  {t.orderTypeSale}
+                </button>
+                <button
+                  type="button"
+                  className={`order-type-btn ${isRentalOrder ? "active rental" : "rental"}`}
+                  onClick={() => setIsRentalOrder(true)}
+                  disabled={isReadOnly}
+                  aria-pressed={isRentalOrder}
+                >
+                  <span className="order-type-dot" aria-hidden="true" />
+                  {t.orderTypeRental}
+                </button>
+              </div>
             </div>
             <div className="form-row form-row-compact">
               <label>
