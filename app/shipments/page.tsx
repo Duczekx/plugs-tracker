@@ -26,6 +26,13 @@ type ShipmentItemDraft = {
   bucketHolder: boolean;
   valveType: ValveType;
   extraParts: string;
+  hoses: ItemHoseDraft[];
+};
+
+type ItemHoseDraft = {
+  partId: number;
+  name: string;
+  quantity: number;
 };
 
 type ExtraItemDraft = {
@@ -55,6 +62,7 @@ type PartOption = {
   id: number;
   name: string;
   category?: string | null;
+  stock?: number;
 };
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
@@ -71,6 +79,7 @@ const createEmptyItemForm = (): ShipmentItemDraft => ({
   bucketHolder: false,
   valveType: "NONE",
   extraParts: "",
+  hoses: [],
 });
 
 const emptyExtraForm: ExtraItemDraft = {
@@ -111,6 +120,8 @@ export default function ShipmentsPage() {
   const [extraForm, setExtraForm] = useState<ExtraItemDraft>(emptyExtraForm);
   const [extras, setExtras] = useState<ExtraItemDraft[]>([]);
   const [partOptions, setPartOptions] = useState<PartOption[]>([]);
+  const [itemHosePartId, setItemHosePartId] = useState<number | null>(null);
+  const [itemHoseQty, setItemHoseQty] = useState(1);
   const [partQuery, setPartQuery] = useState("");
   const [customerForm, setCustomerForm] =
     useState<CustomerForm>(emptyCustomerForm);
@@ -204,6 +215,31 @@ export default function ShipmentsPage() {
   );
 
   const modelLabel = useMemo(() => t.models, [t]);
+
+  const hoseOptions = useMemo(() => {
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .replace(/ä/g, "ae")
+        .replace(/ö/g, "oe")
+        .replace(/ü/g, "ue")
+        .replace(/ß/g, "ss")
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "");
+    return partOptions.filter((part) => {
+      const category = (part.category ?? "").trim().toLowerCase();
+      if (category === "weze" || category === "schlaeuche") {
+        return true;
+      }
+      const folded = normalize(part.name);
+      return (
+        folded.includes("schlauch") ||
+        folded.includes("schluch") ||
+        folded.includes("schlau") ||
+        folded.includes("szlauf")
+      );
+    });
+  }, [partOptions]);
 
 
   const productNumbersByModel = useMemo(() => {
@@ -338,6 +374,10 @@ export default function ShipmentsPage() {
       setNotice({ type: "error", message: t.error + t.quantity });
       return;
     }
+    if (itemForm.hoses.length === 0) {
+      setNotice({ type: "error", message: t.error + t.hoseRequired });
+      return;
+    }
     setItems((prev) => [...prev, itemForm]);
     setItemForm((prev) => ({
       ...createEmptyItemForm(),
@@ -345,6 +385,45 @@ export default function ShipmentsPage() {
       serialNumber: prev.serialNumber,
       variant: prev.variant,
       isSchwenkbock: prev.isSchwenkbock,
+    }));
+    setItemHosePartId(null);
+    setItemHoseQty(1);
+  };
+
+  const handleAddItemHose = () => {
+    if (isReadOnly) {
+      setNotice({ type: "error", message: t.readOnlyNotice });
+      return;
+    }
+    if (!itemHosePartId || !Number.isInteger(itemHoseQty) || itemHoseQty <= 0) {
+      setNotice({ type: "error", message: t.error + t.hoseRequired });
+      return;
+    }
+    const part = hoseOptions.find((option) => option.id === itemHosePartId);
+    if (!part) {
+      setNotice({ type: "error", message: t.error + t.hoseRequired });
+      return;
+    }
+
+    setItemForm((prev) => {
+      const next = [...prev.hoses];
+      const existing = next.find((hose) => hose.partId === part.id);
+      if (existing) {
+        existing.quantity += itemHoseQty;
+      } else {
+        next.push({ partId: part.id, name: part.name, quantity: itemHoseQty });
+      }
+      return { ...prev, hoses: next };
+    });
+    setItemHosePartId(null);
+    setItemHoseQty(1);
+    setNotice(null);
+  };
+
+  const handleRemoveItemHose = (partId: number) => {
+    setItemForm((prev) => ({
+      ...prev,
+      hoses: prev.hoses.filter((hose) => hose.partId !== partId),
     }));
   };
 
@@ -480,6 +559,8 @@ export default function ShipmentsPage() {
       const message =
         body?.message === "Duplicate build number"
           ? t.duplicateBuildNumber
+          : body?.message === "Missing hydraulic hoses"
+          ? t.hoseRequired
           : body?.message
           ? `${t.error}${body.message}`
           : t.error;
@@ -778,6 +859,69 @@ export default function ShipmentsPage() {
                 </label>
               </div>
             </div>
+            <div className="form-row">
+              <label className="form-grow">
+                {t.hoseLabel}
+                <select
+                  value={itemHosePartId ?? ""}
+                  onChange={(event) => setItemHosePartId(Number(event.target.value) || null)}
+                  disabled={isReadOnly}
+                >
+                  <option value="">{t.hoseSelectPlaceholder}</option>
+                  {hoseOptions.map((part) => (
+                    <option key={part.id} value={part.id}>
+                      {part.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t.quantity}
+                <input
+                  type="number"
+                  min={1}
+                  step="1"
+                  value={itemHoseQty}
+                  onChange={(event) => setItemHoseQty(Number(event.target.value))}
+                  disabled={isReadOnly}
+                />
+              </label>
+              <div className="form-actions form-actions-tight">
+                <button
+                  className="button button-ghost button-small"
+                  type="button"
+                  onClick={handleAddItemHose}
+                  disabled={isReadOnly}
+                >
+                  {t.hoseAdd}
+                </button>
+              </div>
+            </div>
+            {itemForm.hoses.length > 0 && (
+              <div className="shipment-list-group">
+                <div className="shipment-list-group-title">{t.hoseListTitle}</div>
+                {itemForm.hoses.map((hose) => (
+                  <div key={hose.partId} className="shipment-list-item">
+                    <div className="shipment-list-main">
+                      <div className="shipment-list-title">{hose.name}</div>
+                      <div className="shipment-list-meta">
+                        <span className="pill">{t.quantity}: {hose.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="shipment-list-actions">
+                      <button
+                        type="button"
+                        className="button button-ghost button-small"
+                        onClick={() => handleRemoveItemHose(hose.partId)}
+                        disabled={isReadOnly}
+                      >
+                        {t.delete}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <label>
               {t.extraParts}
               <textarea
@@ -1290,6 +1434,14 @@ export default function ShipmentsPage() {
                         <div className="shipment-list-note">
                           <span className="pill">{t.extraParts}</span>
                           <span className="muted">{item.extraParts}</span>
+                        </div>
+                      )}
+                      {item.hoses.length > 0 && (
+                        <div className="shipment-list-note">
+                          <span className="pill">{t.hoseListTitle}</span>
+                          <span className="muted">
+                            {item.hoses.map((hose) => `${hose.name} x${hose.quantity}`).join(", ")}
+                          </span>
                         </div>
                       )}
                     </div>

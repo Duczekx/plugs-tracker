@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { labels, Lang } from "@/lib/i18n";
 import PartsTable from "@/components/PartsTable";
@@ -194,6 +195,7 @@ const getBomGroupKey = (item: BomItem): BomGroupKey => {
 };
 
 export default function AdminPanel() {
+  const router = useRouter();
   const [lang, setLang] = useState<Lang>("pl");
   const [tab, setTab] = useState<"bom" | "parts" | "movements">("bom");
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(
@@ -1324,6 +1326,14 @@ export default function AdminPanel() {
     window.location.href = "/admin";
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/parts");
+  };
+
   return (
     <div className="app-shell">
       <div className="app-content">
@@ -1334,6 +1344,9 @@ export default function AdminPanel() {
               <p className="subtitle">{t.adminSubtitle}</p>
             </div>
             <div className="admin-actions">
+              <button className="button button-ghost" type="button" onClick={handleBack}>
+                {t.adminBack}
+              </button>
               <button className="button button-ghost" type="button" onClick={handleLogout}>
                 {t.adminLogout}
               </button>

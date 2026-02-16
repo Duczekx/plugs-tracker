@@ -49,6 +49,10 @@ type IncomingItem = {
   bucketHolder: boolean;
   valveType: string;
   extraParts?: string | null;
+  hoses?: Array<{
+    partId: number;
+    quantity: number;
+  }>;
 };
 
 type IncomingExtraItem = {
@@ -153,6 +157,7 @@ export async function POST(request: NextRequest) {
     bucketHolder: boolean;
     valveType: string;
     extraParts: string | null;
+    hoses: { partId: number; quantity: number }[];
   }[] = [];
   let validatedExtras: {
     name: string;
@@ -170,6 +175,7 @@ export async function POST(request: NextRequest) {
       const buildNumber = String(item.buildNumber || "").trim();
       const buildDate = new Date(item.buildDate);
       const valveType = String(item.valveType || "");
+      const hoses = Array.isArray(item.hoses) ? item.hoses : [];
 
       if (
         !isModel(model) ||
@@ -181,6 +187,26 @@ export async function POST(request: NextRequest) {
         !buildNumber ||
         Number.isNaN(buildDate.getTime()) ||
         !isValveType(valveType)
+      ) {
+        throw new Error("INVALID_ITEM");
+      }
+      if (hoses.length === 0) {
+        throw new Error("MISSING_HOSES");
+      }
+
+      const normalizedHoses = hoses.map((hose) => ({
+        partId: Number(hose.partId),
+        quantity: Number(hose.quantity),
+      }));
+
+      if (
+        normalizedHoses.some(
+          (hose) =>
+            !Number.isInteger(hose.partId) ||
+            hose.partId <= 0 ||
+            !Number.isInteger(hose.quantity) ||
+            hose.quantity <= 0
+        )
       ) {
         throw new Error("INVALID_ITEM");
       }
@@ -200,6 +226,7 @@ export async function POST(request: NextRequest) {
         bucketHolder: Boolean(item.bucketHolder),
         valveType,
         extraParts: item.extraParts ? String(item.extraParts) : null,
+        hoses: normalizedHoses,
       };
     });
     if (hasDuplicateBuildNumbers(validatedItems)) {
@@ -274,7 +301,45 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const shipment = await tx.shipment.create({
+      const hosePartTotals = new Map<number, number>();
+      validatedItems.forEach((item) => {
+        item.hoses.forEach((hose) => {
+          hosePartTotals.set(hose.partId, (hosePartTotals.get(hose.partId) ?? 0) + hose.quantity);
+        });
+      });
+
+      if (hosePartTotals.size > 0) {
+        const ids = Array.from(hosePartTotals.keys());
+        const hoseParts = await tx.part.findMany({
+          where: { id: { in: ids }, isArchived: false },
+          select: { id: true, name: true },
+        });
+
+        if (hoseParts.length !== ids.length) {
+          throw new Error("INVALID_ITEM");
+        }
+
+        const byId = new Map(hoseParts.map((part) => [part.id, part.name]));
+        for (const [partId, quantity] of hosePartTotals.entries()) {
+          const name = byId.get(partId);
+          if (!name) {
+            throw new Error("INVALID_ITEM");
+          }
+          const existing = validatedExtras.find((extra) => extra.partId === partId);
+          if (existing) {
+            existing.quantity += quantity;
+          } else {
+            validatedExtras.push({
+              name,
+              quantity,
+              note: null,
+              partId,
+            });
+          }
+        }
+      }
+
+      const shipmentCreated = await tx.shipment.create({
         data: {
           companyName: String(body.companyName),
           firstName: String(body.firstName),
@@ -313,33 +378,33 @@ export async function POST(request: NextRequest) {
       });
 
       let stockWarnings: StockWarning[] = [];
-      if (shipment.status === ShipmentStatus.READY) {
-        const summary = await buildPartsSummary(tx, shipment.items, shipment.extras);
+      if (shipmentCreated.status === ShipmentStatus.READY) {
+        const summary = await buildPartsSummary(tx, shipmentCreated.items, shipmentCreated.extras);
         const deltaByPartId = await calculateShipmentDelta(
           tx,
-          shipment.id,
+          shipmentCreated.id,
           summary.requiredByPartId
         );
-        stockWarnings = await applyShipmentPartDeltas(tx, shipment.id, deltaByPartId);
+        stockWarnings = await applyShipmentPartDeltas(tx, shipmentCreated.id, deltaByPartId);
       }
 
       await tx.activityLog.create({
         data: {
           type: "shipment.create",
           entityType: "Shipment",
-          entityId: String(shipment.id),
-          summary: `Shipment ${shipment.id} created for ${shipment.companyName}`,
+          entityId: String(shipmentCreated.id),
+          summary: `Shipment ${shipmentCreated.id} created for ${shipmentCreated.companyName}`,
           meta: {
-            shipmentId: shipment.id,
-            status: shipment.status,
-            companyName: shipment.companyName,
-            itemsCount: shipment.items.length,
-            extrasCount: shipment.extras.length,
+            shipmentId: shipmentCreated.id,
+            status: shipmentCreated.status,
+            companyName: shipmentCreated.companyName,
+            itemsCount: shipmentCreated.items.length,
+            extrasCount: shipmentCreated.extras.length,
           },
         },
       });
 
-      return { shipment, stockWarnings };
+      return { shipment: shipmentCreated, stockWarnings };
     });
 
     return NextResponse.json(
@@ -350,11 +415,17 @@ export async function POST(request: NextRequest) {
     const message =
       error instanceof Error && error.message === "INSUFFICIENT_STOCK"
         ? "Insufficient stock"
+        : error instanceof Error && error.message === "MISSING_HOSES"
+        ? "Missing hydraulic hoses"
         : error instanceof Error && error.message === "INVALID_ITEM"
         ? "Invalid payload"
         : "Server error";
     const status =
-      message === "Insufficient stock" ? 409 : message === "Invalid payload" ? 400 : 500;
+      message === "Insufficient stock"
+        ? 409
+        : message === "Invalid payload" || message === "Missing hydraulic hoses"
+        ? 400
+        : 500;
     return NextResponse.json({ message }, { status });
   }
 }
