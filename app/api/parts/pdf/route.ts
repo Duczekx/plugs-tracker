@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
 import path from "path";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/role-auth";
-
-const PDFDocument = require("pdfkit");
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +21,7 @@ const formatTimestamp = (date: Date) =>
     timeStyle: "short",
   });
 
-const resolveLowStock = (part: PdfPart) =>
-  part.stock <= (part.warningThreshold ?? 2);
+const resolveLowStock = (part: PdfPart) => part.stock <= (part.warningThreshold ?? 2);
 
 const normalizeCategory = (category: string | null) => {
   const trimmed = category?.trim();
@@ -31,45 +29,47 @@ const normalizeCategory = (category: string | null) => {
 };
 
 const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
+  const pdfkitModule = await import("pdfkit");
+  const PDFDocument = (pdfkitModule.default ?? pdfkitModule) as typeof pdfkitModule.default;
+
   const doc = new PDFDocument({
     size: "A4",
     margin: 40,
     bufferPages: true,
   });
+
   const fontRegular = path.join(process.cwd(), "public", "fonts", "Inter-Regular.ttf");
   const fontBold = path.join(process.cwd(), "public", "fonts", "Inter-Bold.ttf");
-  doc.registerFont("Body", fontRegular);
-  doc.registerFont("BodyBold", fontBold);
-  doc.font("Body");
+  const canUseCustomFonts = fs.existsSync(fontRegular) && fs.existsSync(fontBold);
+
+  if (canUseCustomFonts) {
+    doc.registerFont("Body", fontRegular);
+    doc.registerFont("BodyBold", fontBold);
+    doc.font("Body");
+  } else {
+    doc.font("Helvetica");
+  }
+
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
-  const title = "Flächenschneeschieber";
-  const subtitle = "Lista części";
+  const title = "Flachenschneeschieber";
+  const subtitle = "Lista czesci";
   const timestamp = formatTimestamp(new Date());
   const showThreshold = items.some((item) => item.warningThreshold !== null);
 
-  const columnWidths = showThreshold
-    ? [240, 120, 60, 60, 60]
-    : [260, 140, 60, 70];
+  const columnWidths = showThreshold ? [240, 120, 60, 60, 60] : [260, 140, 60, 70];
   const columnLabels = showThreshold
     ? ["Nazwa", "Kategoria", "Stan", "Jednostka", "Prog"]
     : ["Nazwa", "Kategoria", "Stan", "Jednostka"];
 
   const rowHeight = 18;
-  const tableTopPadding = 12;
 
   const drawHeader = (pageTitle: string) => {
     doc.fontSize(18).fillColor("#111").text(title);
     doc.fontSize(14).text(pageTitle);
-    doc
-      .fontSize(9)
-      .fillColor("#666")
-      .text(`Data: ${timestamp}`, { align: "left" });
-    doc
-      .fontSize(10)
-      .fillColor("#111")
-      .text(`Pozycji: ${items.length}`, { align: "left" });
+    doc.fontSize(9).fillColor("#666").text(`Data: ${timestamp}`, { align: "left" });
+    doc.fontSize(10).fillColor("#111").text(`Pozycji: ${items.length}`, { align: "left" });
     doc.moveDown();
   };
 
@@ -101,6 +101,7 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
           part.warningThreshold !== null ? String(part.warningThreshold) : "-",
         ]
       : [part.name, part.category ?? "-", String(part.stock), part.unit];
+
     values.forEach((value, index) => {
       doc.text(value, x, doc.y, {
         width: columnWidths[index],
@@ -121,11 +122,9 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     categoryMap.get(category)?.push(part);
   });
 
-  const sortedCategories = Array.from(categoryMap.keys()).sort((a, b) =>
-    a.localeCompare(b, "pl")
-  );
+  const sortedCategories = Array.from(categoryMap.keys()).sort((a, b) => a.localeCompare(b, "pl"));
 
-  drawHeader(mode === "low" ? "Lista części - niski stan" : subtitle);
+  drawHeader(mode === "low" ? "Lista czesci - niski stan" : subtitle);
 
   sortedCategories.forEach((category) => {
     const categoryItems = categoryMap.get(category) ?? [];
@@ -136,13 +135,10 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
     const sectionHeaderLimit = doc.page.height - doc.page.margins.bottom - rowHeight * 3;
     if (doc.y > sectionHeaderLimit) {
       doc.addPage();
-      drawHeader(mode === "low" ? "Lista części - niski stan" : subtitle);
+      drawHeader(mode === "low" ? "Lista czesci - niski stan" : subtitle);
     }
 
-    doc
-      .fontSize(11)
-      .fillColor("#222")
-      .text(`${category} (${categoryItems.length})`);
+    doc.fontSize(11).fillColor("#222").text(`${category} (${categoryItems.length})`);
     doc.moveDown(0.4);
     drawTableHeader();
 
@@ -150,11 +146,8 @@ const buildPdf = async (mode: "all" | "low", items: PdfPart[]) => {
       const bottomLimit = doc.page.height - doc.page.margins.bottom - rowHeight * 2;
       if (doc.y > bottomLimit) {
         doc.addPage();
-        drawHeader(mode === "low" ? "Lista części - niski stan" : subtitle);
-        doc
-          .fontSize(11)
-          .fillColor("#222")
-          .text(`${category} (${categoryItems.length})`);
+        drawHeader(mode === "low" ? "Lista czesci - niski stan" : subtitle);
+        doc.fontSize(11).fillColor("#222").text(`${category} (${categoryItems.length})`);
         doc.moveDown(0.4);
         drawTableHeader();
       }
@@ -195,32 +188,35 @@ export async function GET(request: NextRequest) {
     return auth;
   }
 
-  const modeParam = request.nextUrl.searchParams.get("mode");
-  const mode = modeParam === "low" ? "low" : "all";
+  try {
+    const modeParam = request.nextUrl.searchParams.get("mode");
+    const mode = modeParam === "low" ? "low" : "all";
 
-  const parts = await prisma.part.findMany({
-    where: { isArchived: false },
-    select: {
-      name: true,
-      category: true,
-      stock: true,
-      unit: true,
-      warningThreshold: true,
-    },
-    orderBy: { name: "asc" },
-  });
+    const parts = await prisma.part.findMany({
+      where: { isArchived: false },
+      select: {
+        name: true,
+        category: true,
+        stock: true,
+        unit: true,
+        warningThreshold: true,
+      },
+      orderBy: { name: "asc" },
+    });
 
-  const filtered =
-    mode === "low" ? parts.filter((part) => resolveLowStock(part)) : parts;
+    const filtered = mode === "low" ? parts.filter((part) => resolveLowStock(part)) : parts;
+    const pdfBuffer = await buildPdf(mode, filtered);
 
-  const pdfBuffer = await buildPdf(mode, filtered);
-
-  return new NextResponse(new Uint8Array(pdfBuffer), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename=\"parts-${mode}.pdf\"`,
-      "Cache-Control": "no-store",
-    },
-  });
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename=\"parts-${mode}.pdf\"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("PDF generation failed:", error);
+    return NextResponse.json({ message: "PDF generation failed" }, { status: 500 });
+  }
 }
