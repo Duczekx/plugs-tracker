@@ -31,6 +31,15 @@ const modelNameMap: Record<Model, string> = {
 };
 
 const hasValve = (valveType: ValveType) => valveType !== "NONE";
+const getAddonVariantName = (valveType: ValveType) => {
+  if (valveType === "LARGE") {
+    return "6/2 Schwarz";
+  }
+  if (valveType === "SMALL") {
+    return "6/2 Grau";
+  }
+  return null;
+};
 
 export const getModelName = (model: Model) => modelNameMap[model];
 
@@ -90,7 +99,7 @@ const findBomItems = (
 export const getPartsForPlow = (
   model: Model,
   hasSchwenkbock: boolean,
-  hasSixTwo: boolean,
+  valveType: ValveType,
   bomLookup: BomLookup
 ) => {
   const requiredByPartId = new Map<number, number>();
@@ -101,8 +110,9 @@ export const getPartsForPlow = (
     { modelName, bomType: "STANDARD" },
   ];
 
-  if (hasSixTwo) {
-    requiredKeys.push({ modelName, bomType: "ADDON_6_2" });
+  const addonVariantName = getAddonVariantName(valveType);
+  if (addonVariantName) {
+    requiredKeys.push({ modelName: addonVariantName, bomType: "ADDON_6_2" });
   }
 
   if (hasSchwenkbock) {
@@ -160,9 +170,8 @@ export const buildPartsSummary = async (
   }
 
   items.forEach((item) => {
-    const hasSixTwo = hasValve(item.valveType);
     const { requiredByPartId: partsForPlow, missingBom: missingForPlow } =
-      getPartsForPlow(item.model, item.isSchwenkbock, hasSixTwo, bomLookup);
+      getPartsForPlow(item.model, item.isSchwenkbock, item.valveType, bomLookup);
 
     missingForPlow.forEach((missing) => missingBom.push(missing));
 

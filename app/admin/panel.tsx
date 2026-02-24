@@ -83,6 +83,7 @@ type ImportSkipSummary = {
 };
 
 const models = ["FL 640", "FL 540", "FL 470", "FL 400", "FL 340", "FL 260"];
+const addonVariants = ["6/2 Schwarz", "6/2 Grau"];
 const schwenkOptions: { value: BomType; label: string }[] = [
   { value: "SCHWENKBOCK_3000", label: "Schwenkbock 3000" },
   { value: "SCHWENKBOCK_2000", label: "Schwenkbock 2000" },
@@ -203,7 +204,7 @@ export default function AdminPanel() {
   );
 
   const [standardModel, setStandardModel] = useState(models[0]);
-  const [addonModel, setAddonModel] = useState(models[0]);
+  const [addonModel, setAddonModel] = useState(addonVariants[0]);
   const [schwenkType, setSchwenkType] = useState<BomType>("SCHWENKBOCK_3000");
 
   const [standardItems, setStandardItems] = useState<BomItem[]>([]);
@@ -1603,9 +1604,9 @@ export default function AdminPanel() {
                     value={addonModel}
                     onChange={(event) => setAddonModel(event.target.value)}
                   >
-                    {models.map((model) => (
-                      <option key={model} value={model}>
-                        {model}
+                    {addonVariants.map((variant) => (
+                      <option key={variant} value={variant}>
+                        {variant}
                       </option>
                     ))}
                   </select>
