@@ -71,6 +71,8 @@ API ról:
 - `GET /api/role/me`
 
 ## Rozwoj
+- W zakladce `/sent` dostepne sa raporty PDF: gotowe (READY), wyslane (SENT) i laczny. Jezyk PDF wybiera sie osobno (Polski / Deutsch). Raport uwzglednia filtry firmy i Bau-Nr; nie obejmuje rezerwacji. Data w tabeli to data budowy, nie data faktycznej wysylki.
+- Test i przykladowe PDF bez bazy danych: `node scripts/check-shipments-pdf.cjs <katalog-wyjscia>`.
 - BOM 8/3: w `/admin` znajduje sie osobna sekcja z jedna receptura, bez wariantow kolorystycznych. Uzupelnij czesci i ilosci przed oznaczeniem zamowienia z zaworem 8/3 jako READY. Receptura 8/3 jest niezalezna od 6/2.
 - Przy wdrozeniu obslugi 8/3 uruchom `npm run db:deploy` przed uruchomieniem nowej wersji aplikacji.
 - Test rozliczania BOM zaworow bez bazy danych: `node scripts/check-valve-bom.cjs`.

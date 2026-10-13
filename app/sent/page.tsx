@@ -154,6 +154,7 @@ export default function SentPage() {
     return "pl";
   });
   const pathname = usePathname();
+  const [pdfLang, setPdfLang] = useState<Lang>(lang);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -389,6 +390,13 @@ export default function SentPage() {
       { RESERVED: 0, READY: 0, SENT: 0 } as Record<ShipmentStatus, number>
     );
   }, [filteredShipments]);
+
+  const shipmentPdfUrl = (mode: "all" | "ready" | "sent") => {
+    const params = new URLSearchParams({ mode, lang: pdfLang });
+    if (filterInput.company.trim()) params.set("company", filterInput.company.trim());
+    if (filterInput.buildNumber.trim()) params.set("buildNumber", filterInput.buildNumber.trim());
+    return `/api/shipments/pdf?${params.toString()}`;
+  };
 
   const applyProducts = (data: Product[]) => {
     setProducts(data);
@@ -1766,6 +1774,24 @@ export default function SentPage() {
               onChange={handleFilterChange}
               placeholder={t.buildNumber}
             />
+          </div>
+          <div className="card-actions" style={{ marginTop: 12, flexWrap: "wrap" }}>
+            <label>
+              {lang === "pl" ? "Język PDF: " : "PDF-Sprache: "}
+              <select value={pdfLang} onChange={(event) => setPdfLang(event.target.value as Lang)}>
+                <option value="pl">Polski</option>
+                <option value="de">Deutsch</option>
+              </select>
+            </label>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("ready")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Gotowe do wysyłki" : "PDF: Versandbereit"}
+            </a>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("sent")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Wysłane" : "PDF: Gesendet"}
+            </a>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("all")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Gotowe i wysłane" : "PDF: Versandbereit und gesendet"}
+            </a>
           </div>
           <div className="shipments-list sent-list" style={{ marginTop: 16 }}>
             {filteredShipments.length === 0 && <p>{t.statusEmpty}</p>}
