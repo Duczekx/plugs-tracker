@@ -12,7 +12,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
-type ValveType = "NONE" | "SMALL" | "LARGE";
+type ValveType = "NONE" | "SMALL" | "LARGE" | "EIGHT_THREE";
 type ShipmentStatus = "RESERVED" | "READY" | "SENT";
 type EditSection = "customer" | "plow" | "extras";
 
@@ -84,7 +84,7 @@ const formatDateTime = (value: Date) =>
 const encodeMailParam = (value: string) => encodeURIComponent(value);
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
-const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
+const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE", "EIGHT_THREE"];
 const RENTAL_MARKER = "[RENTAL]";
 const stripRentalMarker = (value?: string | null) =>
   (value ?? "").replace(/\[RENTAL\]\s*/gi, "").trim();
@@ -154,6 +154,7 @@ export default function SentPage() {
     return "pl";
   });
   const pathname = usePathname();
+  const [pdfLang, setPdfLang] = useState<Lang>(lang);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -228,8 +229,9 @@ export default function SentPage() {
   const valveLabel = useMemo(
     () => ({
       NONE: t.valveNone,
-      SMALL: t.valveSmall,
-      LARGE: t.valveLarge,
+      SMALL: `6/2 ${t.valveSmall}`,
+      LARGE: `6/2 ${t.valveLarge}`,
+      EIGHT_THREE: "8/3",
     }),
     [t]
   );
@@ -254,8 +256,9 @@ export default function SentPage() {
     const de = labels.de;
     const valveLabelDe = {
       NONE: de.valveNone,
-      SMALL: de.valveSmall,
-      LARGE: de.valveLarge,
+      SMALL: `6/2 ${de.valveSmall}`,
+      LARGE: `6/2 ${de.valveLarge}`,
+      EIGHT_THREE: "8/3",
     };
     const bullet = "•";
     const statusText = status === "READY" ? "VERSANDBEREIT" : "GESENDET";
@@ -266,7 +269,7 @@ export default function SentPage() {
         `${bullet} Bau-Nr: ${item.buildNumber}`,
         `${bullet} Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
         `${bullet} Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
-        `${bullet} 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
+        `${bullet} Wegeventil: ${valveLabelDe[item.valveType]}`,
         `${bullet} Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
         `${bullet} Menge: ${item.quantity} stk`,
       ];
@@ -387,6 +390,13 @@ export default function SentPage() {
       { RESERVED: 0, READY: 0, SENT: 0 } as Record<ShipmentStatus, number>
     );
   }, [filteredShipments]);
+
+  const shipmentPdfUrl = (mode: "all" | "ready" | "sent") => {
+    const params = new URLSearchParams({ mode, lang: pdfLang });
+    if (filterInput.company.trim()) params.set("company", filterInput.company.trim());
+    if (filterInput.buildNumber.trim()) params.set("buildNumber", filterInput.buildNumber.trim());
+    return `/api/shipments/pdf?${params.toString()}`;
+  };
 
   const applyProducts = (data: Product[]) => {
     setProducts(data);
@@ -1764,6 +1774,24 @@ export default function SentPage() {
               onChange={handleFilterChange}
               placeholder={t.buildNumber}
             />
+          </div>
+          <div className="card-actions" style={{ marginTop: 12, flexWrap: "wrap" }}>
+            <label>
+              {lang === "pl" ? "Język PDF: " : "PDF-Sprache: "}
+              <select value={pdfLang} onChange={(event) => setPdfLang(event.target.value as Lang)}>
+                <option value="pl">Polski</option>
+                <option value="de">Deutsch</option>
+              </select>
+            </label>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("ready")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Gotowe do wysyłki" : "PDF: Versandbereit"}
+            </a>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("sent")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Wysłane" : "PDF: Gesendet"}
+            </a>
+            <a className="button button-ghost button-small" href={shipmentPdfUrl("all")} target="_blank" rel="noopener noreferrer">
+              {lang === "pl" ? "PDF: Gotowe i wysłane" : "PDF: Versandbereit und gesendet"}
+            </a>
           </div>
           <div className="shipments-list sent-list" style={{ marginTop: 16 }}>
             {filteredShipments.length === 0 && <p>{t.statusEmpty}</p>}

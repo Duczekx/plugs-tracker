@@ -16,6 +16,7 @@ enum ValveType {
   NONE
   SMALL
   LARGE
+  EIGHT_THREE
 }
 
 enum Model {
@@ -36,13 +37,16 @@ enum ShipmentStatus {
 enum BomConfiguration {
   STANDARD
   STANDARD_6_2
+  STANDARD_8_3
   SCHWENKBOCK
   SCHWENKBOCK_6_2
+  SCHWENKBOCK_8_3
 }
 
 enum BomType {
   STANDARD
   ADDON_6_2
+  ADDON_8_3
   SCHWENKBOCK_3000
   SCHWENKBOCK_2000
 }

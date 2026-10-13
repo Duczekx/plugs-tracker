@@ -32,6 +32,9 @@ const modelNameMap: Record<Model, string> = {
 
 const hasValve = (valveType: ValveType) => valveType !== "NONE";
 const getAddonVariantName = (valveType: ValveType) => {
+  if (valveType === "EIGHT_THREE") {
+    return "8/3";
+  }
   if (valveType === "LARGE") {
     return "6/2 Schwarz";
   }
@@ -112,7 +115,7 @@ export const getPartsForPlow = (
 
   const addonVariantName = getAddonVariantName(valveType);
   if (addonVariantName) {
-    requiredKeys.push({ modelName: addonVariantName, bomType: "ADDON_6_2" });
+    requiredKeys.push({ modelName: addonVariantName, bomType: valveType === "EIGHT_THREE" ? "ADDON_8_3" : "ADDON_6_2" });
   }
 
   if (hasSchwenkbock) {
@@ -146,9 +149,8 @@ export const buildPartsSummary = async (
   const requiredBomTypes = new Set<BomType>();
   items.forEach((item) => {
     requiredBomTypes.add("STANDARD");
-    const hasSixTwo = hasValve(item.valveType);
-    if (hasSixTwo) {
-      requiredBomTypes.add("ADDON_6_2");
+    if (hasValve(item.valveType)) {
+      requiredBomTypes.add(item.valveType === "EIGHT_THREE" ? "ADDON_8_3" : "ADDON_6_2");
     }
     if (item.isSchwenkbock) {
       const schwenkType = getSchwenkbockType(item.model);

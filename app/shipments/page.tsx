@@ -13,7 +13,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
-type ValveType = "NONE" | "SMALL" | "LARGE";
+type ValveType = "NONE" | "SMALL" | "LARGE" | "EIGHT_THREE";
 
 type ShipmentItemDraft = {
   model: Model;
@@ -66,7 +66,7 @@ type PartOption = {
 };
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
-const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
+const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE", "EIGHT_THREE"];
 const RENTAL_MARKER = "[RENTAL]";
 const stripRentalMarker = (value: string) =>
   value.replace(/\[RENTAL\]\s*/gi, "").trim();
@@ -212,8 +212,9 @@ export default function ShipmentsPage() {
   const valveLabel = useMemo(
     () => ({
       NONE: t.valveNone,
-      SMALL: t.valveSmall,
-      LARGE: t.valveLarge,
+      SMALL: `6/2 ${t.valveSmall}`,
+      LARGE: `6/2 ${t.valveLarge}`,
+      EIGHT_THREE: "8/3",
     }),
     [t]
   );

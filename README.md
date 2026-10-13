@@ -71,6 +71,11 @@ API ról:
 - `GET /api/role/me`
 
 ## Rozwoj
+- W zakladce `/sent` dostepne sa kompaktowe raporty PDF: gotowe (READY), wyslane (SENT) i laczny. Jezyk PDF wybiera sie osobno (Polski / Deutsch). Lista zawiera tylko firme, adres i plugi w formacie `FL 540 2716-744` (model, nr produktu, Bau-Nr); ilosc wieksza od 1 jest dopisana przy plugu. Raport uwzglednia filtry firmy i Bau-Nr; pomija rezerwacje i zamowienia samych czesci. Nie drukuje wezy, dodatkow ani uwag.
+- Test i przykladowe PDF bez bazy danych: `node scripts/check-shipments-pdf.cjs <katalog-wyjscia>`.
+- BOM 8/3: w `/admin` znajduje sie osobna sekcja z jedna receptura, bez wariantow kolorystycznych. Uzupelnij czesci i ilosci przed oznaczeniem zamowienia z zaworem 8/3 jako READY. Receptura 8/3 jest niezalezna od 6/2.
+- Przy wdrozeniu obslugi 8/3 uruchom `npm run db:deploy` przed uruchomieniem nowej wersji aplikacji.
+- Test rozliczania BOM zaworow bez bazy danych: `node scripts/check-valve-bom.cjs`.
 - Plik schematu bazy: `prisma/schema.prisma`
 - API:
   - `GET /api/inventory`

@@ -14,6 +14,7 @@ type BomItemInput = {
 const allowedBomTypes = new Set<BomType>([
   "STANDARD",
   "ADDON_6_2",
+  "ADDON_8_3",
   "SCHWENKBOCK_3000",
   "SCHWENKBOCK_2000",
 ]);
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   const bomType = bomTypeRaw as BomType;
-  const normalizedModelName = isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+  const normalizedModelName = bomType === "ADDON_8_3" ? "8/3" : isGlobalBomType(bomType) ? "GLOBAL" : modelName;
   if (!normalizedModelName) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
@@ -73,7 +74,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const bomType = bomTypeRaw as BomType;
-  const normalizedModelName = isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+  const normalizedModelName = bomType === "ADDON_8_3" ? "8/3" : isGlobalBomType(bomType) ? "GLOBAL" : modelName;
   if (!normalizedModelName) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
