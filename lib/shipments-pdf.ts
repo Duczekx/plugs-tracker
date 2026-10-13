@@ -14,11 +14,11 @@ export type ReportShipment = {
 };
 
 export const reportLabels = {
-  pl: { title: "Raport wysyłek", ready: "Gotowe do wysyłki", sent: "Wysłane", empty: "Brak zamówień w tej grupie.",
+  pl: { title: "Raport wysyłek", ready: "Gotowe do wysyłki", sent: "Wysłane", empty: "Brak pługów w tej grupie.", address: "Adres", plow: "Pług",
     customer: "Klient", order: "Zamówienie", model: "Model / nr produktu", build: "Bau-Nr", config: "Konfiguracja", qty: "Ilość", date: "Data budowy",
     zinc: "Ocynk", orange: "Pomarańczowy", none: "Brak", yes: "Tak", no: "Nie", holder: "Uchwyt na wiaderko",
     extras: "Dodatkowe części", notes: "Uwagi", page: "Strona", generated: "Wygenerowano", filters: "Filtry", company: "Firma", plows: "pługów", orders: "zamówień", continued: "ciąg dalszy" },
-  de: { title: "Versandbericht", ready: "Versandbereit", sent: "Gesendet", empty: "Keine Aufträge in dieser Gruppe.",
+  de: { title: "Versandbericht", ready: "Versandbereit", sent: "Gesendet", empty: "Keine Schneeschieber in dieser Gruppe.", address: "Adresse", plow: "Schneeschieber",
     customer: "Kunde", order: "Auftrag", model: "Modell / Produkt-Nr.", build: "Bau-Nr", config: "Konfiguration", qty: "Menge", date: "Baudatum",
     zinc: "Verzinkt", orange: "Orange", none: "Keine", yes: "Ja", no: "Nein", holder: "Eimerhalterung",
     extras: "Zusatzteile", notes: "Notizen", page: "Seite", generated: "Erstellt", filters: "Filter", company: "Firma", plows: "Schneeschieber", orders: "Aufträge", continued: "Fortsetzung" },
@@ -28,7 +28,7 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
   mode: ReportMode; lang: "pl" | "de"; company?: string; buildNumber?: string; now?: Date;
 }) {
   const t = reportLabels[options.lang];
-  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 36, bufferPages: true,
+  const doc = new PDFDocument({ size: "A4", margin: 36, bufferPages: true,
     font: path.join(process.cwd(), "public/fonts/LiberationSans-Regular.ttf") });
   doc.registerFont("Body", path.join(process.cwd(), "public/fonts/LiberationSans-Regular.ttf"));
   doc.registerFont("Bold", path.join(process.cwd(), "public/fonts/LiberationSans-Bold.ttf"));
@@ -41,7 +41,7 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
     doc.on("error", reject);
   });
   const left = 36, width = doc.page.width - 72, bottom = doc.page.height - 56;
-  const columnWidths = [110, 120, width - 360, 40, 90];
+  const columnWidths = [width * 0.58, width * 0.42];
   let y = 36;
   const stamp = (options.now ?? new Date()).toLocaleString(options.lang === "pl" ? "pl-PL" : "de-DE", { timeZone: "Europe/Warsaw" });
   const selected = options.mode === "ready" ? ["READY"] : options.mode === "sent" ? ["SENT"] : ["READY", "SENT"];
@@ -67,12 +67,9 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
     return result.length ? result : [""];
   };
   const header = () => {
-    doc.rect(left, 36, width, 58).fill("#0f4c81");
-    doc.font("Bold").fontSize(17).fillColor("white").text("Flachenschneeschieber", left + 14, 47);
-    doc.font("Body").fontSize(10).fillColor("#dbeafe").text(t.title, left + 14, 73);
-    doc.fontSize(8).fillColor("#475569").text(`${t.generated}: ${stamp}`, left, 102);
-    doc.text(`${t.ready}: ${totals("READY")} ${t.plows}    |    ${t.sent}: ${totals("SENT")} ${t.plows}`, left + width / 2, 102, { width: width / 2, align: "right" });
-    y = 122;
+    doc.font("Bold").fontSize(12).fillColor("#0f4c81").text("Flachenschneeschieber", left, 36);
+    doc.font("Body").fontSize(8).fillColor("#475569").text(`${t.title} | ${stamp}`, left, 54);
+    y = 74;
   };
   const newPage = () => { doc.addPage(); header(); };
   const textBlock = (text: string, color = "#334155", bold = false) => {
@@ -85,7 +82,7 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
   const tableHeader = () => {
     doc.rect(left, y, width, 24).fill("#eff6ff");
     let x = left;
-    [t.model, t.build, t.config, t.qty, t.date].forEach((label, i) => {
+    [`${t.company} / ${t.address}`, t.plow].forEach((label, i) => {
       doc.font("Bold").fontSize(8).fillColor("#334155").text(label, x + 6, y + 7, { width: columnWidths[i] - 12, lineBreak: false }); x += columnWidths[i];
     });
     y += 24;
@@ -101,8 +98,11 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
       doc.rect(left, y, width, height).fill("#f8fafc");
       let x = left;
       lines.forEach((cell, i) => {
-        doc.font(i === 1 ? "Bold" : "Body").fontSize(9).fillColor("#0f172a");
-        cell.slice(offset, offset + take).forEach((line, j) => doc.text(line, x + 6, y + 6 + j * 13, { lineBreak: false }));
+        cell.slice(offset, offset + take).forEach((line, j) => {
+          const isCompany = i === 0 && offset + j === 0;
+          doc.font(i === 1 || isCompany ? "Bold" : "Body").fontSize(9).fillColor(i === 0 && !isCompany ? "#64748b" : "#0f172a");
+          doc.text(line, x + 6, y + 6 + j * 13, { lineBreak: false });
+        });
         x += columnWidths[i];
       });
       doc.moveTo(left, y + height).lineTo(left + width, y + height).strokeColor("#d8e1ef").stroke();
@@ -110,34 +110,20 @@ export async function buildShipmentsPdf(shipments: ReportShipment[], options: {
     }
   };
   header();
-  const filters = [options.company ? `${t.company}: ${options.company}` : "", options.buildNumber ? `${t.build}: ${options.buildNumber}` : ""].filter(Boolean);
-  if (filters.length) { textBlock(`${t.filters}: ${filters.join(" | ")}`); y += 6; }
   for (const [sectionIndex, status] of selected.entries()) {
     if (sectionIndex > 0) newPage();
-    const group = shipments.filter(s => s.status === status);
+    const group = shipments.filter(s => s.status === status && s.items.length > 0);
     const statusTitle = status === "READY" ? t.ready : t.sent;
     if (y + 38 > bottom) newPage();
     doc.rect(left, y, width, 28).fill(status === "READY" ? "#fff7ed" : "#ecfdf5");
-    doc.font("Bold").fontSize(11).fillColor(status === "READY" ? "#9a3412" : "#166534").text(`${statusTitle} - ${group.length} ${t.orders} / ${totals(status)} ${t.plows}`, left + 8, y + 8, { lineBreak: false });
+    doc.font("Bold").fontSize(11).fillColor(status === "READY" ? "#9a3412" : "#166534").text(`${statusTitle} - ${totals(status)} ${t.plows}`, left + 8, y + 8, { lineBreak: false });
     y += 38;
     if (!group.length) textBlock(t.empty);
+    else tableHeader();
     for (const shipment of group) {
-      if (y + 110 > bottom) newPage();
-      const continuation = `${statusTitle} | ${t.order} #${shipment.id} | ${shipment.companyName} (${t.continued})`;
-      textBlock(`${t.order} #${shipment.id} | ${t.customer}: ${shipment.companyName}`, "#0f4c81", true);
-      textBlock([`${shipment.firstName} ${shipment.lastName}`.trim(), shipment.street, `${shipment.postalCode} ${shipment.city}`.trim(), shipment.country].filter(Boolean).join(" | "));
-      if (y + 50 > bottom) { newPage(); textBlock(`${statusTitle} | ${t.order} #${shipment.id}`, "#0f4c81", true); }
-      tableHeader();
-      for (const item of shipment.items) {
-        const valve = item.valveType === "EIGHT_THREE" ? "8/3" : item.valveType === "LARGE" ? "6/2 Schwarz" : item.valveType === "SMALL" ? "6/2 Grau" : t.none;
-        const config = [item.variant === "ZINC" ? t.zinc : t.orange,
-          `Schwenkbock: ${item.isSchwenkbock ? t.yes : t.no}`, `Wegeventil: ${valve}`,
-          `${t.holder}: ${item.bucketHolder ? t.yes : t.no}`, item.extraParts].filter(Boolean).join(" | ");
-        row([`${item.model.replace("_", " ")} / ${item.serialNumber}`, item.buildNumber, config, String(item.quantity), item.buildDate.toLocaleDateString(options.lang === "pl" ? "pl-PL" : "de-DE", { timeZone: "UTC" })], continuation);
-      }
-      for (const extra of shipment.extras) textBlock(`${t.extras}: ${extra.name} x ${extra.quantity}${extra.note ? ` | ${extra.note}` : ""}`);
-      if (shipment.notes) textBlock(`${t.notes}: ${shipment.notes.replace(/\[RENTAL\]\s*/gi, "")}`);
-      y += 16;
+      const address = [shipment.street, `${shipment.postalCode} ${shipment.city}`.trim(), shipment.country].filter(Boolean).join(", ");
+      const plows = shipment.items.map(item => `${item.model.replace("_", " ")} ${item.serialNumber}-${item.buildNumber}${item.quantity > 1 ? ` (x${item.quantity})` : ""}`).join("\n");
+      row([`${shipment.companyName}\n${address}`, plows], `${statusTitle} (${t.continued})`);
     }
   }
   const pages = doc.bufferedPageRange();

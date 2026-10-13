@@ -11,7 +11,7 @@ vm.runInNewContext(source, { exports: exp, require, process, Buffer, console });
 const out = process.argv[2];
 if (!out) throw new Error("Usage: node scripts/check-shipments-pdf.cjs <preview-directory>");
 fs.mkdirSync(out, { recursive: true });
-const item = { model: "FL_540", serialNumber: 2716, buildNumber: "BAU-2026-101", buildDate: new Date("2026-10-10T00:00:00Z"),
+const item = { model: "FL_540", serialNumber: 2716, buildNumber: "744", buildDate: new Date("2026-10-10T00:00:00Z"),
   variant: "ZINC", isSchwenkbock: true, valveType: "EIGHT_THREE", bucketHolder: true, quantity: 2, extraParts: "Dodatkowe oświetlenie / Zusatzbeleuchtung" };
 const order = { id: 101, status: "READY", companyName: "Müller & Söhne - Zakład usług komunalnych", firstName: "Łukasz", lastName: "Żółć", street: "Długa 15", postalCode: "01-234", city: "Łódź", country: "Polska", notes: "Odbiór po uzgodnieniu terminu. Lieferung nach Terminvereinbarung.", items: [item], extras: [{ name: "Hydraulikschlauch 2500 mm", quantity: 4, note: "Dołączyć do zamówienia" }] };
 (async () => {
