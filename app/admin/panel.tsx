@@ -2687,9 +2687,108 @@ export default function AdminPanel() {
                 />
               </label>
               <label>
-                {b…31586 tokens truncated…v>
+                {bomUi.duplicateTypeLabel}
+                <select
+                  value={duplicateKeepType ? duplicateSource.bomType : duplicateBomType}
+                  onChange={(event) => {
+                    setDuplicateBomType(event.target.value as BomType);
+                    setDuplicateKeepType(false);
+                    setDuplicateWarning(null);
+                    setDuplicateNeedsOverwrite(false);
+                  }}
+                  disabled={duplicateKeepType}
+                >
+                  {bomTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={duplicateKeepType}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setDuplicateKeepType(checked);
+                    if (checked) {
+                      setDuplicateBomType(duplicateSource.bomType);
+                    }
+                    setDuplicateWarning(null);
+                    setDuplicateNeedsOverwrite(false);
+                  }}
+                />
+                {bomUi.duplicateKeepType}
+              </label>
+              {duplicateWarning && <div className="alert">{duplicateWarning}</div>}
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={confirmDuplicate}
+                  disabled={isDuplicating}
+                >
+                  {duplicateNeedsOverwrite ? bomUi.duplicateOverwrite : bomUi.duplicateCreate}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setDuplicateSource(null)}
+                  disabled={isDuplicating}
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {adjustTarget && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="card modal-card">
+            <div className="card-header">
+              <div>
+                <h3 className="title title-with-icon">{t.partsAdjust}</h3>
+                <p className="subtitle">{adjustTarget.name}</p>
+              </div>
+            </div>
+            <form className="form" onSubmit={handleAdjustSubmit}>
+              <label>
+                {t.partsAdjustQty}
+                <input
+                  type="number"
+                  name="delta"
+                  value={adjustForm.delta}
+                  onChange={handleAdjustChange}
+                  step="1"
+                />
+              </label>
+              <label>
+                {t.partsAdjustNote}
+                <textarea
+                  name="note"
+                  value={adjustForm.note}
+                  onChange={handleAdjustChange}
+                />
+              </label>
+              <div className="form-actions">
+                <button type="submit" className="button">
+                  {t.partsAdjustSave}
+                </button>
+                <button
+                  type="button"
+                  className="button button-ghost"
+                  onClick={() => setAdjustTarget(null)}
+                >
+                  {t.partsAdjustCancel}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
-
-
