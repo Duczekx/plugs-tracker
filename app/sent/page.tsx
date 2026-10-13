@@ -12,7 +12,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 type Variant = "ZINC" | "ORANGE";
 type Model = "FL_640" | "FL_540" | "FL_470" | "FL_400" | "FL_340" | "FL_260";
-type ValveType = "NONE" | "SMALL" | "LARGE";
+type ValveType = "NONE" | "SMALL" | "LARGE" | "EIGHT_THREE";
 type ShipmentStatus = "RESERVED" | "READY" | "SENT";
 type EditSection = "customer" | "plow" | "extras";
 
@@ -84,7 +84,7 @@ const formatDateTime = (value: Date) =>
 const encodeMailParam = (value: string) => encodeURIComponent(value);
 
 const models: Model[] = ["FL_640", "FL_540", "FL_470", "FL_400", "FL_340", "FL_260"];
-const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE"];
+const valveTypes: ValveType[] = ["NONE", "SMALL", "LARGE", "EIGHT_THREE"];
 const RENTAL_MARKER = "[RENTAL]";
 const stripRentalMarker = (value?: string | null) =>
   (value ?? "").replace(/\[RENTAL\]\s*/gi, "").trim();
@@ -228,8 +228,9 @@ export default function SentPage() {
   const valveLabel = useMemo(
     () => ({
       NONE: t.valveNone,
-      SMALL: t.valveSmall,
-      LARGE: t.valveLarge,
+      SMALL: `6/2 ${t.valveSmall}`,
+      LARGE: `6/2 ${t.valveLarge}`,
+      EIGHT_THREE: "8/3",
     }),
     [t]
   );
@@ -254,8 +255,9 @@ export default function SentPage() {
     const de = labels.de;
     const valveLabelDe = {
       NONE: de.valveNone,
-      SMALL: de.valveSmall,
-      LARGE: de.valveLarge,
+      SMALL: `6/2 ${de.valveSmall}`,
+      LARGE: `6/2 ${de.valveLarge}`,
+      EIGHT_THREE: "8/3",
     };
     const bullet = "•";
     const statusText = status === "READY" ? "VERSANDBEREIT" : "GESENDET";
@@ -266,7 +268,7 @@ export default function SentPage() {
         `${bullet} Bau-Nr: ${item.buildNumber}`,
         `${bullet} Farbe: ${item.variant === "ZINC" ? de.variantZinc : de.variantOrange}`,
         `${bullet} Schwenkbock: ${item.isSchwenkbock ? de.yes : de.no}`,
-        `${bullet} 6/2 Wegeventil: ${valveLabelDe[item.valveType]}`,
+        `${bullet} Wegeventil: ${valveLabelDe[item.valveType]}`,
         `${bullet} Eimerhalterung: ${item.bucketHolder ? de.yes : de.no}`,
         `${bullet} Menge: ${item.quantity} stk`,
       ];

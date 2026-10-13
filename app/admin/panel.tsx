@@ -38,7 +38,7 @@ type BomItem = {
   part?: { name: string; category?: string | null };
 };
 
-type BomType = "STANDARD" | "ADDON_6_2" | "SCHWENKBOCK_3000" | "SCHWENKBOCK_2000";
+type BomType = "STANDARD" | "ADDON_8_3" | "ADDON_6_2" | "SCHWENKBOCK_3000" | "SCHWENKBOCK_2000";
 
 type Movement = {
   id: number;
@@ -91,6 +91,7 @@ const schwenkOptions: { value: BomType; label: string }[] = [
 const bomTypeOptions: { value: BomType; label: string }[] = [
   { value: "STANDARD", label: "Standard" },
   { value: "ADDON_6_2", label: "6/2" },
+  { value: "ADDON_8_3", label: "8/3" },
   ...schwenkOptions,
 ];
 
@@ -208,6 +209,13 @@ export default function AdminPanel() {
   const [schwenkType, setSchwenkType] = useState<BomType>("SCHWENKBOCK_3000");
 
   const [standardItems, setStandardItems] = useState<BomItem[]>([]);
+  const [eightThreeItems, setEightThreeItems] = useState<BomItem[]>([]);
+  const [eightThreePartQuery, setEightThreePartQuery] = useState("");
+  const [eightThreeQty, setEightThreeQty] = useState(1);
+  const [isSavingEightThree, setIsSavingEightThree] = useState(false);
+  const [eightThreeJson, setEightThreeJson] = useState("");
+  const [eightThreeJsonError, setEightThreeJsonError] = useState<string | null>(null);
+  const eightThreeModel = "8/3";
   const [addonItems, setAddonItems] = useState<BomItem[]>([]);
   const [schwenkItems, setSchwenkItems] = useState<BomItem[]>([]);
 
@@ -348,7 +356,7 @@ export default function AdminPanel() {
     bomType === "SCHWENKBOCK_3000" || bomType === "SCHWENKBOCK_2000";
 
   const getNormalizedModelName = (bomType: BomType, modelName: string) =>
-    isGlobalBomType(bomType) ? "GLOBAL" : modelName;
+    bomType === "ADDON_8_3" ? "8/3" : isGlobalBomType(bomType) ? "GLOBAL" : modelName;
 
   const getBomTypeLabel = (bomType: BomType) => {
     const match = bomTypeOptions.find((option) => option.value === bomType);
@@ -534,6 +542,17 @@ export default function AdminPanel() {
     if (tab !== "bom") {
       return;
     }
+    loadBomByType("ADDON_8_3", eightThreeModel)
+      .then(setEightThreeItems)
+      .catch(() => {
+        setNotice({ type: "error", message: "Nie udalo sie pobrac danych." });
+      });
+  }, [tab, eightThreeModel]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
     loadBomByType(schwenkType, "")
       .then(setSchwenkItems)
       .catch(() => {
@@ -628,6 +647,13 @@ export default function AdminPanel() {
     }
     loadPartOptions(addonPartQuery).catch(() => null);
   }, [tab, addonPartQuery]);
+
+  useEffect(() => {
+    if (tab !== "bom") {
+      return;
+    }
+    loadPartOptions(eightThreePartQuery).catch(() => null);
+  }, [tab, eightThreePartQuery]);
 
   useEffect(() => {
     if (tab !== "bom") {
@@ -778,7 +804,7 @@ export default function AdminPanel() {
       return;
     }
     const targetType = duplicateKeepType ? duplicateSource.bomType : duplicateBomType;
-    const targetModel = duplicateModelName.trim();
+    const targetModel = targetType === "ADDON_8_3" ? "8/3" : duplicateModelName.trim();
     if (!isGlobalBomType(targetType) && !targetModel) {
       setDuplicateWarning(bomUi.duplicateMissing);
       return;
@@ -823,6 +849,10 @@ export default function AdminPanel() {
         setStandardModel(targetModel || standardModel);
         loadBomByType(targetType, targetModel || standardModel)
           .then(setStandardItems)
+          .catch(() => null);
+      } else if (targetType === "ADDON_8_3") {
+        loadBomByType(targetType, eightThreeModel)
+          .then(setEightThreeItems)
           .catch(() => null);
       } else if (targetType === "ADDON_6_2") {
         setAddonModel(targetModel || addonModel);
@@ -959,6 +989,19 @@ export default function AdminPanel() {
       );
       setAddonPartQuery(part.name);
       setAddonQty(qty);
+    } else if (pickerTarget === "ADDON_8_3") {
+      await addBomItemByPart(
+        part,
+        qty,
+        eightThreeItems,
+        setEightThreeItems,
+        "ADDON_8_3",
+        eightThreeModel,
+        setIsSavingEightThree,
+        isSavingEightThree
+      );
+      setEightThreePartQuery(part.name);
+      setEightThreeQty(qty);
     } else {
       await addBomItemByPart(
         part,
@@ -1717,6 +1760,145 @@ export default function AdminPanel() {
                         setAddonItems,
                         setAddonJsonError,
                         addonItems
+                      )
+                    }
+                  >
+                    {bomUi.paste}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bom-section">
+              <div className="card-header">
+                <div>
+                  <h3 className="title">8/3</h3>
+                </div>
+                <div className="card-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      copyBomToClipboard("ADDON_8_3", eightThreeModel, eightThreeItems)
+                    }
+                  >
+                    {bomUi.copy}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-ghost button-small"
+                    onClick={() =>
+                      openDuplicateModal("ADDON_8_3", eightThreeModel, eightThreeItems)
+                    }
+                  >
+                    {bomUi.duplicate}
+                  </button>
+                </div>
+              </div>
+              <form
+                className="form form-compact"
+                onSubmit={(event) =>
+                  addBomItem(
+                    event,
+                    eightThreePartQuery,
+                    eightThreeQty,
+                    eightThreeItems,
+                    setEightThreeItems,
+                    setEightThreePartQuery,
+                    setEightThreeQty,
+                    "ADDON_8_3",
+                    eightThreeModel,
+                    setIsSavingEightThree,
+                    isSavingEightThree
+                  )
+                }
+              >
+                <div className="form-row">
+                  <label className="form-grow">
+                    {t.bomPartLabel}
+                    <input
+                      list="bom-parts"
+                      value={eightThreePartQuery}
+                      onChange={(event) => setEightThreePartQuery(event.target.value)}
+                      placeholder={t.partsSearch}
+                    />
+                  </label>
+                  <div className="form-actions form-actions-tight">
+                    <button
+                      type="button"
+                      className="button button-ghost button-small"
+                      onClick={() => {
+                        setPickerTarget("ADDON_8_3");
+                        setIsPartPickerOpen(true);
+                      }}
+                    >
+                      {t.partsPick}
+                    </button>
+                  </div>
+                  <label>
+                    {t.bomQtyLabel}
+                    <input
+                      type="number"
+                      value={eightThreeQty}
+                      onChange={(event) => setEightThreeQty(Number(event.target.value))}
+                      min={1}
+                      step="1"
+                    />
+                  </label>
+                  <div className="form-actions form-actions-tight">
+                    <button type="submit" className="button" disabled={isSavingEightThree}>
+                      {t.bomAddItem}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="table-wrap">
+                <table className="inventory-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>{t.bomPartLabel}</th>
+                      <th>{t.bomQtyLabel}</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderGroupedBomRows(
+                      eightThreeItems,
+                      setEightThreeItems,
+                      "ADDON_8_3",
+                      eightThreeModel,
+                      setIsSavingEightThree,
+                      isSavingEightThree
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="form" style={{ marginTop: 16 }}>
+                <label>
+                  {bomUi.jsonLabel}
+                  <textarea
+                    value={eightThreeJson}
+                    onChange={(event) => {
+                      setEightThreeJson(event.target.value);
+                      setEightThreeJsonError(null);
+                    }}
+                    placeholder={bomUi.jsonPlaceholder}
+                    rows={5}
+                  />
+                </label>
+                {eightThreeJsonError && <div className="alert">{eightThreeJsonError}</div>}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="button button-ghost"
+                    onClick={() =>
+                      applyBomJson(
+                        eightThreeJson,
+                        setEightThreeItems,
+                        setEightThreeJsonError,
+                        eightThreeItems
                       )
                     }
                   >
@@ -2505,108 +2687,9 @@ export default function AdminPanel() {
                 />
               </label>
               <label>
-                {bomUi.duplicateTypeLabel}
-                <select
-                  value={duplicateKeepType ? duplicateSource.bomType : duplicateBomType}
-                  onChange={(event) => {
-                    setDuplicateBomType(event.target.value as BomType);
-                    setDuplicateKeepType(false);
-                    setDuplicateWarning(null);
-                    setDuplicateNeedsOverwrite(false);
-                  }}
-                  disabled={duplicateKeepType}
-                >
-                  {bomTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={duplicateKeepType}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setDuplicateKeepType(checked);
-                    if (checked) {
-                      setDuplicateBomType(duplicateSource.bomType);
-                    }
-                    setDuplicateWarning(null);
-                    setDuplicateNeedsOverwrite(false);
-                  }}
-                />
-                {bomUi.duplicateKeepType}
-              </label>
-              {duplicateWarning && <div className="alert">{duplicateWarning}</div>}
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="button"
-                  onClick={confirmDuplicate}
-                  disabled={isDuplicating}
-                >
-                  {duplicateNeedsOverwrite ? bomUi.duplicateOverwrite : bomUi.duplicateCreate}
-                </button>
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={() => setDuplicateSource(null)}
-                  disabled={isDuplicating}
-                >
-                  {t.cancel}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {adjustTarget && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <section className="card modal-card">
-            <div className="card-header">
-              <div>
-                <h3 className="title title-with-icon">{t.partsAdjust}</h3>
-                <p className="subtitle">{adjustTarget.name}</p>
-              </div>
-            </div>
-            <form className="form" onSubmit={handleAdjustSubmit}>
-              <label>
-                {t.partsAdjustQty}
-                <input
-                  type="number"
-                  name="delta"
-                  value={adjustForm.delta}
-                  onChange={handleAdjustChange}
-                  step="1"
-                />
-              </label>
-              <label>
-                {t.partsAdjustNote}
-                <textarea
-                  name="note"
-                  value={adjustForm.note}
-                  onChange={handleAdjustChange}
-                />
-              </label>
-              <div className="form-actions">
-                <button type="submit" className="button">
-                  {t.partsAdjustSave}
-                </button>
-                <button
-                  type="button"
-                  className="button button-ghost"
-                  onClick={() => setAdjustTarget(null)}
-                >
-                  {t.partsAdjustCancel}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
+                {b…31586 tokens truncated…v>
     </div>
   );
 }
+
+

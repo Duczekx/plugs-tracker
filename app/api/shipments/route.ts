@@ -36,7 +36,8 @@ const isModel = (value: string): value is Model =>
 const isValveType = (value: string): value is ValveType =>
   value === ValveType.NONE ||
   value === ValveType.SMALL ||
-  value === ValveType.LARGE;
+  value === ValveType.LARGE ||
+  value === ValveType.EIGHT_THREE;
 
 type IncomingItem = {
   model: string;
@@ -63,6 +64,11 @@ type IncomingExtraItem = {
 };
 
 const deriveConfiguration = (item: Pick<IncomingItem, "isSchwenkbock" | "valveType">) => {
+  if (item.valveType === ValveType.EIGHT_THREE) {
+    return item.isSchwenkbock
+      ? BomConfiguration.SCHWENKBOCK_8_3
+      : BomConfiguration.STANDARD_8_3;
+  }
   const hasValve = item.valveType !== ValveType.NONE;
   if (item.isSchwenkbock && hasValve) {
     return BomConfiguration.SCHWENKBOCK_6_2;

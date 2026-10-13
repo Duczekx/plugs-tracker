@@ -71,6 +71,9 @@ API ról:
 - `GET /api/role/me`
 
 ## Rozwoj
+- BOM 8/3: w `/admin` znajduje sie osobna sekcja z jedna receptura, bez wariantow kolorystycznych. Uzupelnij czesci i ilosci przed oznaczeniem zamowienia z zaworem 8/3 jako READY. Receptura 8/3 jest niezalezna od 6/2.
+- Przy wdrozeniu obslugi 8/3 uruchom `npm run db:deploy` przed uruchomieniem nowej wersji aplikacji.
+- Test rozliczania BOM zaworow bez bazy danych: `node scripts/check-valve-bom.cjs`.
 - Plik schematu bazy: `prisma/schema.prisma`
 - API:
   - `GET /api/inventory`
